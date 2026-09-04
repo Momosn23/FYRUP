@@ -4,10 +4,10 @@
 
 - [x] `xcodegen generate` in Codemagic erfolgreich
 - [x] Debug Build auf iPhone-17-Pro-Simulator
-- [ ] Release Build mit `CODE_SIGNING_ALLOWED=NO`
-- [x] Build 10: Unit- und 9 UI-Flows grün; finaler Regressionsbuild folgt
+- [x] Signierter Release-Build 6 mit App-Store-Provisioning
+- [x] Build 11 (`487abd4`): Unit- und 9 UI-Flows grün, 0 Fehler, `TEST SUCCEEDED`
 - [x] 30 pgTAP-Prüfungen im Produktionsprojekt bis `ok 30`
-- [ ] Edge Functions lokal typgeprüft
+- [x] Edge Functions produktiv bereitgestellt; Dispatcher über Cron mit HTTP 200 aufgerufen
 
 ## Echte Geräte und Accounts
 
@@ -28,8 +28,9 @@
 
 ## Apple / TestFlight
 
-- [ ] Eindeutige Bundle ID, Distribution Certificate und Profile
-- [ ] Sign in with Apple + Push Capability in der App ID
+- [x] Eindeutige Bundle ID, Distribution Certificate und App-Store-Profil
+- [x] Sign in with Apple + Push Capability in der App ID
+- [x] Build 6 ohne Uploadfehler verarbeitet und der Gruppe FYRUP Intern zugeordnet
 - [ ] Production APNs Key als Supabase Secret
 - [ ] App Privacy Questionnaire und Privacy Policy URL
 - [ ] Support URL, Beschreibung, Keywords, Screenshots, Altersfreigabe

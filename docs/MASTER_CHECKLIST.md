@@ -22,7 +22,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Apple-, E-Mail-Login und Account-erstellen-Aktionen sichtbar
 - [x] ✅ Vier Hauptziele: Home, Planen, Entdecken/Freunde und Profil
 - [x] ✅ Schnellzugriff zum Planen/Starten und Benachrichtigungsglocke
-- [x] ✅ 13 Referenzansichten wurden in Codemagic Build 8 als PNG erfasst
+- [x] ✅ 13 Referenzansichten wurden in Codemagic Build 11 als PNG erfasst und zu einem Kontaktblatt zusammengeführt
 - [ ] 🧪 Pixel-/Layoutvergleich der PNGs mit den gelieferten Referenzen (Download aus Codemagic noch lokal zu öffnen)
 
 ## 3. Authentifizierung und Session
@@ -140,6 +140,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Acht feingranulare Push-Einstellungen mit serverseitiger Filterung
 - [x] ✅ Push-Taps öffnen abhängig vom Ereignis Freunde oder Mitteilungsfeed
 - [x] ✅ Push-Dispatcher als Edge Function im Produktionsprojekt veröffentlicht
+- [x] ✅ Reproduzierbarer minütlicher Dispatcher-Cron mit verschlüsselten Vault-Secrets
+- [x] ✅ Produktions-Cron und Edge-Aufruf verifiziert: Job erfolgreich, HTTP 200, keine wartenden Pushs
 - [x] ✅ APNs-Key `ZAYGWU8U3P` für Sandbox und Produktion erstellt und sicher heruntergeladen
 - [x] ✅ APNs-Team-ID, Key-ID, Topic und Cron-Secret als verschlüsselte Supabase-Secrets gespeichert
 - [ ] 🧪 APNs-Private-Key einmalig manuell als verschlüsseltes Supabase-Secret einfügen
@@ -201,7 +203,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
 - [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
-- [x] ✅ Codemagic Build 10: 9 UI-Flows inklusive Planung/Host-Details und Profilbearbeitung, 0 Fehler, TEST SUCCEEDED
+- [x] ✅ Codemagic Build 11 (`487abd4`): 9 UI-Flows inklusive Planung/Host-Details und Profilbearbeitung, 0 Fehler, TEST SUCCEEDED
 - [x] ✅ Visuelles QA-Kontaktblatt wird bei jedem Cloud-Testbuild erzeugt
 
 ## 18. TestFlight und Store-Vorbereitung
@@ -211,7 +213,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Signierter IPA-Build über Codemagic
 - [x] ✅ Upload zu App Store Connect/TestFlight erfolgreich
 - [x] ✅ Release-Build enthält geprüfte Supabase-Konfiguration
-- [ ] 🧪 Neuesten korrigierten Build hochladen und auf dem iPhone installieren
+- [x] ✅ FYRUP 1.0.0 Build 6 signiert, ohne Uploadfehler verarbeitet und FYRUP Intern zugeordnet
+- [ ] 🧪 Build 6 aus TestFlight auf dem iPhone installieren
 - [ ] ⬜ App-Privacy-Angaben, Support-/Privacy-URL, Beschreibung, Keywords und Altersfreigabe vervollständigen
 - [ ] ⬜ App-Store-Screenshots in erforderlichen Größen erstellen
 - [ ] ⬜ Interne Beta mit zwei Konten, danach 5–20 externe Tester
@@ -226,8 +229,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## Nächste Reihenfolge
 
-1. Letzten Cloud-iPhone-Testbuild mit Planungsmodus-, Datums- und Fehlermeldungsregressionen grün bekommen.
+1. Build 6 aus TestFlight auf dem iPhone installieren.
 2. Das erzeugte Kontaktblatt aus Codemagic gegen die gelieferten Zielbilder prüfen und Abweichungen korrigieren.
 3. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
-4. Neuen signierten TestFlight-Build erzeugen und auf dem iPhone installieren.
-5. Zwei-Konten-Endabnahme auf echten iPhones durchführen.
+4. Zwei-Konten-Endabnahme auf echten iPhones durchführen.

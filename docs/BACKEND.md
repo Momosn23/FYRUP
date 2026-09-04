@@ -24,7 +24,7 @@ Sofort: `live → completed | cancelled`. Geplant: `planned → ready → live �
 
 `plan_session` erzeugt Termin, Host-Activity, Einladungen und Inbox-Ereignisse in einer Transaktion. `respond_to_invite` verwaltet Antworten und legt bei `accepted` eine eigene verknüpfte Activity an; `maybe` bleibt bewusst unverbindlich. `my_hosted_sessions` liefert dem Host die Status Wartet/Dabei/Vielleicht/Kann nicht. `update_planned_session` ändert Uhrzeit, Dauer, Notiz, Treffpunkt und Beitrittsfreigabe atomar, setzt die Erinnerung zurück, aktualisiert noch nicht gestartete Teilnehmer-Activities und informiert Betroffene. Startet der Host die Session, werden Accepted-Teilnehmer benachrichtigt; jeder startet seine Activity selbst. `cancel_session` storniert noch nicht gestartete Activities und informiert Eingeladene.
 
-`process_scheduled_sessions` markiert erreichte Termine als Ready und legt 30-Minuten-Erinnerungen idempotent an. Die Migration `202609040008_scheduled_session_cron.sql` plant diese Funktion idempotent alle fünf Minuten via Supabase Cron. Der HTTP-Aufruf des Push-Dispatchers wird erst nach Hinterlegung des privaten APNs-Schlüssels aktiviert.
+`process_scheduled_sessions` markiert erreichte Termine als Ready und legt 30-Minuten-Erinnerungen idempotent an. Die Migration `202609040008_scheduled_session_cron.sql` plant diese Funktion idempotent alle fünf Minuten via Supabase Cron. `202609040009_notification_dispatch_cron.sql` ruft den Push-Dispatcher minütlich über `pg_net` auf. Projekt-URL und Cron-Secret liegen dabei ausschließlich verschlüsselt als `fyrup_project_url` und `fyrup_cron_secret` in Supabase Vault; kein Secret steht im SQL oder Repository.
 
 ## Friendship und FYR UP
 
