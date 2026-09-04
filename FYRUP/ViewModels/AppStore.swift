@@ -16,6 +16,7 @@ final class AppStore {
     var notificationPreferences: NotificationPreferences = .standard
     var invitations: [SessionInvitation] = []
     var hostedSessions: [HostedSession] = []
+    var trainingGroups: [TrainingGroup] = []
     var recentActivities: [Activity] = []
     var userSearchResults: [Profile] = []
     var goals: GoalSummary = .empty
@@ -153,8 +154,8 @@ final class AppStore {
         do {
             let result = try await repository.today(userID: userID)
             myActivity = result.0; crew = result.1
-            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
-            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; hostedSessions = (try? await hosted) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
+            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let groups = repository.trainingGroups(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
+            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; hostedSessions = (try? await hosted) ?? []; trainingGroups = (try? await groups) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
             if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1; goals = cached.2 }
@@ -196,6 +197,12 @@ final class AppStore {
     func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID]) async {
         guard let userID = session?.userID else { return }
         await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees); await self.analytics.track(.activityPlanned); if !invitees.isEmpty { await self.analytics.track(.inviteSent) }; self.showsActivityComposer = false; await self.refresh() }
+    }
+    func createTrainingGroup(name: String, memberIDs: [UUID]) async {
+        await perform { try await self.repository.createTrainingGroup(name: name, memberIDs: memberIDs); await self.refresh() }
+    }
+    func deleteTrainingGroup(_ group: TrainingGroup) async {
+        await perform { try await self.repository.deleteTrainingGroup(id: group.id); await self.refresh() }
     }
     func updateHostedSession(_ session: PlannedSession) async {
         await perform { _ = try await self.repository.updateHostedSession(session); await self.refresh() }
@@ -253,7 +260,9 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity { throw AppError.configuration }
     func cancelActivity(id: UUID) async throws {}
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {}
-    func invitations() async throws -> [SessionInvitation] { [] }; func hostedSessions() async throws -> [HostedSession] { [] }; func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession { session }; func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}; func cancelPlannedSession(sessionID: UUID) async throws {}; func joinPlannedSession(sessionID: UUID) async throws {}
+    func invitations() async throws -> [SessionInvitation] { [] }; func hostedSessions() async throws -> [HostedSession] { [] }
+    func trainingGroups() async throws -> [TrainingGroup] { [] }; func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {}; func deleteTrainingGroup(id: UUID) async throws {}
+    func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession { session }; func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}; func cancelPlannedSession(sessionID: UUID) async throws {}; func joinPlannedSession(sessionID: UUID) async throws {}
     func searchUsers(query: String) async throws -> [Profile] { [] }; func requests() async throws -> [Profile] { [] }
     func sendFriendRequest(to userID: UUID) async throws {}; func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
     func removeFriend(_ userID: UUID) async throws {}; func block(_ userID: UUID) async throws {}; func fyrup(_ userID: UUID) async throws {}

@@ -22,6 +22,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Apple-, E-Mail-Login und Account-erstellen-Aktionen sichtbar
 - [x] ✅ Vier Hauptziele: Home, Planen, Entdecken/Freunde und Profil
 - [x] ✅ Schnellzugriff zum Planen/Starten und Benachrichtigungsglocke
+- [ ] 🧪 Vier originale Sport-Hero-Motive für Gym, Running, Kampfsport und Outdoor in Auswahl, Planung und Details
+- [ ] 🧪 Aktivitätsauswahl und Planung als eigenständiger Fullscreen-Flow statt kleinem Standard-Overlay
 - [x] ✅ 13 Referenzansichten wurden in Codemagic Build 11 als PNG erfasst und zu einem Kontaktblatt zusammengeführt
 - [ ] 🧪 Pixel-/Layoutvergleich der PNGs mit den gelieferten Referenzen (Download aus Codemagic noch lokal zu öffnen)
 
@@ -55,6 +57,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Alle im Masterauftrag genannten V1-Unterkategorien vorhanden
 - [x] ✅ Unterkategorie kann übersprungen werden
 - [x] ✅ Sportarten können im Profil geändert werden
+- [ ] 🧪 Gym-Presets Push, Pull, Beine und Full Body mit automatisch vorgeschlagenen Muskelgruppen
+- [ ] 🧪 Einzelne Körpergruppen Brust, Rücken, Schultern, Bizeps, Trizeps, Core, Po, Quadrizeps, Beinbeuger und Waden frei kombinierbar
 
 ## 6. Freundesystem
 
@@ -64,6 +68,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Blockieren und serverseitiges Verhindern weiterer Interaktionen
 - [x] ✅ Doppelte Anfragen werden serverseitig verhindert
 - [x] ✅ Freunde-Screen mit Anfragen, Profil, Tagesstatus und Wochenanzahl
+- [ ] 🧪 Private Trainingsgruppen erstellen, ansehen und löschen
+- [ ] 🧪 Gruppen bestehen ausschließlich aus akzeptierten Freunden und sind per RLS geschützt
 - [ ] 🧪 End-to-End-Abnahme mit zwei echten TestFlight-Konten
 
 ## 7. Heute-Feed und eigener Status
@@ -103,6 +109,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Host sieht Wartet/Dabei/Vielleicht/Kann-nicht je eingeladenem Freund
 - [x] ✅ Host kann Uhrzeit, Dauer, Notiz, Treffpunkt und Beitrittsfreigabe nachträglich ändern
 - [x] ✅ Sichtbarer Schalter „Freunde dürfen sich anschließen“ beim Planen
+- [ ] 🧪 Sichtbare Freundesuche, Einzel- und Gruppenauswahl direkt im Planungsflow
 - [x] ✅ Geplante Session wechselt serverseitig auf READY
 - [x] ✅ 30-Minuten-Erinnerung ist serverseitig vorbereitet
 - [x] ✅ Supabase-Cron ruft `process_scheduled_sessions` alle fünf Minuten im Produktionsprojekt auf
@@ -151,6 +158,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Aktivitäten nur für akzeptierte Freunde oder niemanden
 - [x] ✅ Kein öffentlicher Feed, keine Karte, kein Live-Standort
 - [x] ✅ RLS für Profile, Freundschaften, Aktivitäten, Einladungen, FYR UP, Reaktionen, Notifications und Tokens
+- [x] ✅ RLS und Security-Definer-RPCs für private Trainingsgruppen im Produktionsprojekt aktiv
 - [x] ✅ Private Avatar-Bucket-Policies für Eigentümer und Freunde
 - [x] ✅ Blockierung wird in zentralen DB-Helpern berücksichtigt
 - [x] ✅ Account-Löschung über authentifizierte Edge Function
@@ -189,8 +197,9 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ pgTAP-Schema-/Policy-Prüfungen
 - [x] ✅ Notification-Preferences-Migration im Produktionsprojekt ausgerollt und Tabelle/RLS/RPCs/Trigger geprüft
 - [x] ✅ Private Avatar-Migration im Produktionsprojekt ausgerollt und Bucket/Policies geprüft
-- [x] ✅ pgTAP auf 30 Schema-/Policy-/RPC-Prüfungen einschließlich Storage erweitert
-- [x] ✅ pgTAP-Suite im Produktionsprojekt bis `ok 30` ausgeführt
+- [x] ✅ Migration 010 für private Trainingsgruppen im Produktionsprojekt ausgerollt
+- [x] ✅ pgTAP auf 37 Schema-/Policy-/RPC-Prüfungen einschließlich Trainingsgruppen erweitert
+- [x] ✅ pgTAP-Suite im Produktionsprojekt bis `ok 37` ausgeführt
 
 ## 17. Automatisierte Tests
 
@@ -202,6 +211,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ UI: Start → LIVE → DONE
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
 - [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
+- [ ] 🧪 UI: konkrete Gym-Körpergruppen und Erstellen einer Trainingsgruppe automatisiert abgedeckt
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
 - [x] ✅ Codemagic Build 11 (`487abd4`): 9 UI-Flows inklusive Planung/Host-Details und Profilbearbeitung, 0 Fehler, TEST SUCCEEDED
 - [x] ✅ Visuelles QA-Kontaktblatt wird bei jedem Cloud-Testbuild erzeugt
@@ -229,7 +239,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## Nächste Reihenfolge
 
-1. Build 6 aus TestFlight auf dem iPhone installieren.
-2. Das erzeugte Kontaktblatt aus Codemagic gegen die gelieferten Zielbilder prüfen und Abweichungen korrigieren.
+1. Neuen Codemagic-UI-Build mit Gym-Fokus, Gruppen und Fullscreen-Planung prüfen.
+2. Signierten TestFlight-Build hochladen und die neue Gestaltung auf dem iPhone abnehmen.
 3. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
 4. Zwei-Konten-Endabnahme auf echten iPhones durchführen.

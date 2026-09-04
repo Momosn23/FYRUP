@@ -29,6 +29,66 @@ enum TodayStatus: Int, Codable, Comparable, Sendable {
     static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
 }
 
+enum GymBodyArea: String, CaseIterable, Identifiable, Sendable {
+    case chest, back, shoulders, biceps, triceps, core, glutes, quads, hamstrings, calves
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .chest: "Brust"
+        case .back: "Rücken"
+        case .shoulders: "Schultern"
+        case .biceps: "Bizeps"
+        case .triceps: "Trizeps"
+        case .core: "Core"
+        case .glutes: "Po"
+        case .quads: "Quadrizeps"
+        case .hamstrings: "Beinbeuger"
+        case .calves: "Waden"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .chest: "figure.strengthtraining.traditional"
+        case .back: "figure.rower"
+        case .shoulders: "figure.arms.open"
+        case .biceps, .triceps: "dumbbell.fill"
+        case .core: "figure.core.training"
+        case .glutes: "figure.stairs"
+        case .quads, .hamstrings: "figure.step.training"
+        case .calves: "figure.walk.motion"
+        }
+    }
+}
+
+enum GymProgram: String, CaseIterable, Identifiable, Sendable {
+    case push = "Push", pull = "Pull", legs = "Beine", fullBody = "Full Body"
+    var id: String { rawValue }
+    var subtitle: String {
+        switch self {
+        case .push: "Brust, Schultern, Trizeps"
+        case .pull: "Rücken, Bizeps"
+        case .legs: "Quadrizeps, Beinbeuger, Po, Waden"
+        case .fullBody: "Alle großen Muskelgruppen"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .push: "arrow.up.forward"
+        case .pull: "arrow.down.backward"
+        case .legs: "figure.step.training"
+        case .fullBody: "figure.strengthtraining.traditional"
+        }
+    }
+    var areas: [GymBodyArea] {
+        switch self {
+        case .push: [.chest, .shoulders, .triceps]
+        case .pull: [.back, .biceps]
+        case .legs: [.quads, .hamstrings, .glutes, .calves]
+        case .fullBody: GymBodyArea.allCases
+        }
+    }
+}
+
 struct Profile: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var username: String
@@ -117,6 +177,18 @@ struct HostedSession: Codable, Identifiable, Sendable {
     var session: PlannedSession
     let participants: [SessionParticipant]
     var id: UUID { session.id }
+}
+
+struct TrainingGroup: Codable, Identifiable, Sendable {
+    let id: UUID
+    let ownerID: UUID
+    var name: String
+    let members: [Profile]
+    var memberCount: Int { members.count }
+    enum CodingKeys: String, CodingKey {
+        case id, name, members
+        case ownerID = "owner_id"
+    }
 }
 
 struct SessionInvitation: Codable, Identifiable, Sendable {

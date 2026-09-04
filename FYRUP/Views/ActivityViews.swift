@@ -6,14 +6,18 @@ struct ActivityComposerView: View {
     let linkedActivityID: UUID?
     @State private var sport: SportKind?
     @State private var subtype: String?
+    @State private var gymAreas = Set<GymBodyArea>()
     @State private var mode: Int
     @State private var startsAt = Date().addingTimeInterval(3600)
     @State private var duration = 60
     @State private var note = ""
     @State private var placeName = ""
     @State private var friendsCanJoin = true
+    @State private var invitesEnabled = true
     @State private var invitees = Set<UUID>()
-    @State private var search = ""
+    @State private var sportSearch = ""
+    @State private var friendSearch = ""
+    @State private var showsGroupCreator = false
 
     init(linkedActivityID: UUID? = nil, initialMode: Int = 0) {
         self.linkedActivityID = linkedActivityID
@@ -23,20 +27,47 @@ struct ActivityComposerView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text(sport == nil ? "Aktivität wählen" : mode == 0 ? "Training starten" : "Training planen").font(.title2.bold())
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(sport == nil ? "Aktivität wählen" : mode == 0 ? "Training starten" : "Training planen").font(.title2.weight(.black))
+                        Text(sport == nil ? "Was steht heute an?" : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
+                            .font(.subheadline).foregroundStyle(FYColor.muted)
+                    }
                     if sport == nil { sportChooser }
                     else { details }
                 }.padding(20)
-            }.background(FYColor.background).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
-        }.preferredColorScheme(.dark)
+            }
+            .background(FYColor.background)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: { Image(systemName: "xmark").font(.subheadline.bold()).frame(width: 34, height: 34).background(FYColor.elevated, in: Circle()) }
+                        .accessibilityLabel("Schließen")
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let sport {
+                    Button(mode == 0 ? "JETZT STARTEN" : "TRAINING PLANEN") {
+                        Task {
+                            if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID) }
+                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeName.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : []) }
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .accessibilityIdentifier("confirm-activity")
+                    .padding(.horizontal, 20).padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+        .fullScreenCover(isPresented: $showsGroupCreator) { TrainingGroupEditorView() }
     }
     private var sportChooser: some View {
         VStack(spacing: 14) {
-            HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Suchen …", text: $search) }
+            HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Suchen …", text: $sportSearch) }
                 .padding(12).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(SportKind.allCases.filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) }) { item in
-                    Button { sport = item } label: {
+                ForEach(SportKind.allCases.filter { sportSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(sportSearch) }) { item in
+                    Button { sport = item; subtype = nil; gymAreas = [] } label: {
                         VStack(spacing: 9) {
                             Image(systemName: item.symbol).font(.title2).foregroundStyle(item.accentColor)
                             Text(item.title).font(.caption2.bold()).lineLimit(1).minimumScaleFactor(0.72)
@@ -51,23 +82,175 @@ struct ActivityComposerView: View {
     }
     @ViewBuilder private var details: some View {
         if let sport {
-            Button { self.sport = nil; subtype = nil } label: { ActivityLabel(activity: Activity(id: UUID(), userID: UUID(), sport: sport, subtype: subtype, status: .planned, plannedAt: nil, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)) }.buttonStyle(.plain)
-            if let choices = SportCatalog.subtypes[sport] {
-                ScrollView(.horizontal, showsIndicators: false) { HStack { Button("Überspringen") { subtype = nil }.chip(selected: subtype == nil); ForEach(choices, id: \.self) { item in Button(item) { subtype = item }.chip(selected: subtype == item) } } }
+            Button { self.sport = nil; subtype = nil; gymAreas = [] } label: {
+                SportHeroCard(sport: sport, title: sport.title, subtitle: storedSubtype ?? "Training auswählen")
+            }.buttonStyle(.plain)
+
+            if sport == .gym { gymFocus }
+            else if let choices = SportCatalog.subtypes[sport] {
+                Text("WAS GENAU?").composerSectionTitle()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack { Button("Frei") { subtype = nil }.chip(selected: subtype == nil); ForEach(choices, id: \.self) { item in Button(item) { subtype = item }.chip(selected: subtype == item) } }
+                }
             }
-            Picker("Startart", selection: $mode) { Text("JETZT STARTEN").tag(0); Text("PLANEN").tag(1) }.pickerStyle(.segmented)
+
+            Picker("Startart", selection: $mode) { Text("JETZT STARTEN").tag(0); Text("PLANEN").tag(1) }
+                .pickerStyle(.segmented)
             if mode == 1 {
-                DatePicker("Datum & Uhrzeit", selection: $startsAt, in: Date()...).datePickerStyle(.compact).fyCard()
-                Stepper("ca. \(duration) Minuten", value: $duration, in: 15...240, step: 15).fyCard()
-                HStack { Image(systemName: "mappin.and.ellipse").foregroundStyle(FYColor.muted); TextField("Ort / Treffpunkt (optional)", text: $placeName) }
-                    .padding().background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
-                TextField("Notiz (optional)", text: $note, axis: .vertical).padding().background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
-                Toggle("Freunde dürfen sich anschließen", isOn: $friendsCanJoin).fyCard()
-                if !store.crew.isEmpty { Text("Wen willst du einladen?").font(.headline); ForEach(store.crew) { member in Button { invitees.formSymmetricDifference([member.id]) } label: { HStack { AvatarView(profile: member.profile); Text(member.profile.displayName); Spacer(); Image(systemName: invitees.contains(member.id) ? "checkmark.circle.fill" : "circle") }.foregroundStyle(.white) }.buttonStyle(.plain) } }
+                planningDetails
+                invitationPicker
             }
-            Button(mode == 0 ? "JETZT STARTEN" : "TRAINING PLANEN") { Task { if mode == 0 { await store.start(sport: sport, subtype: subtype, linked: linkedActivityID) } else { await store.plan(sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note.isEmpty ? nil : note, placeName: placeName.isEmpty ? nil : placeName, friendsCanJoin: friendsCanJoin, invitees: Array(invitees)) } } }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("confirm-activity")
         }
     }
+
+    private var gymFocus: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("GYM – WAS GENAU?").composerSectionTitle()
+            ForEach(GymProgram.allCases) { program in
+                Button {
+                    subtype = program.rawValue
+                    gymAreas = Set(program.areas)
+                } label: {
+                    HStack(spacing: 13) {
+                        Image(systemName: program.symbol).font(.headline).frame(width: 26).foregroundStyle(FYColor.lime)
+                        VStack(alignment: .leading, spacing: 3) { Text(program.rawValue).font(.subheadline.bold()); Text(program.subtitle).font(.caption).foregroundStyle(FYColor.muted) }
+                        Spacer()
+                        Image(systemName: subtype == program.rawValue ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(subtype == program.rawValue ? FYColor.lime : FYColor.muted)
+                    }.padding(14).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(subtype == program.rawValue ? FYColor.lime.opacity(0.8) : FYColor.line))
+                }.buttonStyle(.plain).foregroundStyle(.white)
+            }
+
+            Text("KÖRPERGRUPPEN AUSWÄHLEN").composerSectionTitle()
+            Text("Du kannst den Vorschlag anpassen oder frei kombinieren.").font(.caption).foregroundStyle(FYColor.muted)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                ForEach(GymBodyArea.allCases) { area in
+                    Button { gymAreas.formSymmetricDifference([area]); if !gymAreas.isEmpty && subtype == nil { subtype = "Individuell" } } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: area.symbol).foregroundStyle(gymAreas.contains(area) ? .black : FYColor.lime)
+                            Text(area.title).font(.caption.bold()).lineLimit(1)
+                            Spacer(minLength: 0)
+                            if gymAreas.contains(area) { Image(systemName: "checkmark").font(.caption.bold()) }
+                        }.padding(.horizontal, 11).frame(minHeight: 44).foregroundStyle(gymAreas.contains(area) ? .black : .white).background(gymAreas.contains(area) ? FYColor.lime : FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+                    }.buttonStyle(.plain).accessibilityIdentifier("gym-area-\(area.rawValue)")
+                }
+            }
+        }
+    }
+
+    private var planningDetails: some View {
+        VStack(spacing: 0) {
+            ComposerRow(symbol: "calendar", title: "Datum") { DatePicker("Datum", selection: $startsAt, in: Date()..., displayedComponents: .date).labelsHidden() }
+            Divider().overlay(FYColor.line).padding(.leading, 44)
+            ComposerRow(symbol: "clock", title: "Uhrzeit") { DatePicker("Uhrzeit", selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute).labelsHidden() }
+            Divider().overlay(FYColor.line).padding(.leading, 44)
+            ComposerRow(symbol: "timer", title: "Dauer") { Stepper("\(duration) Minuten", value: $duration, in: 15...240, step: 15).fixedSize() }
+            Divider().overlay(FYColor.line).padding(.leading, 44)
+            HStack(spacing: 12) { Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted); TextField("Ort (optional)", text: $placeName).multilineTextAlignment(.trailing) }.padding(14)
+        }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
+    }
+
+    private var invitationPicker: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Toggle(isOn: $invitesEnabled) {
+                VStack(alignment: .leading, spacing: 3) { Text("Freunde einladen").font(.headline); Text(invitees.isEmpty ? "Wähle deine Trainingspartner" : "\(invitees.count) ausgewählt").font(.caption).foregroundStyle(FYColor.muted) }
+            }.tint(FYColor.lime)
+
+            if invitesEnabled {
+                if !store.trainingGroups.isEmpty {
+                    HStack { Text("DEINE GRUPPEN").composerSectionTitle(); Spacer(); Button("Neue Gruppe") { showsGroupCreator = true }.font(.caption.bold()).foregroundStyle(FYColor.lime) }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) { ForEach(store.trainingGroups) { group in groupInviteButton(group) } }
+                    }
+                } else {
+                    Button { showsGroupCreator = true } label: { Label("Trainingsgruppe erstellen", systemImage: "person.3.fill").font(.subheadline.bold()).frame(maxWidth: .infinity, minHeight: 46) }
+                        .buttonStyle(.plain).foregroundStyle(FYColor.lime).background(FYColor.lime.opacity(0.09), in: RoundedRectangle(cornerRadius: 13)).overlay(RoundedRectangle(cornerRadius: 13).stroke(FYColor.lime.opacity(0.25)))
+                }
+
+                HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Freunde suchen …", text: $friendSearch) }
+                    .padding(12).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+
+                ForEach(filteredCrew) { member in
+                    Button { invitees.formSymmetricDifference([member.id]) } label: {
+                        HStack(spacing: 12) { AvatarView(profile: member.profile); VStack(alignment: .leading, spacing: 2) { Text(member.profile.displayName).bold(); Text("@\(member.profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: invitees.contains(member.id) ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(invitees.contains(member.id) ? FYColor.lime : FYColor.muted) }
+                    }.buttonStyle(.plain).foregroundStyle(.white)
+                }
+            }
+
+            Divider().overlay(FYColor.line)
+            Toggle("Weitere Freunde dürfen beitreten", isOn: $friendsCanJoin).tint(FYColor.lime).accessibilityLabel("Freunde dürfen sich anschließen")
+            TextField("Nachricht (optional)", text: $note, axis: .vertical).lineLimit(2...4).padding(13).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 13))
+        }.padding(15).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(FYColor.line))
+    }
+
+    private func groupInviteButton(_ group: TrainingGroup) -> some View {
+        let memberIDs = Set(group.members.filter { $0.id != store.profile?.id }.map(\.id))
+        let selected = !memberIDs.isEmpty && memberIDs.isSubset(of: invitees)
+        return Button {
+            if selected { invitees.subtract(memberIDs) }
+            else { invitees.formUnion(memberIDs) }
+        } label: {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack { Image(systemName: "person.3.fill"); Spacer(); Image(systemName: selected ? "checkmark.circle.fill" : "circle") }
+                Text(group.name).font(.subheadline.bold()).lineLimit(1)
+                Text("\(memberIDs.count) Freunde").font(.caption2).foregroundStyle(selected ? .black.opacity(0.65) : FYColor.muted)
+            }.padding(12).frame(width: 142, height: 94, alignment: .leading).foregroundStyle(selected ? .black : .white).background(selected ? FYColor.lime : FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+        }.buttonStyle(.plain)
+    }
+
+    private var filteredCrew: [CrewMember] {
+        guard !friendSearch.isEmpty else { return store.crew }
+        return store.crew.filter { $0.profile.displayName.localizedCaseInsensitiveContains(friendSearch) || $0.profile.username.localizedCaseInsensitiveContains(friendSearch) }
+    }
+
+    private var storedSubtype: String? {
+        guard sport == .gym else { return subtype }
+        let areas = GymBodyArea.allCases.filter(gymAreas.contains).map(\.title)
+        if let subtype, !areas.isEmpty { return "\(subtype) (\(areas.joined(separator: ", ")))" }
+        return subtype ?? (areas.isEmpty ? nil : areas.joined(separator: ", "))
+    }
+}
+
+private struct ComposerRow<Trailing: View>: View {
+    let symbol: String
+    let title: String
+    @ViewBuilder let trailing: () -> Trailing
+    var body: some View { HStack(spacing: 12) { Image(systemName: symbol).frame(width: 22).foregroundStyle(FYColor.muted); Text(title); Spacer(); trailing() }.font(.subheadline).padding(14) }
+}
+
+struct SportHeroCard: View {
+    let sport: SportKind
+    let title: String
+    let subtitle: String
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            Image(sport.heroAssetName).resizable().scaledToFill().frame(maxWidth: .infinity, minHeight: 148, maxHeight: 148).clipped()
+            LinearGradient(colors: [.black.opacity(0.08), .black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 4) { Text(title).font(.title2.weight(.black)); Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.78)).lineLimit(2) }
+                Spacer()
+                Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor)
+            }.padding(16)
+        }.frame(height: 148).clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 18).stroke(FYColor.line))
+    }
+}
+
+private extension SportKind {
+    var heroAssetName: String {
+        switch self {
+        case .gym: "SportGymHero"
+        case .running, .swimming: "SportRunningHero"
+        case .martialArts, .football, .basketball: "SportCombatHero"
+        case .cycling, .racket, .yoga, .other: "SportOutdoorHero"
+        }
+    }
+}
+
+private extension Text {
+    func composerSectionTitle() -> some View { self.font(.caption.weight(.black)).foregroundStyle(FYColor.muted).tracking(0.6) }
+}
+
+private extension String {
+    var trimmedNil: String? { let value = trimmingCharacters(in: .whitespacesAndNewlines); return value.isEmpty ? nil : value }
 }
 
 private extension Button {
@@ -210,10 +393,10 @@ struct ActivityDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 ZStack(alignment: .bottomLeading) {
-                    LinearGradient(colors: [activity.sport.accentColor.opacity(0.42), FYColor.surface], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    Image(systemName: activity.sport.symbol).font(.system(size: 78)).foregroundStyle(.white.opacity(0.16)).frame(maxWidth: .infinity, alignment: .trailing).padding(20)
-                    VStack(alignment: .leading, spacing: 4) { Text(activity.sport.title).font(.largeTitle.bold()); if let subtype = activity.subtype { Text(subtype).foregroundStyle(.white.opacity(0.76)) } }.padding(18)
-                }.frame(height: 180)
+                    Image(activity.sport.heroAssetName).resizable().scaledToFill().frame(maxWidth: .infinity, minHeight: 190, maxHeight: 190).clipped()
+                    LinearGradient(colors: [.black.opacity(0.08), .black.opacity(0.92)], startPoint: .top, endPoint: .bottom)
+                    VStack(alignment: .leading, spacing: 4) { Text(activity.sport.title).font(.largeTitle.bold()); if let subtype = activity.subtype { Text(subtype).font(.subheadline).foregroundStyle(.white.opacity(0.8)).lineLimit(2) } }.padding(18)
+                }.frame(height: 190)
                 VStack(spacing: 0) {
                     DetailRow(symbol: "figure.strengthtraining.traditional", title: "Kategorie", value: activity.sport.title, tint: activity.sport.accentColor)
                     if let subtype = activity.subtype { DetailRow(symbol: "list.bullet", title: "Unterkategorie", value: subtype) }
@@ -227,7 +410,7 @@ struct ActivityDetailView: View {
         .background(FYColor.background)
         .navigationTitle("Aktivitätsdetails")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showsJoin) { ActivityComposerView(linkedActivityID: activity.id) }
+        .fullScreenCover(isPresented: $showsJoin) { ActivityComposerView(linkedActivityID: activity.id) }
     }
 
     @ViewBuilder private var detailAction: some View {

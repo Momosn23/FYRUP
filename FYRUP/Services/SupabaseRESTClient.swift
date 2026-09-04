@@ -190,6 +190,8 @@ actor SupabaseRESTClient {
         if text.contains("password") && (text.contains("characters") || text.contains("weak")) { return .validation("Das Passwort muss mindestens 8 Zeichen lang sein.") }
         if text.contains("reserved_username") { return .conflict("Dieser Username ist reserviert.") }
         if text.contains("username") && (text.contains("duplicate") || code == "23505") { return .conflict("Dieser Username ist bereits vergeben.") }
+        if text.contains("invalid_group_name") { return .validation("Der Gruppenname braucht 2–40 Zeichen.") }
+        if text.contains("group_name_exists") { return .conflict("Du hast bereits eine Gruppe mit diesem Namen.") }
         if text.contains("already_live") { return .conflict("Du hast bereits ein LIVE-Training.") }
         if text.contains("already_sent_today") { return .conflict("Diesen Freund hast du heute bereits motiviert.") }
         if text.contains("friendship_exists") { return .conflict("Diese Freundschaftsanfrage gibt es bereits.") }

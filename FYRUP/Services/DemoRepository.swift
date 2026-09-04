@@ -10,6 +10,7 @@ actor DemoRepository: AppRepository {
     private var profileExists: Bool
     private var pushPreferences: NotificationPreferences = .standard
     private var hosted: [HostedSession] = []
+    private var groups: [TrainingGroup] = []
 
     init(startsWithoutProfile: Bool = false) {
         profileExists = !startsWithoutProfile
@@ -19,6 +20,7 @@ actor DemoRepository: AppRepository {
             Profile(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, username: "sarah", displayName: "Sarah", avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [.running], weeklyGoal: 3, activityVisibility: "friends"),
             Profile(id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!, username: "leon", displayName: "Leon", avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [.football], weeklyGoal: 3, activityVisibility: "friends")
         ]
+        groups = [TrainingGroup(id: UUID(uuidString: "00000000-0000-0000-0000-000000000010")!, ownerID: meID, name: "Gym Crew", members: [crew[0], crew[2]])]
         let now = Date()
         activities = [
             Activity(id: UUID(), userID: crew[0].id, sport: .gym, subtype: "Pull", status: .live, plannedAt: nil, startedAt: now.addingTimeInterval(-28 * 60), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
@@ -69,6 +71,14 @@ actor DemoRepository: AppRepository {
     }
     func invitations() async throws -> [SessionInvitation] { [] }
     func hostedSessions() async throws -> [HostedSession] { hosted }
+    func trainingGroups() async throws -> [TrainingGroup] { groups }
+    func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { throw AppError.conflict("Der Gruppenname ist zu kurz.") }
+        let members = crew.filter { memberIDs.contains($0.id) }
+        groups.append(TrainingGroup(id: UUID(), ownerID: meID, name: trimmed, members: members))
+    }
+    func deleteTrainingGroup(id: UUID) async throws { groups.removeAll { $0.id == id } }
     func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession {
         guard let index = hosted.firstIndex(where: { $0.id == session.id }) else { throw AppError.server }
         hosted[index].session = session

@@ -210,7 +210,7 @@ private struct CrewFeedCard: View {
             }
             Spacer()
             action
-        }.fyCard().sheet(isPresented: $showJoin) { ActivityComposerView(linkedActivityID: member.activity?.id) }
+        }.fyCard().fullScreenCover(isPresented: $showJoin) { ActivityComposerView(linkedActivityID: member.activity?.id) }
     }
     @ViewBuilder private var action: some View {
         if let activity = member.activity, activity.status == .live {

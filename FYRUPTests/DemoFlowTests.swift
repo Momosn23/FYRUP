@@ -50,4 +50,25 @@ final class DemoFlowTests: XCTestCase {
         XCTAssertEqual(hosted.first?.session.placeName, "FYRUP Gym")
         XCTAssertEqual(hosted.first?.session.friendsCanJoin, true)
     }
+
+    func testTrainingGroupCanBeCreatedAndDeleted() async throws {
+        let repository = DemoRepository()
+        let session = try XCTUnwrap(try await repository.restoreSession())
+        let feed = try await repository.today(userID: session.userID)
+        let friends = feed.1
+        let max = try XCTUnwrap(friends.first { $0.profile.username == "max" })
+        try await repository.createTrainingGroup(name: "Weekend Crew", memberIDs: [max.id])
+        let groupsAfterCreate = try await repository.trainingGroups()
+        let created = try XCTUnwrap(groupsAfterCreate.first { $0.name == "Weekend Crew" })
+        XCTAssertEqual(created.members.map(\.id), [max.id])
+        try await repository.deleteTrainingGroup(id: created.id)
+        let groupsAfterDelete = try await repository.trainingGroups()
+        XCTAssertFalse(groupsAfterDelete.contains { $0.id == created.id })
+    }
+
+    func testGymProgramsSelectConcreteBodyAreas() {
+        XCTAssertEqual(GymProgram.push.areas, [.chest, .shoulders, .triceps])
+        XCTAssertTrue(GymProgram.legs.areas.contains(.quads))
+        XCTAssertEqual(Set(GymProgram.fullBody.areas), Set(GymBodyArea.allCases))
+    }
 }

@@ -1,13 +1,15 @@
 create extension if not exists pgtap with schema extensions;
 set search_path to public,extensions;
 begin;
-select plan(30);
+select plan(37);
 
 select has_table('public','profiles','profiles exists');
 select has_table('public','activities','activities exists');
 select has_table('public','friendships','friendships exists');
 select has_table('public','fyrups','fyrups exists');
 select has_table('public','session_invites','invites exists');
+select has_table('public','training_groups','training groups exist');
+select has_table('public','training_group_members','training group members exist');
 select has_table('public','notification_preferences','notification preferences exist');
 select has_column('public','planned_sessions','place_name','planned session place exists');
 select has_index('public','activities','one_live_activity_per_user','only one LIVE activity is enforced');
@@ -16,6 +18,8 @@ select policies_are('public','profiles',array['profiles_read','profiles_insert',
 select policies_are('public','notifications',array['notifications_read'],'notification RLS policies');
 select policies_are('public','device_tokens',array['tokens_owner'],'token RLS policy');
 select policies_are('public','notification_preferences',array['notification_preferences_owner'],'notification preference RLS policy');
+select policies_are('public','training_groups',array['training_groups_read'],'training group RLS policy');
+select policies_are('public','training_group_members',array['training_group_members_read'],'training group member RLS policy');
 select ok(exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='avatars_insert_own'),'avatar owner insert policy');
 select ok(exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='avatars_update_own'),'avatar owner update policy');
 select ok(exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='avatars_delete_own'),'avatar owner delete policy');
@@ -28,6 +32,9 @@ select has_function('public','complete_activity',array['uuid','integer'],'activi
 select has_function('public','plan_session',array['sport_kind','text','timestamp with time zone','smallint','text','text','boolean','uuid[]'],'planning RPC exists');
 select has_function('public','update_planned_session',array['uuid','timestamp with time zone','smallint','text','text','boolean'],'planned session update RPC exists');
 select has_function('public','my_hosted_sessions',array[]::text[],'hosted session details RPC exists');
+select has_function('public','my_training_groups',array[]::text[],'training group list RPC exists');
+select has_function('public','create_training_group',array['text','uuid[]'],'training group create RPC exists');
+select has_function('public','delete_training_group',array['uuid'],'training group delete RPC exists');
 select has_function('public','send_fyrup',array['uuid','text'],'FYR UP RPC exists');
 select has_function('public','respond_to_invite',array['uuid','invitation_status'],'invitation answer RPC exists');
 select has_function('public','cancel_session',array['uuid'],'host cancellation RPC exists');

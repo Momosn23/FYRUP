@@ -19,6 +19,9 @@ protocol AppRepository: Sendable {
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws
     func invitations() async throws -> [SessionInvitation]
     func hostedSessions() async throws -> [HostedSession]
+    func trainingGroups() async throws -> [TrainingGroup]
+    func createTrainingGroup(name: String, memberIDs: [UUID]) async throws
+    func deleteTrainingGroup(id: UUID) async throws
     func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession
     func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws
     func cancelPlannedSession(sessionID: UUID) async throws
@@ -122,6 +125,17 @@ actor LiveAppRepository: AppRepository {
     }
     func invitations() async throws -> [SessionInvitation] { try await client.rpc("my_session_invites", body: [:] as [String: String]) }
     func hostedSessions() async throws -> [HostedSession] { try await client.rpc("my_hosted_sessions", body: [:] as [String: String]) }
+    func trainingGroups() async throws -> [TrainingGroup] { try await client.rpc("my_training_groups", body: [:] as [String: String]) }
+    func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {
+        struct Body: Encodable {
+            let pName: String; let pMemberIDs: [UUID]
+            enum CodingKeys: String, CodingKey { case pName = "p_name", pMemberIDs = "p_member_ids" }
+        }
+        let _: Bool = try await client.rpc("create_training_group", body: Body(pName: name, pMemberIDs: memberIDs))
+    }
+    func deleteTrainingGroup(id: UUID) async throws {
+        let _: Bool = try await client.rpc("delete_training_group", body: ["p_group": id.uuidString])
+    }
     func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession {
         struct Body: Encodable {
             let pSession: UUID; let pStartsAt: Date; let pDurationMinutes: Int?; let pNote: String?; let pPlaceName: String?; let pFriendsCanJoin: Bool

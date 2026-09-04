@@ -3,6 +3,7 @@ import SwiftUI
 struct FriendsView: View {
     @Environment(AppStore.self) private var store
     @State private var query = ""
+    @State private var showsGroupEditor = false
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
@@ -10,11 +11,17 @@ struct FriendsView: View {
                 TextField("Username suchen", text: $query).textInputAutocapitalization(.never).padding(14).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).onSubmit { Task { await store.searchUsers(query) } }
                 if !store.userSearchResults.isEmpty { Text("ERGEBNISSE").sectionTitle(); ForEach(store.userSearchResults) { profile in PersonRow(profile: profile) { Button("HINZUFÜGEN") { Task { await store.sendFriendRequest(to: profile) } }.font(.caption.bold()).foregroundStyle(FYColor.lime) } } }
                 if !store.friendRequests.isEmpty { Text("ANFRAGEN").sectionTitle(); ForEach(store.friendRequests) { profile in PersonRow(profile: profile) { HStack { Button("Annehmen") { Task { await store.answerRequest(from: profile, accept: true) } }; Button("Ablehnen") { Task { await store.answerRequest(from: profile, accept: false) } }.foregroundStyle(FYColor.muted) }.font(.caption.bold()) } } }
+                HStack { Text("TRAININGSGRUPPEN").sectionTitle(); Spacer(); Button { showsGroupEditor = true } label: { Label("Gruppe erstellen", systemImage: "plus.circle.fill").font(.caption.bold()) }.foregroundStyle(FYColor.lime).padding(.top, 10) }
+                if store.trainingGroups.isEmpty {
+                    Button { showsGroupEditor = true } label: { HStack(spacing: 12) { Image(systemName: "person.3.fill").font(.title2); VStack(alignment: .leading, spacing: 3) { Text("Deine erste Crew erstellen").bold(); Text("Freunde gemeinsam zu Trainings einladen").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "chevron.right") }.padding(15).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line)) }.buttonStyle(.plain).foregroundStyle(.white)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 11) { ForEach(store.trainingGroups) { group in NavigationLink { TrainingGroupDetailView(group: group) } label: { TrainingGroupCard(group: group) }.buttonStyle(.plain).foregroundStyle(.white) } } }
+                }
                 Text("DEINE FREUNDE").sectionTitle()
                 if store.crew.isEmpty { ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2") }
                 ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); Text("\(member.weeklyCount) diese Woche").font(.caption).foregroundStyle(FYColor.muted) } } }.buttonStyle(.plain) }
             }.padding(20)
-        }.background(FYColor.background).navigationBarHidden(true)
+        }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
     }
 }
 

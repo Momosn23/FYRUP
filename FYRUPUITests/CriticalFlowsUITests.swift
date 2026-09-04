@@ -71,6 +71,32 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("06-hosted-session")
     }
 
+    func testGymOffersConcreteBodyAreas() {
+        let app = launchDemo()
+        app.buttons["JETZT LOS"].tap()
+        app.buttons["Gym"].tap()
+        app.buttons["Push"].tap()
+        XCTAssertTrue(app.buttons["gym-area-chest"].exists)
+        XCTAssertTrue(app.buttons["gym-area-shoulders"].exists)
+        XCTAssertTrue(app.buttons["gym-area-triceps"].exists)
+        revealAndTap(app.buttons["gym-area-core"], in: app)
+        capture("04-gym-body-areas")
+    }
+
+    func testCreateTrainingGroup() {
+        let app = launchDemo()
+        app.tabBars.buttons["Entdecken"].tap()
+        app.buttons["Gruppe erstellen"].tap()
+        XCTAssertTrue(app.navigationBars["Neue Trainingsgruppe"].waitForExistence(timeout: 3))
+        let name = app.textFields["group-name"]
+        name.tap()
+        name.typeText("Weekend Crew")
+        revealAndTap(app.buttons["Max"], in: app)
+        revealAndTap(app.buttons["create-group"], in: app)
+        XCTAssertTrue(app.staticTexts["Weekend Crew"].waitForExistence(timeout: 3))
+        capture("friends-training-groups")
+    }
+
     func testCancelLiveWorkoutFlow() {
         let app = launchDemo()
         app.buttons["JETZT LOS"].tap()
