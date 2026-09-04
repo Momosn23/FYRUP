@@ -22,7 +22,7 @@ workflows:
           xcodebuild clean test \
             -project FYRUP.xcodeproj \
             -scheme FYRUP \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP.xcresult \
             CODE_SIGNING_ALLOWED=NO
     artifacts:
@@ -65,7 +65,7 @@ workflows:
           xcodebuild test \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP-Release.xcresult \
             CODE_SIGNING_ALLOWED=NO
       - name: Initialize signing keychain

@@ -104,7 +104,7 @@ Demo-Scheme-Argument: `--demo`. Dadurch werden Momo, Max (LIVE), Sarah (DONE) un
 ```bash
 xcodegen generate
 xcodebuild -project FYRUP.xcodeproj -scheme FYRUP \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO build test
 supabase test db
 ```
