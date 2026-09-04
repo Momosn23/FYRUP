@@ -16,8 +16,9 @@ workflows:
         script: brew install xcodegen
       - name: Inject Supabase configuration
         script: |
-          ESCAPED_URL=$(printf '%s' "$SUPABASE_URL" | sed 's#://#:/$()/#')
-          printf 'SUPABASE_URL = %s\nSUPABASE_PUBLISHABLE_KEY = %s\n' "$ESCAPED_URL" "$SUPABASE_PUBLISHABLE_KEY" > Config/Secrets.xcconfig
+          plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
+          plutil -replace SUPABASE_PUBLISHABLE_KEY -string "$SUPABASE_PUBLISHABLE_KEY" FYRUP/Resources/BackendConfig.plist
+          plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
       - name: Generate Xcode project
         script: xcodegen generate
       - name: Validate project settings
@@ -62,8 +63,9 @@ workflows:
         script: brew install xcodegen
       - name: Inject Supabase configuration
         script: |
-          ESCAPED_URL=$(printf '%s' "$SUPABASE_URL" | sed 's#://#:/$()/#')
-          printf 'SUPABASE_URL = %s\nSUPABASE_PUBLISHABLE_KEY = %s\n' "$ESCAPED_URL" "$SUPABASE_PUBLISHABLE_KEY" > Config/Secrets.xcconfig
+          plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
+          plutil -replace SUPABASE_PUBLISHABLE_KEY -string "$SUPABASE_PUBLISHABLE_KEY" FYRUP/Resources/BackendConfig.plist
+          plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
       - name: Generate Xcode project
         script: xcodegen generate
       - name: Run unit and UI tests
@@ -84,6 +86,15 @@ workflows:
           xcode-project build-ipa \
             --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
+      - name: Verify release backend configuration
+        script: |
+          IPA_PATH=$(find build/ios/ipa -name '*.ipa' -print -quit)
+          test -n "$IPA_PATH"
+          unzip -p "$IPA_PATH" 'Payload/*.app/BackendConfig.plist' > /tmp/FYRUP-BackendConfig.plist
+          EMBEDDED_URL=$(plutil -extract SUPABASE_URL raw -o - /tmp/FYRUP-BackendConfig.plist)
+          EMBEDDED_KEY=$(plutil -extract SUPABASE_PUBLISHABLE_KEY raw -o - /tmp/FYRUP-BackendConfig.plist)
+          test "$EMBEDDED_URL" = "$SUPABASE_URL"
+          test "$EMBEDDED_KEY" = "$SUPABASE_PUBLISHABLE_KEY"
     artifacts:
       - build/ios/ipa/*.ipa
       - build/FYRUP-Release.xcresult

@@ -6,16 +6,50 @@ struct AppConfiguration: Sendable {
     let environment: String
 
     static func load(bundle: Bundle = .main) -> AppConfiguration? {
+        let resourceValues: [String: Any]
+        if
+            let fileURL = bundle.url(forResource: "BackendConfig", withExtension: "plist"),
+            let data = try? Data(contentsOf: fileURL),
+            let propertyList = try? PropertyListSerialization.propertyList(from: data, format: nil),
+            let dictionary = propertyList as? [String: Any]
+        {
+            resourceValues = dictionary
+        } else {
+            resourceValues = [:]
+        }
+
+        return load(
+            values: resourceValues,
+            fallbackValues: bundle.infoDictionary ?? [:]
+        )
+    }
+
+    static func load(
+        values: [String: Any],
+        fallbackValues: [String: Any] = [:]
+    ) -> AppConfiguration? {
+        let rawURL = (values["SUPABASE_URL"] as? String)
+            ?? (fallbackValues["SUPABASE_URL"] as? String)
+        let key = (values["SUPABASE_PUBLISHABLE_KEY"] as? String)
+            ?? (fallbackValues["SUPABASE_PUBLISHABLE_KEY"] as? String)
+        let environment = (values["APP_ENVIRONMENT"] as? String)
+            ?? (fallbackValues["APP_ENVIRONMENT"] as? String)
+            ?? "development"
+
         guard
-            let rawURL = bundle.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,
+            let rawURL,
             let url = URL(string: rawURL),
-            let key = bundle.object(forInfoDictionaryKey: "SUPABASE_PUBLISHABLE_KEY") as? String,
-            !rawURL.contains("YOUR_PROJECT"), !key.contains("YOUR_PUBLISHABLE_KEY")
+            url.scheme == "https",
+            url.host != nil,
+            let key,
+            !key.isEmpty,
+            !rawURL.contains("YOUR_PROJECT"),
+            !key.contains("YOUR_PUBLISHABLE_KEY")
         else { return nil }
         return AppConfiguration(
             supabaseURL: url,
             publishableKey: key,
-            environment: bundle.object(forInfoDictionaryKey: "APP_ENVIRONMENT") as? String ?? "development"
+            environment: environment
         )
     }
 }
@@ -38,4 +72,3 @@ enum AppError: LocalizedError, Equatable {
         }
     }
 }
-
