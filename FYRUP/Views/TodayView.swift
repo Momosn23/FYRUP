@@ -13,11 +13,10 @@ struct TodayView: View {
                 ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                 ForEach(store.crew) { member in CrewFeedCard(member: member) }
                 if store.crew.isEmpty {
-                    ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2", description: Text("Füge Freunde hinzu und bewegt euch gemeinsam."))
-                    Button("Freund hinzufügen") { store.selectedTab = 2 }.buttonStyle(SecondaryButtonStyle())
+                    EmptyCrewCard { store.selectedTab = 2 }
                 }
                 MotivationCard()
-                CrewGoalCard(summary: store.goals)
+                if !store.crew.isEmpty { CrewGoalCard(summary: store.goals) }
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
@@ -30,7 +29,7 @@ struct TodayView: View {
         HStack {
             FYRUPWordmark(size: 27)
             Spacer()
-            Button { store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()) }
+            Button { store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(FYColor.line)) }
             NavigationLink { NotificationCenterView() } label: {
                 Image(systemName: "bell").font(.headline).frame(width: 36, height: 36)
                     .overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.coral).frame(width: 7, height: 7).offset(x: -4, y: 5) } }
@@ -70,26 +69,67 @@ private struct MyFeedCard: View {
     @Environment(AppStore.self) private var store
     let activity: Activity?
     var body: some View {
-        HStack(spacing: 12) {
-            if let profile = store.profile { AvatarView(profile: profile) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(store.profile?.displayName ?? "Du").font(.headline)
-                if let activity {
-                    Text(activityTitle(activity)).font(.subheadline).foregroundStyle(FYColor.muted)
-                    HStack(spacing: 5) {
-                        StatusBadge(status: todayStatus(activity))
-                        if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
-                        else if let plannedAt = activity.plannedAt { Text("· \(plannedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                if let profile = store.profile { AvatarView(profile: profile) }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(store.profile?.displayName ?? "Du").font(.headline)
+                    if let activity {
+                        Text(activityTitle(activity)).font(.subheadline).foregroundStyle(FYColor.muted)
+                        HStack(spacing: 5) {
+                            StatusBadge(status: todayStatus(activity))
+                            if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
+                            else if let plannedAt = activity.plannedAt { Text("· \(plannedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
+                        }
+                    } else {
+                        Text("Heute ist noch alles offen").font(.subheadline).foregroundStyle(FYColor.muted)
                     }
-                } else { Text("Noch nicht aktiv").font(.subheadline).foregroundStyle(FYColor.muted) }
+                }
+                Spacer()
+                if let activity, activity.status == .live { NavigationLink { LiveActivityView() } label: { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral) }.accessibilityLabel("TRAINING ÖFFNEN") }
+                else if activity != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime) }
             }
-            Spacer()
-            if let activity, activity.status == .live { NavigationLink { LiveActivityView() } label: { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral) }.accessibilityLabel("TRAINING ÖFFNEN") }
-            else { Button { store.showsActivityComposer = true } label: { Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(.white) }.accessibilityLabel("JETZT LOS") }
+            if activity == nil {
+                HStack(spacing: 10) {
+                    Button("JETZT LOS") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: true))
+                    Button("FÜR SPÄTER PLANEN") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: false))
+                }
+            }
         }.fyCard()
     }
     private func todayStatus(_ activity: Activity) -> TodayStatus { activity.status == .live ? .live : activity.status == .completed ? .done : .planned }
     private func activityTitle(_ activity: Activity) -> String { [activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ") }
+}
+
+private struct HomeActionStyle: ButtonStyle {
+    let primary: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption2.weight(.bold)).lineLimit(1).minimumScaleFactor(0.75)
+            .foregroundStyle(primary ? .black : .white)
+            .frame(maxWidth: .infinity, minHeight: 38)
+            .background(primary ? .white.opacity(configuration.isPressed ? 0.75 : 1) : FYColor.elevated, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(primary ? .clear : FYColor.line))
+    }
+}
+
+private struct EmptyCrewCard: View {
+    let action: () -> Void
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(FYColor.lime.opacity(0.12)).frame(width: 48, height: 48)
+                Image(systemName: "person.2.fill").foregroundStyle(FYColor.lime)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Deine Crew ist noch leer").font(.subheadline.bold())
+                Text("Finde Freunde und seht, wer heute durchzieht.").font(.caption).foregroundStyle(FYColor.muted)
+            }
+            Spacer(minLength: 4)
+            Button(action: action) { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(.white, in: Circle()).foregroundStyle(.black) }
+                .accessibilityLabel("Freund hinzufügen")
+        }.fyCard()
+    }
 }
 
 private struct InvitationCard: View {

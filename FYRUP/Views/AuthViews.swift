@@ -68,16 +68,56 @@ struct ProfileSetupView: View {
     @Environment(AppStore.self) private var store
     @State private var name = ""
     @State private var username = ""
+    @State private var birthYear = ""
+    @State private var city = ""
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case name, username, birthYear, city }
+    private var normalizedUsername: String { username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var usernameIsValid: Bool { normalizedUsername.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Dein Profil").font(.largeTitle.bold())
-            Text("So erkennt dich deine Crew.").foregroundStyle(FYColor.muted)
-            TextField("Anzeigename", text: $name).padding(16).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 16))
-            TextField("username", text: $username).textInputAutocapitalization(.never).padding(16).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 16))
-            Text("3–24 Zeichen: a–z, 0–9 und _").font(.caption).foregroundStyle(FYColor.muted)
-            Spacer()
-            Button("WEITER") { Task { await store.saveProfile(displayName: name, username: username) } }.buttonStyle(PrimaryButtonStyle()).disabled(name.isEmpty || username.isEmpty)
-        }.padding(24)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                OnboardingProgress(step: 1, total: 3) { Task { await store.logout() } }
+                Text("Profil erstellen").font(.system(size: 30, weight: .bold))
+                Text("Erzähl uns ein paar Infos über dich.").foregroundStyle(FYColor.muted)
+
+                ZStack(alignment: .bottomTrailing) {
+                    Image("SplashHero").resizable().scaledToFill().frame(width: 92, height: 92).clipShape(Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.72), lineWidth: 2))
+                    Image(systemName: "camera.fill").font(.caption.bold()).frame(width: 30, height: 30)
+                        .background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(.white.opacity(0.45)))
+                }.frame(maxWidth: .infinity).padding(.vertical, 4)
+
+                OnboardingField(title: "Anzeigename", placeholder: "z. B. Max", text: $name, symbol: "person", suffix: nil)
+                    .textContentType(.name).focused($focusedField, equals: .name)
+                OnboardingField(title: "Username", placeholder: "maxfyrup", text: $username, symbol: "at", suffix: usernameIsValid ? "checkmark" : nil)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().focused($focusedField, equals: .username)
+                Text("So finden dich deine Freunde.").font(.caption).foregroundStyle(FYColor.muted).padding(.top, -12)
+                OnboardingField(title: "Geburtsjahr (optional)", placeholder: "z. B. 1998", text: $birthYear, symbol: "calendar", suffix: nil)
+                    .keyboardType(.numberPad).focused($focusedField, equals: .birthYear)
+                OnboardingField(title: "Stadt (optional)", placeholder: "z. B. Köln", text: $city, symbol: "location", suffix: nil)
+                    .textContentType(.addressCity).focused($focusedField, equals: .city)
+
+                Button("Weiter") {
+                    focusedField = nil
+                    Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city) }
+                }
+                .buttonStyle(PrimaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid)
+                Text("Keine Sorge, du kannst das später jederzeit in deinem Profil ändern.")
+                    .font(.caption2).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+            }.padding(22)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(OnboardingBackground())
+        .task {
+            guard name.isEmpty, username.isEmpty else { return }
+            name = store.profile?.displayName ?? store.suggestedDisplayName
+            username = store.profile?.username ?? ""
+            birthYear = store.profile?.birthYear.map(String.init) ?? ""
+            city = store.profile?.city ?? ""
+        }
     }
 }
 
@@ -86,28 +126,104 @@ struct SportsSetupView: View {
     @State private var selected = Set<SportKind>()
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Was bewegt dich?").font(.largeTitle.bold())
-            Text("Wähle alles, was zu dir passt.").foregroundStyle(FYColor.muted)
-            ScrollView { SportGrid(selected: $selected) }
-            Button("FYRUP STARTEN") { Task { await store.saveProfile(displayName: store.profile?.displayName ?? "", username: store.profile?.username ?? "", sports: Array(selected)) } }
+            OnboardingProgress(step: 2, total: 3) { store.route = .profileSetup }
+            Text("Welche Sportarten\nmachst du?").font(.system(size: 30, weight: .bold))
+            Text("Wähle alles aus, was auf dich zutrifft.\nDu kannst das später jederzeit ändern.").foregroundStyle(FYColor.muted)
+            ScrollView { SportGrid(selected: $selected).padding(.vertical, 4) }
+            Button("Weiter") { Task { await store.saveProfile(displayName: store.profile?.displayName ?? "", username: store.profile?.username ?? "", sports: Array(selected)) } }
                 .buttonStyle(PrimaryButtonStyle()).disabled(selected.isEmpty)
-        }.padding(24)
+        }
+        .padding(22)
+        .background(OnboardingBackground())
+        .task { if selected.isEmpty { selected = Set(store.profile?.sports ?? []) } }
     }
 }
 
 struct SportGrid: View {
     @Binding var selected: Set<SportKind>
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
     var body: some View {
         LazyVGrid(columns: columns, spacing: 12) {
             ForEach(SportKind.allCases) { sport in
                 Button { selected.formSymmetricDifference([sport]) } label: {
-                    VStack(spacing: 10) { Image(systemName: sport.symbol).font(.title); Text(sport.title).font(.subheadline.bold()) }
-                        .frame(maxWidth: .infinity, minHeight: 96)
-                        .foregroundStyle(selected.contains(sport) ? .black : .white)
-                        .background(selected.contains(sport) ? FYColor.lime : FYColor.surface, in: RoundedRectangle(cornerRadius: 20))
+                    VStack(spacing: 9) {
+                        Image(systemName: sport.symbol).font(.title2)
+                        Text(sport.title).font(.caption.bold()).lineLimit(1).minimumScaleFactor(0.7)
+                    }
+                        .frame(maxWidth: .infinity, minHeight: 88)
+                        .foregroundStyle(.white)
+                        .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 2 : 1))
+                        .overlay(alignment: .topTrailing) { if selected.contains(sport) { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime).background(.black, in: Circle()).padding(7) } }
                 }.accessibilityLabel(sport.title).accessibilityAddTraits(selected.contains(sport) ? .isSelected : [])
             }
         }
+    }
+}
+
+struct OnboardingCompleteView: View {
+    @Environment(AppStore.self) private var store
+    var body: some View {
+        VStack(spacing: 20) {
+            OnboardingProgress(step: 3, total: 3) { store.route = .sportsSetup }
+            Spacer()
+            ZStack {
+                Circle().fill(FYColor.lime.opacity(0.12)).frame(width: 132, height: 132)
+                Circle().stroke(FYColor.lime.opacity(0.28), lineWidth: 1).frame(width: 132, height: 132)
+                Image(systemName: "flame.fill").font(.system(size: 64)).foregroundStyle(FYColor.lime)
+            }
+            Text("Du bist startklar.").font(.system(size: 32, weight: .bold))
+            Text("Deine Crew, deine Trainings, dein Antrieb.\nAb jetzt beginnt FYRUP immer direkt im Heute-Feed.")
+                .foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
+            Spacer()
+            Button("FYRUP STARTEN") { Task { await store.finishOnboarding() } }.buttonStyle(PrimaryButtonStyle())
+        }.padding(22).background(OnboardingBackground())
+    }
+}
+
+private struct OnboardingProgress: View {
+    let step: Int
+    let total: Int
+    let back: () -> Void
+    var body: some View {
+        HStack(spacing: 14) {
+            Button(action: back) { Image(systemName: "chevron.left").font(.headline).frame(width: 30, height: 30) }
+            HStack(spacing: 6) {
+                ForEach(1...total, id: \.self) { index in
+                    Capsule().fill(index <= step ? FYColor.lime : FYColor.elevated).frame(height: 4)
+                }
+            }
+            Text("\(step) / \(total)").font(.caption.bold()).foregroundStyle(FYColor.muted).monospacedDigit()
+        }.foregroundStyle(.white)
+    }
+}
+
+private struct OnboardingField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+    let symbol: String
+    let suffix: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.82))
+            HStack(spacing: 10) {
+                Image(systemName: symbol).foregroundStyle(FYColor.muted).frame(width: 20)
+                TextField(placeholder, text: $text)
+                if let suffix { Image(systemName: suffix).foregroundStyle(FYColor.lime).font(.subheadline.bold()) }
+            }
+            .padding(.horizontal, 14).frame(minHeight: 50)
+            .background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(FYColor.line))
+        }
+    }
+}
+
+private struct OnboardingBackground: View {
+    var body: some View {
+        ZStack {
+            FYColor.background
+            RadialGradient(colors: [FYColor.lime.opacity(0.12), .clear], center: .top, startRadius: 0, endRadius: 330)
+        }.ignoresSafeArea()
     }
 }

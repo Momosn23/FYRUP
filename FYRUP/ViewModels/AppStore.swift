@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class AppStore {
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, main }
+    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, onboardingComplete, main }
     var route: Route = .loading
     var profile: Profile?
     var myActivity: Activity?
@@ -19,6 +19,7 @@ final class AppStore {
     var errorMessage: String?
     var showsActivityComposer = false
     var selectedTab = 0
+    var suggestedDisplayName = ""
     private(set) var session: AuthSession?
     let repository: any AppRepository
     private let analytics: any AnalyticsTracking
@@ -67,19 +68,37 @@ final class AppStore {
                   let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
                   let token = String(data: tokenData, encoding: .utf8), let nonce = self.appleNonce else { throw AppError.authentication }
+            let appleName = [credential.fullName?.givenName, credential.fullName?.familyName]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if !appleName.isEmpty { self.suggestedDisplayName = appleName }
             self.session = try await self.repository.signInWithApple(idToken: token, nonce: nonce)
             try await self.loadProfileAndRoute()
         }
     }
 
-    func saveProfile(displayName: String, username: String, sports: [SportKind]? = nil) async {
+    func saveProfile(displayName: String, username: String, birthYear: Int? = nil, city: String? = nil, sports: [SportKind]? = nil) async {
         guard let userID = session?.userID else { return }
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else { errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."; return }
         var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "friends")
-        value.username = normalized; value.displayName = displayName
+        value.username = normalized
+        value.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if birthYear != nil { value.birthYear = birthYear }
+        if let city { value.city = city.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }
         if let sports { value.sports = sports }
-        await perform { try await self.repository.saveProfile(value); self.profile = value; self.route = value.sports.isEmpty ? .sportsSetup : .main; if self.route == .main { await self.analytics.track(.onboardingCompleted); await self.refresh() } }
+        await perform {
+            try await self.repository.saveProfile(value)
+            self.profile = value
+            self.route = value.sports.isEmpty ? .sportsSetup : .onboardingComplete
+        }
+    }
+
+    func finishOnboarding() async {
+        route = .main
+        await analytics.track(.onboardingCompleted)
+        await refresh()
     }
 
     func refresh() async {
@@ -142,6 +161,10 @@ final class AppStore {
     private func present(_ error: Error) { errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription }
     private static func sha256(_ value: String) -> String { SHA256.hash(data: Data(value.utf8)).compactMap { String(format: "%02x", $0) }.joined() }
     private static func randomNonce() -> String { String((0..<32).compactMap { _ in "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._".randomElement() }) }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
 
 private actor DemoRepositoryPlaceholder: AppRepository {

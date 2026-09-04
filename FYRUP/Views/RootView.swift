@@ -11,6 +11,7 @@ struct RootView: View {
             case .signedOut: WelcomeView()
             case .profileSetup: ProfileSetupView()
             case .sportsSetup: SportsSetupView()
+            case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()
             }
             if store.isBusy { Color.black.opacity(0.28).ignoresSafeArea(); ProgressView().tint(FYColor.lime).controlSize(.large) }
@@ -34,4 +35,3 @@ private struct ConfigurationView: View {
         }.padding(28)
     }
 }
-
