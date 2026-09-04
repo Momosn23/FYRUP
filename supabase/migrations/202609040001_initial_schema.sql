@@ -19,9 +19,10 @@ create table public.sport_subtypes (
   sport public.sport_kind not null references public.sports(key),
   label_de text not null,
   parent_label text,
-  sort_order smallint not null,
-  unique (sport, label_de)
+  sort_order smallint not null
 );
+create unique index sport_subtypes_identity_unique
+  on public.sport_subtypes (sport, label_de, coalesce(parent_label, ''));
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username citext not null unique check (username::text ~ '^[a-z0-9_]{3,24}$'),
