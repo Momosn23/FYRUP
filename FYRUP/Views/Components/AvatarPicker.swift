@@ -13,13 +13,14 @@ struct AvatarPicker: View {
                 avatar
                     .frame(width: 92, height: 92)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.72), lineWidth: 2))
+                    .overlay(Circle().stroke(FYColor.lime.opacity(0.45), lineWidth: 2))
+                    .shadow(color: FYColor.ink.opacity(0.10), radius: 8, y: 4)
                 Image(systemName: "camera.fill")
                     .font(.caption.bold())
                     .foregroundStyle(.white)
                     .frame(width: 30, height: 30)
-                    .background(FYColor.elevated, in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.45)))
+                    .background(FYColor.ink, in: Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
             }
         }
         .accessibilityLabel("Profilbild auswählen")
@@ -39,7 +40,7 @@ struct AvatarPicker: View {
         } else if let profile {
             AvatarView(profile: profile).scaleEffect(1.9)
         } else {
-            Circle().fill(LinearGradient(colors: [FYColor.elevated, FYColor.surface], startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle().fill(LinearGradient(colors: [FYColor.limeSoft, FYColor.elevated], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(Image(systemName: "person.fill").font(.system(size: 38)).foregroundStyle(FYColor.muted))
         }
     }

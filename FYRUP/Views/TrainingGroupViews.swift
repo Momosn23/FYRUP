@@ -16,8 +16,8 @@ struct TrainingGroupEditorView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Image(systemName: "person.3.fill").font(.title2).foregroundStyle(FYColor.lime)
                             Text(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Deine Crew" : name).font(.title2.weight(.black))
-                            Text("Private Trainingsgruppe").font(.caption).foregroundStyle(FYColor.muted)
-                        }.padding(16)
+                            Text("Private Trainingsgruppe").font(.caption).foregroundStyle(.white.opacity(0.8))
+                        }.padding(16).foregroundStyle(.white)
                     }.frame(height: 154).clipShape(RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(FYColor.line))
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -36,7 +36,7 @@ struct TrainingGroupEditorView: View {
                                     Spacer()
                                     Image(systemName: memberIDs.contains(member.id) ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(memberIDs.contains(member.id) ? FYColor.lime : FYColor.muted)
                                 }.padding(12).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 15)).overlay(RoundedRectangle(cornerRadius: 15).stroke(memberIDs.contains(member.id) ? FYColor.lime.opacity(0.45) : FYColor.line))
-                            }.buttonStyle(.plain).foregroundStyle(.white).accessibilityLabel(member.profile.displayName)
+                            }.buttonStyle(.plain).foregroundStyle(FYColor.ink).accessibilityLabel(member.profile.displayName)
                         }
                     }
                 }.padding(20)
@@ -58,7 +58,7 @@ struct TrainingGroupEditorView: View {
                 .accessibilityIdentifier("create-group")
                 .padding(.horizontal, 20).padding(.vertical, 12).background(.ultraThinMaterial)
             }
-        }.preferredColorScheme(.dark)
+        }.preferredColorScheme(.light)
     }
 }
 
@@ -74,7 +74,7 @@ struct TrainingGroupCard: View {
                 Spacer()
                 Text("\(group.members.count)").font(.caption.bold()).foregroundStyle(FYColor.muted)
             }
-        }.padding(14).frame(width: 180, height: 128).background(LinearGradient(colors: [FYColor.surface, FYColor.elevated], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(FYColor.line))
+        }.padding(14).frame(width: 180, height: 128).background(LinearGradient(colors: [FYColor.surface, FYColor.limeSoft], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(FYColor.line))
     }
 }
 

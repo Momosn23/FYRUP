@@ -28,8 +28,8 @@ struct ActivityComposerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(sport == nil ? "Aktivität wählen" : mode == 0 ? "Training starten" : "Training planen").font(.title2.weight(.black))
-                        Text(sport == nil ? "Was steht heute an?" : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
+                        Text(sport == nil ? "Was möchtest du machen?" : mode == 0 ? "Training starten" : "Training planen").font(.title2.weight(.black))
+                        Text(sport == nil ? "Starte direkt oder plane mit deiner Crew." : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
                             .font(.subheadline).foregroundStyle(FYColor.muted)
                     }
                     if sport == nil { sportChooser }
@@ -58,11 +58,26 @@ struct ActivityComposerView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .fullScreenCover(isPresented: $showsGroupCreator) { TrainingGroupEditorView() }
     }
     private var sportChooser: some View {
         VStack(spacing: 14) {
+            Button { mode = 0 } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "figure.run.circle.fill").font(.title).foregroundStyle(FYColor.lime)
+                    VStack(alignment: .leading) { Text("Jetzt starten").font(.headline); Text("Direkt loslegen").font(.caption).foregroundStyle(FYColor.muted) }
+                    Spacer(); Image(systemName: mode == 0 ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(FYColor.lime)
+                }.padding(14).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(FYColor.lime))
+            }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
+            Button { mode = 1 } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "calendar.badge.plus").font(.title).foregroundStyle(FYColor.lime)
+                    VStack(alignment: .leading) { Text("Planen").font(.headline); Text("Für später verabreden").font(.caption).foregroundStyle(FYColor.muted) }
+                    Spacer(); Image(systemName: mode == 1 ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(FYColor.lime)
+                }.padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(mode == 1 ? FYColor.lime : FYColor.line))
+            }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
+            HStack { Text("BELIEBTE SPORTARTEN").composerSectionTitle(); Spacer() }
             HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Suchen …", text: $sportSearch) }
                 .padding(12).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -75,7 +90,7 @@ struct ActivityComposerView: View {
                         .frame(maxWidth: .infinity, minHeight: 82)
                         .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 13))
                         .overlay(RoundedRectangle(cornerRadius: 13).stroke(FYColor.line))
-                    }.foregroundStyle(.white)
+                    }.foregroundStyle(FYColor.ink)
                 }
             }
         }
@@ -117,7 +132,7 @@ struct ActivityComposerView: View {
                         Spacer()
                         Image(systemName: subtype == program.rawValue ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(subtype == program.rawValue ? FYColor.lime : FYColor.muted)
                     }.padding(14).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(subtype == program.rawValue ? FYColor.lime.opacity(0.8) : FYColor.line))
-                }.buttonStyle(.plain).foregroundStyle(.white).accessibilityLabel(program.rawValue).accessibilityHint(program.subtitle)
+                }.buttonStyle(.plain).foregroundStyle(FYColor.ink).accessibilityLabel(program.rawValue).accessibilityHint(program.subtitle)
             }
 
             Text("KÖRPERGRUPPEN AUSWÄHLEN").composerSectionTitle()
@@ -126,11 +141,11 @@ struct ActivityComposerView: View {
                 ForEach(GymBodyArea.allCases) { area in
                     Button { gymAreas.formSymmetricDifference([area]); if !gymAreas.isEmpty && subtype == nil { subtype = "Individuell" } } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: area.symbol).foregroundStyle(gymAreas.contains(area) ? .black : FYColor.lime)
+                            Image(systemName: area.symbol).foregroundStyle(gymAreas.contains(area) ? .white : FYColor.lime)
                             Text(area.title).font(.caption.bold()).lineLimit(1)
                             Spacer(minLength: 0)
                             if gymAreas.contains(area) { Image(systemName: "checkmark").font(.caption.bold()) }
-                        }.padding(.horizontal, 11).frame(minHeight: 44).foregroundStyle(gymAreas.contains(area) ? .black : .white).background(gymAreas.contains(area) ? FYColor.lime : FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+                        }.padding(.horizontal, 11).frame(minHeight: 44).foregroundStyle(gymAreas.contains(area) ? .white : FYColor.ink).background(gymAreas.contains(area) ? FYColor.lime : FYColor.surface, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(gymAreas.contains(area) ? FYColor.lime : FYColor.line))
                     }.buttonStyle(.plain).accessibilityIdentifier("gym-area-\(area.rawValue)")
                 }
             }
@@ -172,7 +187,7 @@ struct ActivityComposerView: View {
                 ForEach(filteredCrew) { member in
                     Button { invitees.formSymmetricDifference([member.id]) } label: {
                         HStack(spacing: 12) { AvatarView(profile: member.profile); VStack(alignment: .leading, spacing: 2) { Text(member.profile.displayName).bold(); Text("@\(member.profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: invitees.contains(member.id) ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(invitees.contains(member.id) ? FYColor.lime : FYColor.muted) }
-                    }.buttonStyle(.plain).foregroundStyle(.white)
+                    }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
                 }
             }
 
@@ -192,8 +207,8 @@ struct ActivityComposerView: View {
             VStack(alignment: .leading, spacing: 9) {
                 HStack { Image(systemName: "person.3.fill"); Spacer(); Image(systemName: selected ? "checkmark.circle.fill" : "circle") }
                 Text(group.name).font(.subheadline.bold()).lineLimit(1)
-                Text("\(memberIDs.count) Freunde").font(.caption2).foregroundStyle(selected ? .black.opacity(0.65) : FYColor.muted)
-            }.padding(12).frame(width: 142, height: 94, alignment: .leading).foregroundStyle(selected ? .black : .white).background(selected ? FYColor.lime : FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                Text("\(memberIDs.count) Freunde").font(.caption2).foregroundStyle(selected ? .white.opacity(0.82) : FYColor.muted)
+            }.padding(12).frame(width: 142, height: 94, alignment: .leading).foregroundStyle(selected ? .white : FYColor.ink).background(selected ? FYColor.lime : FYColor.surface, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(selected ? FYColor.lime : FYColor.line))
         }.buttonStyle(.plain)
     }
 
@@ -229,7 +244,7 @@ struct SportHeroCard: View {
                 VStack(alignment: .leading, spacing: 4) { Text(title).font(.title2.weight(.black)); Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.78)).lineLimit(2) }
                 Spacer()
                 Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor)
-            }.padding(16)
+            }.padding(16).foregroundStyle(.white)
         }.frame(height: 148).clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 18).stroke(FYColor.line))
     }
 }
@@ -254,7 +269,7 @@ private extension String {
 }
 
 private extension Button {
-    func chip(selected: Bool) -> some View { self.font(.subheadline.bold()).padding(.horizontal, 14).padding(.vertical, 10).foregroundStyle(selected ? .black : .white).background(selected ? FYColor.lime : FYColor.elevated, in: Capsule()) }
+    func chip(selected: Bool) -> some View { self.font(.subheadline.bold()).padding(.horizontal, 14).padding(.vertical, 10).foregroundStyle(selected ? .white : FYColor.ink).background(selected ? FYColor.lime : FYColor.surface, in: Capsule()).overlay(Capsule().stroke(selected ? FYColor.lime : FYColor.line)) }
 }
 
 struct LiveActivityView: View {
@@ -263,9 +278,10 @@ struct LiveActivityView: View {
     @State private var confirmCancel = false
     @State private var distanceKM = ""
     @State private var didComplete = false
+    @State private var isPaused = false
     var body: some View {
         VStack(spacing: 24) {
-            HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(.white)
+            HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
             Spacer(minLength: 20)
             if let activity = store.myActivity {
                 if didComplete {
@@ -289,11 +305,16 @@ struct LiveActivityView: View {
             }
             Spacer()
             if didComplete {
-                Button("Auf Feed teilen") { dismiss() }.buttonStyle(PrimaryButtonStyle())
+                Button("Auf Feed teilen") { dismiss() }.buttonStyle(OutlineButtonStyle())
                 Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle())
             }
             else {
-                Button { Task { let normalized = distanceKM.replacingOccurrences(of: ",", with: "."); let meters = Double(normalized).map { Int($0 * 1000) }; await store.finish(distanceMeters: meters); didComplete = store.myActivity?.status == .completed } } label: { Image(systemName: "stop.fill").font(.title2).frame(width: 68, height: 68).background(FYColor.coral, in: Circle()).shadow(color: FYColor.coral.opacity(0.35), radius: 14) }.foregroundStyle(.white).accessibilityLabel("TRAINING BEENDEN")
+                HStack(spacing: 38) {
+                    Button { isPaused.toggle() } label: {
+                        Image(systemName: isPaused ? "play.fill" : "pause.fill").font(.title2).foregroundStyle(FYColor.ink).frame(width: 62, height: 62).background(FYColor.elevated, in: Circle())
+                    }.accessibilityLabel(isPaused ? "TRAINING FORTSETZEN" : "TRAINING PAUSIEREN")
+                    Button { Task { let normalized = distanceKM.replacingOccurrences(of: ",", with: "."); let meters = Double(normalized).map { Int($0 * 1000) }; await store.finish(distanceMeters: meters); didComplete = store.myActivity?.status == .completed } } label: { Image(systemName: "stop.fill").font(.title2).frame(width: 68, height: 68).background(FYColor.coral, in: Circle()).shadow(color: FYColor.coral.opacity(0.35), radius: 14) }.foregroundStyle(.white).accessibilityLabel("TRAINING BEENDEN")
+                }
                 Text("Du machst das stark! 🔥").font(.subheadline).foregroundStyle(FYColor.muted)
                 Button("Training abbrechen") { confirmCancel = true }.font(.caption).foregroundStyle(FYColor.coral)
             }
@@ -395,7 +416,7 @@ struct ActivityDetailView: View {
                 ZStack(alignment: .bottomLeading) {
                     Image(activity.sport.heroAssetName).resizable().scaledToFill().frame(maxWidth: .infinity, minHeight: 190, maxHeight: 190).clipped()
                     LinearGradient(colors: [.black.opacity(0.08), .black.opacity(0.92)], startPoint: .top, endPoint: .bottom)
-                    VStack(alignment: .leading, spacing: 4) { Text(activity.sport.title).font(.largeTitle.bold()); if let subtype = activity.subtype { Text(subtype).font(.subheadline).foregroundStyle(.white.opacity(0.8)).lineLimit(2) } }.padding(18)
+                    VStack(alignment: .leading, spacing: 4) { Text(activity.sport.title).font(.largeTitle.bold()); if let subtype = activity.subtype { Text(subtype).font(.subheadline).foregroundStyle(.white.opacity(0.8)).lineLimit(2) } }.padding(18).foregroundStyle(.white)
                 }.frame(height: 190)
                 VStack(spacing: 0) {
                     DetailRow(symbol: "figure.strengthtraining.traditional", title: "Kategorie", value: activity.sport.title, tint: activity.sport.accentColor)
@@ -437,7 +458,7 @@ private struct DetailRow: View {
     let symbol: String
     let title: String
     let value: String
-    var tint: Color = .white
+    var tint: Color = FYColor.ink
     var body: some View { HStack(spacing: 12) { Image(systemName: symbol).foregroundStyle(tint).frame(width: 24); VStack(alignment: .leading, spacing: 3) { Text(title).font(.caption).foregroundStyle(FYColor.muted); Text(value).font(.subheadline) }; Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted) }.padding(.vertical, 13).overlay(alignment: .bottom) { Rectangle().fill(FYColor.line).frame(height: 1) } }
 }
 

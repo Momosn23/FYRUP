@@ -7,22 +7,21 @@ struct TodayView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
                 header
-                crewStrip
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(.caption).foregroundStyle(FYColor.muted)
-                    Text("Heute").font(.title2.weight(.bold))
+                    Text("Dein Status").font(.headline)
                 }.padding(.top, 4)
                 if store.isRefreshing && store.crew.isEmpty && store.myActivity == nil {
                     FeedSkeleton()
                 } else {
                     MyFeedCard(activity: store.myActivity)
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
+                    Text("Deine Crew").font(.headline).padding(.top, 4)
                     ForEach(store.crew) { member in CrewFeedCard(member: member) }
                     if store.crew.isEmpty {
-                        EmptyCrewCard { store.selectedTab = 2 }
+                        EmptyCrewCard { store.selectedTab = 1 }
                     }
                     MotivationCard()
-                    if !store.crew.isEmpty { CrewGoalCard(summary: store.goals) }
+                    if !store.crew.isEmpty { NavigationLink { CrewGoalView() } label: { CrewGoalCard(summary: store.goals) }.buttonStyle(.plain) }
                 }
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
@@ -41,14 +40,19 @@ struct TodayView: View {
 
     private var header: some View {
         HStack {
-            FYRUPWordmark(size: 27)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Guten Morgen").font(.caption).foregroundStyle(FYColor.muted)
+                Text("\(store.profile?.displayName.components(separatedBy: " ").first ?? "Du") 👋").font(.title2.weight(.black))
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(.caption2).foregroundStyle(FYColor.muted)
+            }
             Spacer()
             Button { store.activityComposerMode = 0; store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(FYColor.line)) }
             NavigationLink { NotificationCenterView() } label: {
                 Image(systemName: "bell").font(.headline).frame(width: 36, height: 36)
                     .overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.coral).frame(width: 7, height: 7).offset(x: -4, y: 5) } }
             }.accessibilityLabel("Mitteilungen")
-        }.foregroundStyle(.white)
+            if let profile = store.profile { AvatarView(profile: profile).scaleEffect(0.78).frame(width: 38, height: 38) }
+        }.foregroundStyle(FYColor.ink)
     }
 
     private var crewStrip: some View {
@@ -146,10 +150,10 @@ private struct HomeActionStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.caption2.weight(.bold)).lineLimit(1).minimumScaleFactor(0.75)
-            .foregroundStyle(primary ? .black : .white)
+            .foregroundStyle(primary ? .white : FYColor.ink)
             .frame(maxWidth: .infinity, minHeight: 38)
-            .background(primary ? .white.opacity(configuration.isPressed ? 0.75 : 1) : FYColor.elevated, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(primary ? .clear : FYColor.line))
+            .background(primary ? FYColor.lime.opacity(configuration.isPressed ? 0.75 : 1) : .white, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(primary ? FYColor.lime : FYColor.line))
     }
 }
 
@@ -173,19 +177,39 @@ private struct EmptyCrewCard: View {
 }
 
 private struct InvitationCard: View {
-    @Environment(AppStore.self) private var store
     let invitation: SessionInvitation
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Image(systemName: "envelope.badge.fill").foregroundStyle(FYColor.violet); Text("Einladung von \(invitation.host.displayName)").font(.headline); Spacer() }
-            HStack { Image(systemName: invitation.session.sport.symbol).foregroundStyle(invitation.session.sport.accentColor); Text(invitation.session.sport.title).bold(); if let subtype = invitation.session.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
-            Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(FYColor.muted)
-            HStack {
-                Button("Ablehnen") { Task { await store.respond(to: invitation, status: .declined) } }.buttonStyle(SecondaryButtonStyle())
-                Button("Vielleicht") { Task { await store.respond(to: invitation, status: .maybe) } }.buttonStyle(SecondaryButtonStyle())
-                Button("Dabei") { Task { await store.respond(to: invitation, status: .accepted) } }.buttonStyle(PrimaryButtonStyle())
-            }
-        }.fyCard().overlay(alignment: .topTrailing) { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral).padding(14) }
+        NavigationLink { InvitationDetailView(invitation: invitation) } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack { Image(systemName: "envelope.badge.fill").foregroundStyle(FYColor.lime); Text("Einladung von \(invitation.host.displayName)").font(.headline); Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }
+                HStack { Image(systemName: invitation.session.sport.symbol).foregroundStyle(invitation.session.sport.accentColor); Text(invitation.session.sport.title).bold(); if let subtype = invitation.session.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
+                Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(FYColor.muted)
+            }.fyCard().foregroundStyle(FYColor.ink)
+        }.buttonStyle(.plain)
+    }
+}
+
+private struct InvitationDetailView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let invitation: SessionInvitation
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            AvatarView(profile: invitation.host).scaleEffect(1.7).padding(24)
+            Text("\(invitation.host.displayName) lädt dich zum\nTraining ein!").font(.title2.weight(.black)).multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: 9) {
+                Label([invitation.session.sport.title, invitation.session.subtype].compactMap { $0 }.joined(separator: " · "), systemImage: invitation.session.sport.symbol).font(.headline)
+                Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(FYColor.muted)
+                if let duration = invitation.session.durationMinutes { Text("ca. \(duration) Minuten").foregroundStyle(FYColor.muted) }
+                if let place = invitation.session.placeName { Text(place).foregroundStyle(FYColor.muted) }
+            }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
+            Button("✓ Dabei") { Task { await store.respond(to: invitation, status: .accepted); dismiss() } }.buttonStyle(PrimaryButtonStyle())
+            Button("🤔 Vielleicht") { Task { await store.respond(to: invitation, status: .maybe); dismiss() } }.buttonStyle(OutlineButtonStyle())
+            Button("✕ Kann nicht") { Task { await store.respond(to: invitation, status: .declined); dismiss() } }.buttonStyle(OutlineButtonStyle())
+            Spacer()
+        }.padding(22).background(FYColor.background).navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -235,10 +259,36 @@ struct LiveTimer: View {
 }
 
 private struct MotivationCard: View {
-    var body: some View { Text("„Disziplin heute.\nEin besseres morgen.“").font(.subheadline).multilineTextAlignment(.center).frame(maxWidth: .infinity).foregroundStyle(.white.opacity(0.82)).fyCard() }
+    var body: some View { Text("„Gemeinsam stärker.\nHeute zählt.“").font(.subheadline.weight(.semibold)).multilineTextAlignment(.center).frame(maxWidth: .infinity).foregroundStyle(FYColor.ink.opacity(0.82)).fyCard() }
 }
 
 private struct CrewGoalCard: View {
     let summary: GoalSummary
-    var body: some View { VStack(alignment: .leading, spacing: 9) { HStack { Text("CREW GOAL").font(.caption.weight(.black)); Spacer(); Text("\(summary.crewCount) / \(summary.crewTarget)").bold() }; ProgressView(value: Double(summary.crewCount), total: Double(summary.crewTarget)).tint(FYColor.lime); Text("Gemeinsam diese Woche").font(.caption).foregroundStyle(FYColor.muted) }.fyCard() }
+    var body: some View { VStack(alignment: .leading, spacing: 9) { HStack { Text("UNSER CREW-ZIEL").font(.caption.weight(.black)); Spacer(); Text("\(summary.crewCount) / \(summary.crewTarget)").bold() }; ProgressView(value: Double(summary.crewCount), total: Double(max(summary.crewTarget, 1))).tint(FYColor.lime); HStack { Text("Gemeinsam diese Woche").font(.caption).foregroundStyle(FYColor.muted); Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted) } }.fyCard() }
+}
+
+struct CrewGoalView: View {
+    @Environment(AppStore.self) private var store
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Unsere Crew").font(.largeTitle.weight(.black))
+                Text("Gemeinsam \(store.goals.crewTarget) Trainings diese Woche.").foregroundStyle(FYColor.muted)
+                VStack(spacing: 12) {
+                    ProgressView(value: Double(store.goals.crewCount), total: Double(max(store.goals.crewTarget, 1))).tint(FYColor.lime).scaleEffect(x: 1, y: 2)
+                    HStack { Spacer(); Text("\(store.goals.crewCount) / \(store.goals.crewTarget)").font(.title3.bold()) }
+                }.fyCard()
+                ForEach(store.crew) { member in
+                    HStack(spacing: 12) {
+                        AvatarView(profile: member.profile)
+                        Text(member.profile.displayName).font(.headline)
+                        Spacer()
+                        Text("\(member.weeklyCount)").font(.headline).foregroundStyle(FYColor.lime)
+                    }.fyCard()
+                }
+                Text("Noch \(max(0, store.goals.crewTarget - store.goals.crewCount)) Trainings bis zum Ziel! 💪")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(FYColor.ink).frame(maxWidth: .infinity).fyCard()
+            }.padding(18)
+        }.background(FYColor.background).navigationTitle("Crew-Ziel").navigationBarTitleDisplayMode(.inline)
+    }
 }

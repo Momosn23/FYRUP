@@ -19,15 +19,15 @@ struct ProfileView: View {
                 if let profile = store.profile {
                     HStack(spacing: 16) {
                         AvatarView(profile: profile).scaleEffect(1.45).padding(14)
-                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(.white.opacity(0.78)).padding(.top, 3) } }
+                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(FYColor.ink.opacity(0.78)).padding(.top, 3) } }
                         Spacer()
                     }
                     HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts"); Metric(value: "\(store.goals.streak)", label: "Wochenstreak") }
-                    Text("„Disziplin ist die Brücke zwischen Zielen und Ergebnissen.“").font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.82)).fyCard()
+                    Text("🔥 \(store.goals.streak) Wochen Streak").font(.subheadline.weight(.bold)).foregroundStyle(FYColor.coral).frame(maxWidth: .infinity).fyCard()
                     WeekActivityStrip(activities: store.recentActivities + [store.myActivity].compactMap { $0 })
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
-                        HStack { Text("Woche").foregroundStyle(.black).padding(.horizontal, 22).padding(.vertical, 7).background(.white, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
+                        HStack { Text("Woche").foregroundStyle(.white).padding(.horizontal, 22).padding(.vertical, 7).background(FYColor.lime, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
                         HStack { Text("Workouts"); Spacer(); Text("\(store.goals.weeklyCount) / \(profile.weeklyGoal)").bold() }
                         HStack { Text("Aktive Wochen"); Spacer(); Text("\(store.goals.streak)").bold() }
                     }.fyCard()
@@ -41,7 +41,8 @@ struct ProfileView: View {
                 VStack(spacing: 0) {
                     Toggle(isOn: $notificationsEnabled) { Label("Mitteilungen", systemImage: "bell") }.padding().onChange(of: notificationsEnabled) { _, enabled in if enabled { Task { let center = UNUserNotificationCenter.current(); if try await center.requestAuthorization(options: [.alert, .badge, .sound]) { await MainActor.run { UIApplication.shared.registerForRemoteNotifications() } } } } }
                     Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
-                    Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Datenschutz", symbol: "hand.raised") }
+                    Divider(); NavigationLink { SettingsView() } label: { SettingsRow(title: "Einstellungen", symbol: "gearshape") }
+                    Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
                     Divider(); Button { Task { await store.logout() } } label: { SettingsRow(title: "Abmelden", symbol: "rectangle.portrait.and.arrow.right") }
                     Divider(); Button(role: .destructive) { showsDelete = true } label: { SettingsRow(title: "Account löschen", symbol: "trash") }
                 }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 22))
@@ -95,7 +96,7 @@ private struct ProfileEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .task {
             guard let profile = store.profile else { return }
             name = profile.displayName
@@ -141,7 +142,7 @@ struct WeekActivityStrip: View {
                             Circle().fill(isDone ? FYColor.lime : isPlanned ? FYColor.planned : FYColor.elevated).frame(width: 31, height: 31)
                             if isDone { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) }
                             else if isPlanned { Image(systemName: "clock.fill").font(.caption2.bold()).foregroundStyle(.black) }
-                            else { Text(day.formatted(.dateTime.day())).font(.caption.bold()).foregroundStyle(.white.opacity(0.82)) }
+                            else { Text(day.formatted(.dateTime.day())).font(.caption.bold()).foregroundStyle(FYColor.ink.opacity(0.72)) }
                         }
                     }.frame(maxWidth: .infinity)
                 }
@@ -192,7 +193,7 @@ private struct RecentActivitiesCard: View {
                             }
                             Spacer()
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
-                        }.foregroundStyle(.white).padding(.vertical, 10)
+                        }.foregroundStyle(FYColor.ink).padding(.vertical, 10)
                     }
                 }
             }
@@ -206,7 +207,34 @@ private struct RecentActivitiesCard: View {
     }
 }
 
-private struct SettingsRow: View { let title: String; let symbol: String; var body: some View { HStack { Label(title, systemImage: symbol); Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }.foregroundStyle(.white).padding() } }
+private struct SettingsRow: View { let title: String; let symbol: String; var body: some View { HStack { Label(title, systemImage: symbol); Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }.foregroundStyle(FYColor.ink).padding() } }
+
+private struct SettingsView: View {
+    @Environment(AppStore.self) private var store
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                if let profile = store.profile {
+                    HStack(spacing: 14) {
+                        AvatarView(profile: profile).scaleEffect(1.15).padding(6)
+                        VStack(alignment: .leading) { Text(profile.displayName).font(.headline); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }
+                        Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted)
+                    }.fyCard()
+                }
+                VStack(spacing: 0) {
+                    NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell") }
+                    Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
+                    Divider(); SettingsRow(title: "Freunde & Blockierte", symbol: "person.2")
+                    Divider(); SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle")
+                    Divider(); SettingsRow(title: "Über FYRUP", symbol: "info.circle")
+                }.background(.white, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
+                Button { Task { await store.logout() } } label: {
+                    Label("Logout", systemImage: "rectangle.portrait.and.arrow.right").foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading).padding()
+                }.background(.white, in: RoundedRectangle(cornerRadius: 16))
+            }.padding(18)
+        }.background(FYColor.background).navigationTitle("Einstellungen")
+    }
+}
 
 private struct PrivacyView: View {
     @Environment(AppStore.self) private var store

@@ -28,12 +28,12 @@ struct AvatarView: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Text(profile.displayName.prefix(1).uppercased()).font(.headline.bold()).foregroundStyle(.white)
+                Text(profile.displayName.prefix(1).uppercased()).font(.headline.bold()).foregroundStyle(FYColor.ink)
             }
         }
         .frame(width: 48, height: 48)
         .clipShape(Circle())
-        .overlay(Circle().stroke(Color.white.opacity(0.18)))
+        .overlay(Circle().stroke(FYColor.line))
         .accessibilityLabel("Profilbild von \(profile.displayName)")
         .task(id: profile.avatarPath) {
             guard let path = profile.avatarPath else { image = nil; return }

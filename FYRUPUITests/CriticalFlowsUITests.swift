@@ -19,7 +19,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--demo"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Heute"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 4))
         return app
     }
 
@@ -55,8 +55,8 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testPlanWorkoutFlow() {
         let app = launchDemo()
-        app.tabBars.buttons["Planen"].tap()
-        XCTAssertTrue(app.staticTexts["Aktivität wählen"].waitForExistence(timeout: 2))
+        app.buttons["Planen"].tap()
+        XCTAssertTrue(app.staticTexts["Was möchtest du machen?"].waitForExistence(timeout: 2))
         app.buttons["Laufen"].tap()
         app.buttons["PLANEN"].tap()
         capture("05-plan-workout")
@@ -85,7 +85,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testCreateTrainingGroup() {
         let app = launchDemo()
-        app.tabBars.buttons["Entdecken"].tap()
+        app.tabBars.buttons["Freunde"].tap()
         app.buttons["Gruppe erstellen"].tap()
         XCTAssertTrue(app.navigationBars["Neue Trainingsgruppe"].waitForExistence(timeout: 3))
         let name = app.textFields["group-name"]
@@ -113,11 +113,11 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testFriendsAndActivityDetailsNavigation() {
         let app = launchDemo()
-        app.tabBars.buttons["Entdecken"].tap()
-        XCTAssertTrue(app.staticTexts["FREUNDE"].waitForExistence(timeout: 2))
+        app.tabBars.buttons["Freunde"].tap()
+        XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(app.staticTexts["Sarah"].exists)
-        app.tabBars.buttons["Home"].tap()
+        app.tabBars.buttons["Heute"].tap()
         app.buttons["Details"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Aktivitätsdetails"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Kategorie"].exists)
@@ -130,11 +130,14 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Profil"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Momo"].exists)
         capture("09-profile")
-        app.buttons["Datenschutz"].tap()
+        app.buttons["Privatsphäre"].tap()
         XCTAssertTrue(app.navigationBars["Datenschutz"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Wer sieht meine Aktivitäten?"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
+        XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))
+        app.buttons["Los geht's"].tap()
+        app.buttons["Weiter"].tap()
         XCTAssertTrue(app.buttons["Mit E-Mail anmelden"].waitForExistence(timeout: 3))
         capture("00-welcome")
     }
@@ -165,28 +168,36 @@ final class CriticalFlowsUITests: XCTestCase {
         app.launchArguments = ["--onboarding-demo"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Profil erstellen"].waitForExistence(timeout: 4))
-        app.textFields["z. B. Max"].tap()
-        app.textFields["z. B. Max"].typeText("Momo")
+        XCTAssertTrue(app.staticTexts["Erzähl uns von dir"].waitForExistence(timeout: 4))
+        app.textFields["Max"].tap()
+        app.textFields["Max"].typeText("Momo")
         app.textFields["maxfyrup"].tap()
         app.textFields["maxfyrup"].typeText("momo_fyrup")
-        app.textFields["z. B. 1998"].tap()
-        app.textFields["z. B. 1998"].typeText("1998")
-        app.textFields["z. B. Köln"].tap()
-        app.textFields["z. B. Köln"].typeText("Berlin")
+        app.textFields["2003"].tap()
+        app.textFields["2003"].typeText("1998")
+        app.textFields["Köln"].tap()
+        app.textFields["Köln"].typeText("Berlin")
         capture("onboarding-01-profile")
         app.buttons["Weiter"].tap()
 
-        let sportsHeading = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Welche Sportarten")).firstMatch
+        let sportsHeading = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Was machst du gerne")).firstMatch
         XCTAssertTrue(sportsHeading.waitForExistence(timeout: 3))
         app.buttons["Gym"].tap()
         app.buttons["Laufen"].tap()
         capture("onboarding-02-sports")
         app.buttons["Weiter"].tap()
 
+        XCTAssertTrue(app.staticTexts["Was genau trainierst du?"].waitForExistence(timeout: 3))
+        capture("onboarding-03-gym")
+        app.buttons["Weiter"].tap()
+
+        XCTAssertTrue(app.staticTexts["Freunde hinzufügen"].waitForExistence(timeout: 3))
+        capture("onboarding-04-friends")
+        app.buttons["Später"].tap()
+
         XCTAssertTrue(app.staticTexts["Du bist startklar."].waitForExistence(timeout: 3))
-        capture("onboarding-03-complete")
+        capture("onboarding-05-complete")
         app.buttons["FYRUP STARTEN"].tap()
-        XCTAssertTrue(app.staticTexts["Heute"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 3))
     }
 }

@@ -11,12 +11,16 @@ struct RootView: View {
             case .signedOut: WelcomeView()
             case .profileSetup: ProfileSetupView()
             case .sportsSetup: SportsSetupView()
+            case .gymSetup: GymSetupView()
+            case .friendsSetup: FriendsSetupView()
             case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()
             }
             if store.isBusy { Color.black.opacity(0.28).ignoresSafeArea(); ProgressView().tint(FYColor.lime).controlSize(.large) }
         }
         .tint(FYColor.lime)
+        .foregroundStyle(FYColor.ink)
+        .preferredColorScheme(.light)
         .alert("Hinweis", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }

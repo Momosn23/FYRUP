@@ -3,33 +3,115 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Environment(AppStore.self) private var store
+    @State private var page = 0
     @State private var showsAuth = false
     @State private var createsAccount = false
+
     var body: some View {
         ZStack {
-            Image("SplashHero").resizable().scaledToFill().ignoresSafeArea()
-            LinearGradient(colors: [.black.opacity(0.12), .black.opacity(0.25), .black.opacity(0.96)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-            VStack(spacing: 14) {
+            switch page {
+            case 0: splash
+            case 1: introOne
+            case 2: introTwo
+            default: loginChoice
+            }
+        }
+        .animation(.easeInOut(duration: 0.35), value: page)
+        .fullScreenCover(isPresented: $showsAuth) { AuthView(initiallyCreatesAccount: createsAccount) }
+        .task {
+            guard page == 0 else { return }
+            try? await Task.sleep(for: .seconds(1.4))
+            withAnimation { page = 1 }
+        }
+    }
+
+    private var splash: some View {
+        ZStack {
+            Image("SplashRunnerLight").resizable().scaledToFill().ignoresSafeArea()
+            LinearGradient(colors: [.clear, .black.opacity(0.04), .black.opacity(0.52)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            VStack(spacing: 12) {
                 Spacer()
-                FYRUPWordmark(size: 54)
-                Text("SAME ENERGY.\nHIGHER STANDARDS.")
-                    .font(.caption.weight(.bold)).tracking(1.8).multilineTextAlignment(.center)
-                Spacer().frame(height: 48)
+                FYRUPWordmark(size: 57, color: .white)
+                Text("Your friends\nmake you move.")
+                    .font(.title3.weight(.bold)).multilineTextAlignment(.center).foregroundStyle(.white)
+                Spacer().frame(height: 54)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("FYRUP. Your friends make you move.")
+        .onTapGesture { withAnimation { page = 1 } }
+    }
+
+    private var introOne: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Gemeinsam\nmehr erreichen.")
+                .font(.system(size: 34, weight: .black)).foregroundStyle(FYColor.ink)
+            Text("Sieh, wer heute aktiv ist, plane Training mit Freunden und motiviert euch gegenseitig.")
+                .font(.body).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Image("OnboardingCrewCollage").resizable().scaledToFill()
+                .frame(maxWidth: .infinity).frame(height: 390).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            PageDots(current: 0)
+            Button("Los geht's") { withAnimation { page = 2 } }.buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.horizontal, 24).padding(.top, 54).padding(.bottom, 18)
+        .background(Color.white.ignoresSafeArea())
+    }
+
+    private var introTwo: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Image("OnboardingCrewCollage").resizable().scaledToFill()
+                .frame(maxWidth: .infinity).frame(height: 360).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            Text("Mehr als Training.\nEine stärkere Crew.")
+                .font(.system(size: 31, weight: .black)).foregroundStyle(FYColor.ink)
+            Text("Gym, Laufen, Fußball und mehr – alles in einer App.")
+                .font(.body).foregroundStyle(FYColor.muted)
+            Spacer(minLength: 4)
+            PageDots(current: 1)
+            Button("Weiter") { withAnimation { page = 3 } }.buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 18)
+        .background(Color.white.ignoresSafeArea())
+    }
+
+    private var loginChoice: some View {
+        ZStack(alignment: .top) {
+            Color.white.ignoresSafeArea()
+            Image("WelcomeHeroLight").resizable().scaledToFill()
+                .frame(height: 310).clipped().blur(radius: 2)
+                .overlay(LinearGradient(colors: [.white.opacity(0.08), .white], startPoint: .top, endPoint: .bottom))
+                .ignoresSafeArea(edges: .top)
+            VStack(spacing: 14) {
+                Spacer().frame(height: 96)
+                Text("Willkommen bei").font(.title3.weight(.bold)).foregroundStyle(FYColor.ink)
+                FYRUPWordmark(size: 48)
+                Text("Your friends make you move.").font(.subheadline).foregroundStyle(FYColor.muted)
+                Spacer().frame(height: 62)
                 SignInWithAppleButton(.signIn) { store.configureAppleRequest($0) } onCompletion: { result in
                     Task { await store.handleAppleResult(result) }
                 }
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 50)
+                .signInWithAppleButtonStyle(.black).frame(height: 50)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                Button("Mit E-Mail anmelden") { createsAccount = false; showsAuth = true }.buttonStyle(SecondaryButtonStyle())
+                Button("Mit E-Mail anmelden") { createsAccount = false; showsAuth = true }.buttonStyle(OutlineButtonStyle())
                 Button("Account erstellen") { createsAccount = true; showsAuth = true }
-                    .font(.footnote).foregroundStyle(.white.opacity(0.75)).underline()
-                Text("More than training. A stronger you.")
-                    .font(.footnote.italic()).foregroundStyle(.white.opacity(0.64)).padding(.top, 18)
+                    .font(.footnote.weight(.semibold)).foregroundStyle(FYColor.ink).underline()
+                Spacer()
+                Text("Mit der Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
+                    .font(.caption2).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 28).padding(.bottom, 28)
+            .padding(.horizontal, 26).padding(.bottom, 22)
         }
-        .sheet(isPresented: $showsAuth) { AuthView(initiallyCreatesAccount: createsAccount) }
+    }
+}
+
+private struct PageDots: View {
+    let current: Int
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle().fill(index == current ? FYColor.ink : FYColor.line).frame(width: 6, height: 6)
+            }
+        }.frame(maxWidth: .infinity)
     }
 }
 
@@ -39,29 +121,61 @@ struct AuthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var createsAccount: Bool
+
     init(initiallyCreatesAccount: Bool = false) { _createsAccount = State(initialValue: initiallyCreatesAccount) }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    Text(createsAccount ? "Konto erstellen" : "Willkommen zurück").font(.largeTitle.bold()).frame(maxWidth: .infinity, alignment: .leading)
-                    TextField("E-Mail", text: $email).textContentType(.emailAddress).textInputAutocapitalization(.never).keyboardType(.emailAddress).fyField()
-                    SecureField("Passwort", text: $password).textContentType(createsAccount ? .newPassword : .password).fyField()
-                    Button(createsAccount ? "REGISTRIEREN" : "ANMELDEN") {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(createsAccount ? "Account erstellen" : "Willkommen zurück")
+                        .font(.system(size: 29, weight: .black)).foregroundStyle(FYColor.ink)
+                    if createsAccount { Text("Erstelle dein FYRUP-Profil in wenigen Schritten.").font(.subheadline).foregroundStyle(FYColor.muted) }
+                    Text("E-Mail-Adresse").onboardingLabel()
+                    TextField("max@example.com", text: $email)
+                        .textContentType(.emailAddress).textInputAutocapitalization(.never).keyboardType(.emailAddress).fyField()
+                    Text("Passwort").onboardingLabel()
+                    SecureField("Mindestens 8 Zeichen", text: $password)
+                        .textContentType(createsAccount ? .newPassword : .password).fyField()
+                    if createsAccount {
+                        PasswordRule(text: "Mindestens 8 Zeichen", valid: password.count >= 8)
+                        PasswordRule(text: "Ein Großbuchstabe", valid: password.contains(where: \.isUppercase))
+                        PasswordRule(text: "Eine Zahl", valid: password.contains(where: \.isNumber))
+                    }
+                    Button(createsAccount ? "Weiter" : "Anmelden") {
                         Task { createsAccount ? await store.signUp(email: email, password: password) : await store.signIn(email: email, password: password) }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(email.isEmpty || password.count < 8)
+                    }.buttonStyle(SecondaryButtonStyle()).disabled(email.isEmpty || password.count < 8)
                     SignInWithAppleButton(.continue) { store.configureAppleRequest($0) } onCompletion: { result in Task { await store.handleAppleResult(result) } }
-                        .signInWithAppleButtonStyle(.white).frame(height: 52).clipShape(Capsule())
-                    Button(createsAccount ? "Schon dabei? Anmelden" : "Noch kein Konto? Registrieren") { createsAccount.toggle() }.foregroundStyle(.white)
-                    if !createsAccount { Button("Passwort vergessen") { Task { await store.resetPassword(email: email) } }.font(.footnote).foregroundStyle(FYColor.muted) }
+                        .signInWithAppleButtonStyle(.black).frame(height: 50).clipShape(RoundedRectangle(cornerRadius: 12))
+                    Button(createsAccount ? "Schon dabei? Anmelden" : "Noch kein Konto? Registrieren") { createsAccount.toggle() }
+                        .foregroundStyle(FYColor.ink).frame(maxWidth: .infinity)
+                    if !createsAccount {
+                        Button("Passwort vergessen") { Task { await store.resetPassword(email: email) } }
+                            .font(.footnote).foregroundStyle(FYColor.muted).frame(maxWidth: .infinity)
+                    }
                 }.padding(24)
-            }.background(FYColor.background).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
-        }.presentationDetents([.large]).preferredColorScheme(.dark)
+            }
+            .background(Color.white)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button { dismiss() } label: { Image(systemName: "chevron.left") } } }
+        }
+        .preferredColorScheme(.light)
+    }
+}
+
+private struct PasswordRule: View {
+    let text: String
+    let valid: Bool
+    var body: some View {
+        Label(text, systemImage: valid ? "checkmark.circle.fill" : "circle")
+            .font(.caption).foregroundStyle(valid ? FYColor.lime : FYColor.muted)
     }
 }
 
 private extension View {
-    func fyField() -> some View { self.padding(16).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 16)).autocorrectionDisabled() }
+    func fyField() -> some View {
+        self.padding(.horizontal, 14).frame(minHeight: 50)
+            .foregroundStyle(FYColor.ink).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 11)).autocorrectionDisabled()
+    }
 }
 
 struct ProfileSetupView: View {
@@ -79,35 +193,26 @@ struct ProfileSetupView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 15) {
                 OnboardingProgress(step: 1, total: 3) { Task { await store.logout() } }
-                Text("Profil erstellen").font(.system(size: 30, weight: .bold))
-                Text("Erzähl uns ein paar Infos über dich.").foregroundStyle(FYColor.muted)
-
-                AvatarPicker(profile: store.profile, jpegData: $avatarJPEG)
-                    .frame(maxWidth: .infinity).padding(.vertical, 4)
-
-                OnboardingField(title: "Anzeigename", placeholder: "z. B. Max", text: $name, symbol: "person", suffix: nil)
+                Text("Erzähl uns von dir").font(.system(size: 30, weight: .black)).foregroundStyle(FYColor.ink)
+                AvatarPicker(profile: store.profile, jpegData: $avatarJPEG).frame(maxWidth: .infinity).padding(.vertical, 2)
+                OnboardingField(title: "Vorname", placeholder: "Max", text: $name, symbol: nil, suffix: nil)
                     .textContentType(.name).focused($focusedField, equals: .name)
-                OnboardingField(title: "Username", placeholder: "maxfyrup", text: $username, symbol: "at", suffix: usernameIsValid ? "checkmark" : nil)
+                OnboardingField(title: "Username", placeholder: "maxfyrup", text: $username, symbol: "at", suffix: usernameIsValid ? "checkmark.circle.fill" : nil)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().focused($focusedField, equals: .username)
-                Text("So finden dich deine Freunde.").font(.caption).foregroundStyle(FYColor.muted).padding(.top, -12)
-                OnboardingField(title: "Geburtsjahr (optional)", placeholder: "z. B. 1998", text: $birthYear, symbol: "calendar", suffix: nil)
+                OnboardingField(title: "Geburtsjahr (optional)", placeholder: "2003", text: $birthYear, symbol: nil, suffix: nil)
                     .keyboardType(.numberPad).focused($focusedField, equals: .birthYear)
-                OnboardingField(title: "Stadt (optional)", placeholder: "z. B. Köln", text: $city, symbol: "location", suffix: nil)
+                OnboardingField(title: "Stadt (optional)", placeholder: "Köln", text: $city, symbol: nil, suffix: nil)
                     .textContentType(.addressCity).focused($focusedField, equals: .city)
-
                 Button("Weiter") {
                     focusedField = nil
                     Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city, avatarJPEG: avatarJPEG) }
                 }
-                .buttonStyle(PrimaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid)
-                Text("Keine Sorge, du kannst das später jederzeit in deinem Profil ändern.")
-                    .font(.caption2).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)
-            }.padding(22)
+                .buttonStyle(SecondaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid)
+            }.padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 24)
         }
-        .scrollDismissesKeyboard(.interactively)
-        .background(OnboardingBackground())
+        .scrollDismissesKeyboard(.interactively).background(OnboardingBackground())
         .task {
             guard name.isEmpty, username.isEmpty else { return }
             name = store.profile?.displayName ?? store.suggestedDisplayName
@@ -121,16 +226,17 @@ struct ProfileSetupView: View {
 struct SportsSetupView: View {
     @Environment(AppStore.self) private var store
     @State private var selected = Set<SportKind>()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             OnboardingProgress(step: 2, total: 3) { store.route = .profileSetup }
-            Text("Welche Sportarten\nmachst du?").font(.system(size: 30, weight: .bold))
-            Text("Wähle alles aus, was auf dich zutrifft.\nDu kannst das später jederzeit ändern.").foregroundStyle(FYColor.muted)
+            Text("Was machst du gerne?").font(.system(size: 28, weight: .black)).foregroundStyle(FYColor.ink)
+            Text("Wähle eine oder mehrere Sportarten aus.").font(.subheadline).foregroundStyle(FYColor.muted)
             ScrollView { SportGrid(selected: $selected).padding(.vertical, 4) }
-            Button("Weiter") { Task { await store.saveProfile(displayName: store.profile?.displayName ?? "", username: store.profile?.username ?? "", sports: Array(selected)) } }
-                .buttonStyle(PrimaryButtonStyle()).disabled(selected.isEmpty)
+            Button("Weiter") { Task { await store.saveOnboardingSports(Array(selected)) } }
+                .buttonStyle(SecondaryButtonStyle()).disabled(selected.isEmpty)
         }
-        .padding(22)
+        .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 18)
         .background(OnboardingBackground())
         .task { if selected.isEmpty { selected = Set(store.profile?.sports ?? []) } }
     }
@@ -139,22 +245,110 @@ struct SportsSetupView: View {
 struct SportGrid: View {
     @Binding var selected: Set<SportKind>
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
+        LazyVGrid(columns: columns, spacing: 8) {
             ForEach(SportKind.allCases) { sport in
                 Button { selected.formSymmetricDifference([sport]) } label: {
-                    VStack(spacing: 9) {
-                        Image(systemName: sport.symbol).font(.title2)
-                        Text(sport.title).font(.caption.bold()).lineLimit(1).minimumScaleFactor(0.7)
+                    VStack(spacing: 8) {
+                        Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor)
+                        Text(sport.title).font(.caption2.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.68)
                     }
-                        .frame(maxWidth: .infinity, minHeight: 88)
-                        .foregroundStyle(.white)
-                        .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 2 : 1))
-                        .overlay(alignment: .topTrailing) { if selected.contains(sport) { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime).background(.black, in: Circle()).padding(7) } }
+                    .frame(maxWidth: .infinity, minHeight: 84).foregroundStyle(FYColor.ink)
+                    .background(selected.contains(sport) ? FYColor.limeSoft : FYColor.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 1.5 : 0.8))
+                    .overlay(alignment: .topTrailing) {
+                        if selected.contains(sport) { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime).background(.white, in: Circle()).padding(6) }
+                    }
                 }.accessibilityLabel(sport.title).accessibilityAddTraits(selected.contains(sport) ? .isSelected : [])
             }
         }
+    }
+}
+
+struct GymSetupView: View {
+    @Environment(AppStore.self) private var store
+    @State private var selected = Set<String>(["Push"])
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack { Button { store.route = .sportsSetup } label: { Image(systemName: "chevron.left") }; Spacer() }
+            Text("Was genau trainierst du?").font(.system(size: 28, weight: .black))
+            Label("Gym", systemImage: SportKind.gym.symbol).font(.headline)
+            ScrollView {
+                VStack(spacing: 9) {
+                    ForEach(SportCatalog.subtypes[.gym] ?? [], id: \.self) { item in
+                        Button { selected.formSymmetricDifference([item]) } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: gymSymbol(item)).frame(width: 28).foregroundStyle(selected.contains(item) ? FYColor.ink : FYColor.muted)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item).font(.subheadline.bold())
+                                    Text(gymSubtitle(item)).font(.caption2).foregroundStyle(FYColor.muted)
+                                }
+                                Spacer()
+                                Image(systemName: selected.contains(item) ? "checkmark.circle.fill" : "circle").foregroundStyle(selected.contains(item) ? FYColor.lime : FYColor.line)
+                            }
+                            .padding(.horizontal, 14).frame(minHeight: 51).foregroundStyle(FYColor.ink)
+                            .background(selected.contains(item) ? FYColor.limeSoft : .white, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected.contains(item) ? FYColor.lime : FYColor.line))
+                        }
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                Button("Überspringen") { store.route = .friendsSetup }.buttonStyle(OutlineButtonStyle())
+                Button("Weiter") { store.route = .friendsSetup }.buttonStyle(SecondaryButtonStyle())
+            }
+        }
+        .padding(22).background(OnboardingBackground()).foregroundStyle(FYColor.ink)
+    }
+
+    private func gymSymbol(_ item: String) -> String {
+        switch item { case "Cardio": "figure.run"; case "Legs", "Lower Body": "figure.strengthtraining.traditional"; default: "dumbbell.fill" }
+    }
+    private func gymSubtitle(_ item: String) -> String {
+        switch item {
+        case "Push": "Brust, Schultern, Trizeps"
+        case "Pull": "Rücken, Bizeps"
+        case "Legs": "Beine, Gesäß"
+        default: item == "Freies Training" ? "Eigener Fokus" : ""
+        }
+    }
+}
+
+struct FriendsSetupView: View {
+    @Environment(AppStore.self) private var store
+    @State private var query = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack { Button { store.route = store.profile?.sports.contains(.gym) == true ? .gymSetup : .sportsSetup } label: { Image(systemName: "chevron.left") }; Spacer() }
+            Text("Freunde hinzufügen").font(.system(size: 28, weight: .black))
+            HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Username suchen …", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
+                .padding(.horizontal, 13).frame(height: 45).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+            ScrollView {
+                VStack(spacing: 9) {
+                    ForEach(store.userSearchResults) { profile in
+                        HStack(spacing: 12) {
+                            AvatarView(profile: profile)
+                            VStack(alignment: .leading) { Text(profile.displayName).bold(); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }
+                            Spacer()
+                            Button("Hinzufügen") { Task { await store.sendFriendRequest(to: profile) } }
+                                .font(.caption.bold()).foregroundStyle(FYColor.lime).padding(.horizontal, 12).padding(.vertical, 8).background(FYColor.limeSoft, in: Capsule())
+                        }.padding(10).background(.white, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    if store.userSearchResults.isEmpty {
+                        ContentUnavailableView("Finde deine Crew", systemImage: "person.2.fill", description: Text("Suche nach dem Username deiner Freunde."))
+                            .foregroundStyle(FYColor.muted).padding(.top, 70)
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                Button("Später") { store.route = .onboardingComplete }.buttonStyle(OutlineButtonStyle())
+                Button("Fertig") { store.route = .onboardingComplete }.buttonStyle(SecondaryButtonStyle())
+            }
+        }
+        .padding(22).background(OnboardingBackground()).foregroundStyle(FYColor.ink)
     }
 }
 
@@ -162,18 +356,17 @@ struct OnboardingCompleteView: View {
     @Environment(AppStore.self) private var store
     var body: some View {
         VStack(spacing: 20) {
-            OnboardingProgress(step: 3, total: 3) { store.route = .sportsSetup }
+            OnboardingProgress(step: 3, total: 3) { store.route = .friendsSetup }
             Spacer()
             ZStack {
-                Circle().fill(FYColor.lime.opacity(0.12)).frame(width: 132, height: 132)
-                Circle().stroke(FYColor.lime.opacity(0.28), lineWidth: 1).frame(width: 132, height: 132)
+                Circle().fill(FYColor.limeSoft).frame(width: 132, height: 132)
                 Image(systemName: "flame.fill").font(.system(size: 64)).foregroundStyle(FYColor.lime)
             }
-            Text("Du bist startklar.").font(.system(size: 32, weight: .bold))
-            Text("Deine Crew, deine Trainings, dein Antrieb.\nAb jetzt beginnt FYRUP immer direkt im Heute-Feed.")
+            Text("Du bist startklar.").font(.system(size: 32, weight: .black)).foregroundStyle(FYColor.ink)
+            Text("Deine Crew, deine Trainings, dein Antrieb.\nAb jetzt beginnt FYRUP direkt im Heute-Feed.")
                 .foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
             Spacer()
-            Button("FYRUP STARTEN") { Task { await store.finishOnboarding() } }.buttonStyle(PrimaryButtonStyle())
+            Button("FYRUP STARTEN") { Task { await store.finishOnboarding() } }.buttonStyle(SecondaryButtonStyle())
         }.padding(22).background(OnboardingBackground())
     }
 }
@@ -187,11 +380,11 @@ private struct OnboardingProgress: View {
             Button(action: back) { Image(systemName: "chevron.left").font(.headline).frame(width: 30, height: 30) }
             HStack(spacing: 6) {
                 ForEach(1...total, id: \.self) { index in
-                    Capsule().fill(index <= step ? FYColor.lime : FYColor.elevated).frame(height: 4)
+                    Capsule().fill(index <= step ? FYColor.lime : FYColor.line).frame(height: 5)
                 }
             }
             Text("\(step) / \(total)").font(.caption.bold()).foregroundStyle(FYColor.muted).monospacedDigit()
-        }.foregroundStyle(.white)
+        }.foregroundStyle(FYColor.ink)
     }
 }
 
@@ -199,28 +392,31 @@ private struct OnboardingField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
-    let symbol: String
+    let symbol: String?
     let suffix: String?
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.82))
-            HStack(spacing: 10) {
-                Image(systemName: symbol).foregroundStyle(FYColor.muted).frame(width: 20)
-                TextField(placeholder, text: $text)
-                if let suffix { Image(systemName: suffix).foregroundStyle(FYColor.lime).font(.subheadline.bold()) }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).onboardingLabel()
+            HStack(spacing: 9) {
+                if let symbol { Image(systemName: symbol).foregroundStyle(FYColor.ink).frame(width: 18) }
+                TextField(placeholder, text: $text).foregroundStyle(FYColor.ink)
+                if let suffix { Image(systemName: suffix).foregroundStyle(FYColor.lime) }
             }
-            .padding(.horizontal, 14).frame(minHeight: 50)
-            .background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(FYColor.line))
+            .padding(.horizontal, 13).frame(minHeight: 48).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 11))
         }
     }
+}
+
+private extension Text {
+    func onboardingLabel() -> some View { self.font(.caption.weight(.semibold)).foregroundStyle(FYColor.muted) }
 }
 
 private struct OnboardingBackground: View {
     var body: some View {
         ZStack {
-            FYColor.background
-            RadialGradient(colors: [FYColor.lime.opacity(0.12), .clear], center: .top, startRadius: 0, endRadius: 330)
+            Color.white
+            RadialGradient(colors: [FYColor.lime.opacity(0.08), .clear], center: .topTrailing, startRadius: 0, endRadius: 380)
         }.ignoresSafeArea()
     }
 }

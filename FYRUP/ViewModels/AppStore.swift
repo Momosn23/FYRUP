@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 @Observable
 final class AppStore {
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, onboardingComplete, main }
+    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, friendsSetup, onboardingComplete, main }
     var route: Route = .loading
     var profile: Profile?
     var myActivity: Activity?
@@ -108,6 +108,18 @@ final class AppStore {
             self.profile = value
             self.route = value.sports.isEmpty ? .sportsSetup : .onboardingComplete
         }
+    }
+
+    func saveOnboardingSports(_ sports: [SportKind]) async {
+        await saveProfile(
+            displayName: profile?.displayName ?? suggestedDisplayName,
+            username: profile?.username ?? "",
+            birthYear: profile?.birthYear,
+            city: profile?.city,
+            sports: sports
+        )
+        guard errorMessage == nil else { return }
+        route = sports.contains(.gym) ? .gymSetup : .friendsSetup
     }
 
     func avatarImage(path: String) async -> UIImage? {
@@ -217,7 +229,7 @@ final class AppStore {
 
     func handleNotificationTap(type: String?) async {
         guard route == .main else { return }
-        if type == "friend_request" || type == "friend_accepted" { selectedTab = 2 }
+        if type == "friend_request" || type == "friend_accepted" { selectedTab = 1 }
         else { selectedTab = 0; opensNotifications = true }
         await refresh()
     }
