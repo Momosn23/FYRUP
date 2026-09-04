@@ -154,13 +154,11 @@ extension JSONDecoder {
         value.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let text = try container.decode(String.self)
-            if let date = ISO8601DateFormatter.fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text) { return date }
+            let fractionalFormatter = ISO8601DateFormatter()
+            fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = fractionalFormatter.date(from: text) ?? ISO8601DateFormatter().date(from: text) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid ISO-8601 date")
         }
         return value
     }
-}
-
-private extension ISO8601DateFormatter {
-    static let fractional: ISO8601DateFormatter = { let value = ISO8601DateFormatter(); value.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return value }()
 }
