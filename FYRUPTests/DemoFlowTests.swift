@@ -53,7 +53,8 @@ final class DemoFlowTests: XCTestCase {
 
     func testTrainingGroupCanBeCreatedAndDeleted() async throws {
         let repository = DemoRepository()
-        let session = try XCTUnwrap(try await repository.restoreSession())
+        let restored = try await repository.restoreSession()
+        let session = try XCTUnwrap(restored)
         let feed = try await repository.today(userID: session.userID)
         let friends = feed.1
         let max = try XCTUnwrap(friends.first { $0.profile.username == "max" })
