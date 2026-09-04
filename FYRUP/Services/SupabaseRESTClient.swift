@@ -22,13 +22,21 @@ actor SupabaseRESTClient {
     }
 
     func signIn(email: String, password: String) async throws -> AuthSession {
-        let response: AuthResponse = try await authRequest(path: "/auth/v1/token?grant_type=password", body: ["email": email, "password": password])
+        let response: AuthResponse = try await authRequest(
+            path: "/auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "password")],
+            body: ["email": email, "password": password]
+        )
         guard let session = try persist(response) else { throw AppError.authentication }
         return session
     }
 
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession {
-        let response: AuthResponse = try await authRequest(path: "/auth/v1/token?grant_type=id_token", body: ["provider": "apple", "id_token": idToken, "nonce": nonce])
+        let response: AuthResponse = try await authRequest(
+            path: "/auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "id_token")],
+            body: ["provider": "apple", "id_token": idToken, "nonce": nonce]
+        )
         guard let session = try persist(response) else { throw AppError.authentication }
         return session
     }
@@ -48,7 +56,11 @@ actor SupabaseRESTClient {
     func restore() async throws -> AuthSession? {
         guard let existing = session else { return nil }
         if existing.expiresAt > Date().addingTimeInterval(60) { return existing }
-        let response: AuthResponse = try await authRequest(path: "/auth/v1/token?grant_type=refresh_token", body: ["refresh_token": existing.refreshToken])
+        let response: AuthResponse = try await authRequest(
+            path: "/auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
+            body: ["refresh_token": existing.refreshToken]
+        )
         return try persist(response)
     }
 
@@ -87,14 +99,31 @@ actor SupabaseRESTClient {
         return try await execute(request)
     }
 
-    private func authRequest<Result: Decodable, Body: Encodable>(path: String, body: Body) async throws -> Result {
+    private func authRequest<Result: Decodable, Body: Encodable>(
+        path: String,
+        query: [URLQueryItem] = [],
+        body: Body
+    ) async throws -> Result {
         let data = try JSONEncoder.supabase.encode(body)
-        var request = URLRequest(url: configuration.supabaseURL.appending(path: path))
+        var request = URLRequest(url: Self.requestURL(
+            baseURL: configuration.supabaseURL,
+            path: path,
+            query: query
+        ))
         request.httpMethod = "POST"
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = data
         return try await execute(request)
+    }
+
+    static func requestURL(baseURL: URL, path: String, query: [URLQueryItem]) -> URL {
+        var components = URLComponents(
+            url: baseURL.appending(path: path),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = query.isEmpty ? nil : query
+        return components.url!
     }
 
     private func raw<Body: Encodable>(path: String, method: Method, body: Body?, accessToken: String) async throws -> Data {
