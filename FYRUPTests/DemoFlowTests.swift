@@ -43,8 +43,11 @@ final class DemoFlowTests: XCTestCase {
         let repository = DemoRepository()
         let restored = try await repository.restoreSession()
         let session = try XCTUnwrap(restored)
-        try await repository.planSession(userID: session.userID, sport: .gym, subtype: "Push", startsAt: Date().addingTimeInterval(3600), duration: 75, note: nil, friendIDs: [])
+        try await repository.planSession(userID: session.userID, sport: .gym, subtype: "Push", startsAt: Date().addingTimeInterval(3600), duration: 75, note: nil, placeName: "FYRUP Gym", friendsCanJoin: true, friendIDs: [])
         let feed = try await repository.today(userID: session.userID)
         XCTAssertEqual(feed.0?.status, .planned)
+        let hosted = try await repository.hostedSessions()
+        XCTAssertEqual(hosted.first?.session.placeName, "FYRUP Gym")
+        XCTAssertEqual(hosted.first?.session.friendsCanJoin, true)
     }
 }

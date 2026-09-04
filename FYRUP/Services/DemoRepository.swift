@@ -9,6 +9,7 @@ actor DemoRepository: AppRepository {
     private var sentFyrups = Set<UUID>()
     private var profileExists: Bool
     private var pushPreferences: NotificationPreferences = .standard
+    private var hosted: [HostedSession] = []
 
     init(startsWithoutProfile: Bool = false) {
         profileExists = !startsWithoutProfile
@@ -59,12 +60,27 @@ actor DemoRepository: AppRepository {
         return activities[index]
     }
     func cancelActivity(id: UUID) async throws { activities.removeAll { $0.id == id } }
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, friendIDs: [UUID]) async throws {
-        activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: UUID()))
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
+        let sessionID = UUID()
+        let session = PlannedSession(id: sessionID, hostID: meID, sport: sport, subtype: subtype, startsAt: startsAt, durationMinutes: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, status: "planned")
+        let participants = crew.filter { friendIDs.contains($0.id) }.map { SessionParticipant(profile: $0, status: .pending) }
+        hosted.append(HostedSession(session: session, participants: participants))
+        activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
     }
     func invitations() async throws -> [SessionInvitation] { [] }
+    func hostedSessions() async throws -> [HostedSession] { hosted }
+    func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession {
+        guard let index = hosted.firstIndex(where: { $0.id == session.id }) else { throw AppError.server }
+        hosted[index].session = session
+        if let activityIndex = activities.firstIndex(where: { $0.plannedSessionID == session.id && $0.userID == meID }) {
+            activities[activityIndex].plannedAt = session.startsAt
+            activities[activityIndex].plannedDurationMinutes = session.durationMinutes
+            activities[activityIndex].note = session.note
+        }
+        return session
+    }
     func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}
-    func cancelPlannedSession(sessionID: UUID) async throws { activities.removeAll { $0.plannedSessionID == sessionID } }
+    func cancelPlannedSession(sessionID: UUID) async throws { activities.removeAll { $0.plannedSessionID == sessionID }; hosted.removeAll { $0.id == sessionID } }
     func joinPlannedSession(sessionID: UUID) async throws {}
     func searchUsers(query: String) async throws -> [Profile] { crew.filter { $0.username.localizedCaseInsensitiveContains(query) || $0.displayName.localizedCaseInsensitiveContains(query) } }
     func requests() async throws -> [Profile] { [] }

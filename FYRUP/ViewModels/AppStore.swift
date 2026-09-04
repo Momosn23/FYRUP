@@ -15,6 +15,7 @@ final class AppStore {
     var notifications: [AppNotification] = []
     var notificationPreferences: NotificationPreferences = .standard
     var invitations: [SessionInvitation] = []
+    var hostedSessions: [HostedSession] = []
     var recentActivities: [Activity] = []
     var userSearchResults: [Profile] = []
     var goals: GoalSummary = .empty
@@ -114,7 +115,7 @@ final class AppStore {
         return image
     }
 
-    func updateProfile(displayName: String, username: String, birthYear: Int?, city: String, bio: String, avatarJPEG: Data?) async {
+    func updateProfile(displayName: String, username: String, birthYear: Int?, city: String, bio: String, sports: [SportKind], avatarJPEG: Data?) async {
         guard let userID = session?.userID, var value = profile else { return }
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else {
@@ -126,6 +127,7 @@ final class AppStore {
         value.birthYear = birthYear
         value.city = city.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         value.bio = bio.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        value.sports = sports
         await perform {
             if let avatarJPEG {
                 let path = try await self.repository.uploadAvatar(userID: userID, data: avatarJPEG)
@@ -150,8 +152,8 @@ final class AppStore {
         do {
             let result = try await repository.today(userID: userID)
             myActivity = result.0; crew = result.1
-            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
-            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
+            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
+            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; hostedSessions = (try? await hosted) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
             if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1; goals = cached.2 }
@@ -180,9 +182,12 @@ final class AppStore {
     func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); await self.refresh() } }
     func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.route = .signedOut; self.session = nil; self.profile = nil } }
 
-    func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, invitees: [UUID]) async {
+    func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID]) async {
         guard let userID = session?.userID else { return }
-        await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, friendIDs: invitees); await self.analytics.track(.activityPlanned); self.showsActivityComposer = false; await self.refresh() }
+        await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees); await self.analytics.track(.activityPlanned); self.showsActivityComposer = false; await self.refresh() }
+    }
+    func updateHostedSession(_ session: PlannedSession) async {
+        await perform { _ = try await self.repository.updateHostedSession(session); await self.refresh() }
     }
     func respond(to invitation: SessionInvitation, status: InvitationStatus) async { await perform { try await self.repository.respondToInvitation(sessionID: invitation.sessionID, status: status); if status == .accepted { await self.analytics.track(.inviteAccepted) }; await self.refresh() } }
     func cancelPlannedSession(_ id: UUID) async { await perform { try await self.repository.cancelPlannedSession(sessionID: id); await self.refresh() } }
@@ -235,8 +240,8 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity { throw AppError.configuration }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity { throw AppError.configuration }
     func cancelActivity(id: UUID) async throws {}
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, friendIDs: [UUID]) async throws {}
-    func invitations() async throws -> [SessionInvitation] { [] }; func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}; func cancelPlannedSession(sessionID: UUID) async throws {}; func joinPlannedSession(sessionID: UUID) async throws {}
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {}
+    func invitations() async throws -> [SessionInvitation] { [] }; func hostedSessions() async throws -> [HostedSession] { [] }; func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession { session }; func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}; func cancelPlannedSession(sessionID: UUID) async throws {}; func joinPlannedSession(sessionID: UUID) async throws {}
     func searchUsers(query: String) async throws -> [Profile] { [] }; func requests() async throws -> [Profile] { [] }
     func sendFriendRequest(to userID: UUID) async throws {}; func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
     func removeFriend(_ userID: UUID) async throws {}; func block(_ userID: UUID) async throws {}; func fyrup(_ userID: UUID) async throws {}

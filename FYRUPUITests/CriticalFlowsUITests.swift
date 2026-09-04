@@ -23,6 +23,12 @@ final class CriticalFlowsUITests: XCTestCase {
         return app
     }
 
+    private func revealAndTap(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<6 where !element.isHittable { app.swipeUp() }
+        XCTAssertTrue(element.isHittable)
+        element.tap()
+    }
+
     func testTodayStartAndCompleteFlow() {
         let app = launchDemo()
         capture("01-home-feed")
@@ -54,8 +60,15 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["Laufen"].tap()
         app.buttons["PLANEN"].tap()
         capture("05-plan-workout")
-        app.buttons.matching(identifier: "confirm-activity").element.tap()
+        let joinToggle = app.switches["Freunde dürfen sich anschließen"]
+        XCTAssertTrue(joinToggle.exists)
+        let confirm = app.buttons.matching(identifier: "confirm-activity").element
+        revealAndTap(confirm, in: app)
         XCTAssertTrue(app.staticTexts["PLANNED"].waitForExistence(timeout: 3))
+        app.buttons["TRAINING ÖFFNEN"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Training planen"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["TEILNEHMER"].exists)
+        capture("06-hosted-session")
     }
 
     func testCancelLiveWorkoutFlow() {
@@ -105,6 +118,20 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["Mitteilungen"].tap()
         XCTAssertTrue(app.navigationBars["Mitteilungen"].waitForExistence(timeout: 2))
         capture("10-notifications")
+    }
+
+    func testProfileSportsRemainEditable() {
+        let app = launchDemo()
+        app.tabBars.buttons["Profil"].tap()
+        app.buttons["Profil bearbeiten"].tap()
+        XCTAssertTrue(app.navigationBars["Profil bearbeiten"].waitForExistence(timeout: 3))
+        let yoga = app.buttons["Yoga"]
+        for _ in 0..<4 where !yoga.isHittable { app.swipeUp() }
+        XCTAssertTrue(yoga.isHittable)
+        yoga.tap()
+        let save = app.buttons["ÄNDERUNGEN SPEICHERN"]
+        revealAndTap(save, in: app)
+        XCTAssertTrue(app.staticTexts["Gym · Laufen · Yoga"].waitForExistence(timeout: 3))
     }
 
     func testCompleteOnboardingWithOptionalFields() {

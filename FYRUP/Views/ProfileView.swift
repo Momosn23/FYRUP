@@ -19,12 +19,12 @@ struct ProfileView: View {
                 if let profile = store.profile {
                     HStack(spacing: 16) {
                         AvatarView(profile: profile).scaleEffect(1.45).padding(14)
-                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted) }
+                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(.white.opacity(0.78)).padding(.top, 3) } }
                         Spacer()
                     }
                     HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts"); Metric(value: "\(store.goals.streak)", label: "Wochenstreak") }
                     Text("„Disziplin ist die Brücke zwischen Zielen und Ergebnissen.“").font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.82)).fyCard()
-                    WeekActivityStrip(activities: store.recentActivities)
+                    WeekActivityStrip(activities: store.recentActivities + [store.myActivity].compactMap { $0 })
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
                         HStack { Text("Woche").foregroundStyle(.black).padding(.horizontal, 22).padding(.vertical, 7).background(.white, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
@@ -65,6 +65,7 @@ private struct ProfileEditView: View {
     @State private var city = ""
     @State private var bio = ""
     @State private var avatarJPEG: Data?
+    @State private var selectedSports = Set<SportKind>()
 
     var body: some View {
         NavigationStack {
@@ -77,12 +78,16 @@ private struct ProfileEditView: View {
                     editField("Stadt (optional)", text: $city, symbol: "location")
                     TextField("Bio (optional)", text: $bio, axis: .vertical).lineLimit(3...5).padding(14)
                         .background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(FYColor.line))
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Sportarten").font(.headline)
+                        SportGrid(selected: $selectedSports)
+                    }
                     Button("ÄNDERUNGEN SPEICHERN") {
                         Task {
-                            await store.updateProfile(displayName: name, username: username, birthYear: Int(birthYear), city: city, bio: bio, avatarJPEG: avatarJPEG)
+                            await store.updateProfile(displayName: name, username: username, birthYear: Int(birthYear), city: city, bio: bio, sports: SportKind.allCases.filter(selectedSports.contains), avatarJPEG: avatarJPEG)
                             if store.errorMessage == nil { dismiss() }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(name.isEmpty || username.isEmpty)
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(name.isEmpty || username.isEmpty || selectedSports.isEmpty)
                 }.padding(20)
             }
             .background(FYColor.background)
@@ -98,6 +103,7 @@ private struct ProfileEditView: View {
             birthYear = profile.birthYear.map(String.init) ?? ""
             city = profile.city ?? ""
             bio = profile.bio ?? ""
+            selectedSports = Set(profile.sports)
         }
     }
 
@@ -114,7 +120,7 @@ private struct ProfileEditView: View {
 
 private struct Metric: View { let value: String; let label: String; var body: some View { VStack { Text(value).font(.title2.bold()); Text(label).font(.caption).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity) } }
 
-private struct WeekActivityStrip: View {
+struct WeekActivityStrip: View {
     let activities: [Activity]
     private let calendar = Calendar(identifier: .iso8601)
 
@@ -123,16 +129,18 @@ private struct WeekActivityStrip: View {
             HStack {
                 Text("Diese Woche").font(.headline)
                 Spacer()
-                Text("\(completedDays.count) von 7 Tagen").font(.caption).foregroundStyle(FYColor.muted)
+                Text("\(completedDays.count) geschafft").font(.caption).foregroundStyle(FYColor.muted)
             }
             HStack(spacing: 8) {
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     let isDone = completedDays.contains(calendar.startOfDay(for: day))
+                    let isPlanned = plannedDays.contains(calendar.startOfDay(for: day))
                     VStack(spacing: 7) {
                         Text(day.formatted(.dateTime.weekday(.narrow))).font(.caption2.bold()).foregroundStyle(FYColor.muted)
                         ZStack {
-                            Circle().fill(isDone ? FYColor.lime : FYColor.elevated).frame(width: 31, height: 31)
+                            Circle().fill(isDone ? FYColor.lime : isPlanned ? FYColor.planned : FYColor.elevated).frame(width: 31, height: 31)
                             if isDone { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) }
+                            else if isPlanned { Image(systemName: "clock.fill").font(.caption2.bold()).foregroundStyle(.black) }
                             else { Text(day.formatted(.dateTime.day())).font(.caption.bold()).foregroundStyle(.white.opacity(0.82)) }
                         }
                     }.frame(maxWidth: .infinity)
@@ -149,6 +157,13 @@ private struct WeekActivityStrip: View {
     private var completedDays: Set<Date> {
         Set(activities.compactMap { activity in
             guard activity.status == .completed, let date = activity.endedAt ?? activity.startedAt else { return nil }
+            return calendar.startOfDay(for: date)
+        })
+    }
+
+    private var plannedDays: Set<Date> {
+        Set(activities.compactMap { activity in
+            guard [.planned, .ready].contains(activity.status), let date = activity.plannedAt else { return nil }
             return calendar.startOfDay(for: date)
         })
     }

@@ -97,12 +97,26 @@ struct PlannedSession: Codable, Identifiable, Sendable {
     var startsAt: Date
     var durationMinutes: Int?
     var note: String?
+    var placeName: String?
     var friendsCanJoin: Bool
     var status: String
     enum CodingKeys: String, CodingKey {
         case id, sport, subtype, note, status
-        case hostID = "host_id", startsAt = "starts_at", durationMinutes = "duration_minutes", friendsCanJoin = "friends_can_join"
+        case hostID = "host_id", startsAt = "starts_at", durationMinutes = "duration_minutes"
+        case placeName = "place_name", friendsCanJoin = "friends_can_join"
     }
+}
+
+struct SessionParticipant: Codable, Identifiable, Sendable {
+    let profile: Profile
+    let status: InvitationStatus
+    var id: UUID { profile.id }
+}
+
+struct HostedSession: Codable, Identifiable, Sendable {
+    var session: PlannedSession
+    let participants: [SessionParticipant]
+    var id: UUID { session.id }
 }
 
 struct SessionInvitation: Codable, Identifiable, Sendable {

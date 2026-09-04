@@ -8,7 +8,10 @@ struct TodayView: View {
             LazyVStack(alignment: .leading, spacing: 14) {
                 header
                 crewStrip
-                Text("Heute").font(.title2.weight(.bold)).padding(.top, 4)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(.caption).foregroundStyle(FYColor.muted)
+                    Text("Heute").font(.title2.weight(.bold))
+                }.padding(.top, 4)
                 if store.isRefreshing && store.crew.isEmpty && store.myActivity == nil {
                     FeedSkeleton()
                 } else {
@@ -114,6 +117,7 @@ private struct MyFeedCard: View {
                 }
                 Spacer()
                 if let activity, activity.status == .live { NavigationLink { LiveActivityView() } label: { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral) }.accessibilityLabel("TRAINING ÖFFNEN") }
+                else if let activity, let sessionID = activity.plannedSessionID, let hosted = store.hostedSessions.first(where: { $0.id == sessionID }) { NavigationLink { HostedSessionView(hosted: hosted) } label: { Image(systemName: "chevron.right.circle.fill").foregroundStyle(FYColor.planned) }.accessibilityLabel("TRAINING ÖFFNEN") }
                 else if activity != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime) }
             }
             if activity == nil {
@@ -121,6 +125,8 @@ private struct MyFeedCard: View {
                     Button("JETZT LOS") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: true))
                     Button("FÜR SPÄTER PLANEN") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: false))
                 }
+            } else if let activity, [.planned, .ready].contains(activity.status), let sessionID = activity.plannedSessionID, let hosted = store.hostedSessions.first(where: { $0.id == sessionID }) {
+                NavigationLink { HostedSessionView(hosted: hosted) } label: { Text("TRAINING ÖFFNEN") }.buttonStyle(SecondaryButtonStyle())
             }
         }.fyCard()
     }

@@ -22,7 +22,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Apple-, E-Mail-Login und Account-erstellen-Aktionen sichtbar
 - [x] ✅ Vier Hauptziele: Home, Planen, Entdecken/Freunde und Profil
 - [x] ✅ Schnellzugriff zum Planen/Starten und Benachrichtigungsglocke
-- [ ] 🧪 Alle Referenzansichten werden im Cloud-iPhone als PNG erfasst; visueller Vergleich des nächsten Builds offen
+- [x] ✅ 13 Referenzansichten wurden in Codemagic Build 8 als PNG erfasst
+- [ ] 🧪 Pixel-/Layoutvergleich der PNGs mit den gelieferten Referenzen (Download aus Codemagic noch lokal zu öffnen)
 
 ## 3. Authentifizierung und Session
 
@@ -68,6 +69,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 ## 7. Heute-Feed und eigener Status
 
 - [x] ✅ Home ist das Zentrum der App
+- [x] ✅ Aktuelles lokales Datum und HEUTE-Überschrift
 - [x] ✅ Eigener Status: NOT YET, PLANNED, LIVE und DONE
 - [x] ✅ Relevanzsortierung LIVE → PLANNED → DONE → NOT YET
 - [x] ✅ Story-/Crew-Leiste und kompakte Social-Cards
@@ -91,12 +93,16 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 ## 9. Planung und Einladungen
 
 - [x] ✅ Datum, Uhrzeit, geplante Dauer, Notiz und mehrere Freunde
+- [x] ✅ Optionaler Ort/Treffpunkt ohne Adress- oder GPS-Erfassung
 - [x] ✅ Geplante Session und individuelle Activity sind getrennt modelliert
 - [x] ✅ Einladungen werden atomar serverseitig erstellt
 - [x] ✅ Status pending, accepted, maybe und declined im Datenmodell
 - [x] ✅ Annehmen/Ablehnen in der App
 - [x] ✅ „Vielleicht“-Antwort in der Empfänger-UI
 - [x] ✅ Host kann Session stornieren; Teilnehmer kann beitreten
+- [x] ✅ Host sieht Wartet/Dabei/Vielleicht/Kann-nicht je eingeladenem Freund
+- [x] ✅ Host kann Uhrzeit, Dauer, Notiz, Treffpunkt und Beitrittsfreigabe nachträglich ändern
+- [x] ✅ Sichtbarer Schalter „Freunde dürfen sich anschließen“ beim Planen
 - [x] ✅ Geplante Session wechselt serverseitig auf READY
 - [x] ✅ 30-Minuten-Erinnerung ist serverseitig vorbereitet
 - [ ] 🧪 Cron-Zeitplan und Erinnerungs-Push im Produktionsprojekt verifizieren
@@ -119,7 +125,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Eigenes Profil mit Name, Username, Sportarten, Ziel, Freunden und Statistiken
 - [x] ✅ Profilbearbeitung inklusive Foto
 - [x] ✅ Freundesprofil mit Status und Wochenfortschritt
-- [x] ✅ Minimalistische MO–SO-Wochenleiste mit abgeschlossenen Trainingstagen
+- [x] ✅ Minimalistische MO–SO-Wochenleiste mit DONE und gelbem PLANNED-Status
 - [x] ✅ Letzte Aktivitäten im eigenen Profil mit Datum und Dauer
 
 ## 12. Notifications und Push
@@ -179,7 +185,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ pgTAP-Schema-/Policy-Prüfungen
 - [x] ✅ Notification-Preferences-Migration im Produktionsprojekt ausgerollt und Tabelle/RLS/RPCs/Trigger geprüft
 - [x] ✅ Private Avatar-Migration im Produktionsprojekt ausgerollt und Bucket/Policies geprüft
-- [ ] ⚠️ pgTAP um Storage-Policies und weitere Negativtests erweitern
+- [x] ✅ pgTAP auf 30 Schema-/Policy-/RPC-Prüfungen einschließlich Storage erweitert
+- [x] ✅ pgTAP-Suite im Produktionsprojekt bis `ok 30` ausgeführt
 
 ## 17. Automatisierte Tests
 
@@ -192,7 +199,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
 - [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
-- [ ] 🧪 Sämtliche Tests im neuesten Codemagic-Build grün
+- [x] ✅ Codemagic Build 8: 8 UI-/Unit-Testflüsse, 0 Fehler, TEST SUCCEEDED
+- [ ] 🧪 Erweiterte Planungs-/Profiltests des nächsten Builds grün
 
 ## 18. TestFlight und Store-Vorbereitung
 
@@ -216,9 +224,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## Nächste Reihenfolge
 
-1. Neuen Code im Cloud-iPhone-Simulator kompilieren und alle UI-Flows grün bekommen.
-2. Avatar-Migration ausrollen und Upload/Download mit RLS prüfen.
-3. Sichtprüfung aller Referenzscreens und verbleibende UI-Abweichungen korrigieren.
-4. „Vielleicht“, alle Reaktionen, Wochenleiste, Notification-Einstellungen und Deep Links schließen.
-5. Neuen signierten TestFlight-Build erzeugen.
-6. Zwei-Konten-Endabnahme auf echten iPhones durchführen.
+1. Planungsdetails-Migration ausrollen und den erweiterten Cloud-iPhone-Testbuild grün bekommen.
+2. Alle erzeugten Referenz-PNGs gegen die gelieferten Zielbilder prüfen und Abweichungen korrigieren.
+3. APNs-Secrets einmalig sicher in Supabase speichern und Push-Cron verifizieren.
+4. Neuen signierten TestFlight-Build erzeugen und auf dem iPhone installieren.
+5. Zwei-Konten-Endabnahme auf echten iPhones durchführen.

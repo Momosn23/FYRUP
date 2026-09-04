@@ -16,8 +16,10 @@ protocol AppRepository: Sendable {
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
     func cancelActivity(id: UUID) async throws
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, friendIDs: [UUID]) async throws
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws
     func invitations() async throws -> [SessionInvitation]
+    func hostedSessions() async throws -> [HostedSession]
+    func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession
     func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws
     func cancelPlannedSession(sessionID: UUID) async throws
     func joinPlannedSession(sessionID: UUID) async throws
@@ -106,12 +108,30 @@ actor LiveAppRepository: AppRepository {
         let _: Bool = try await client.rpc("cancel_activity", body: ["p_activity_id": id.uuidString])
     }
 
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, friendIDs: [UUID]) async throws {
-        struct Body: Encodable { let pSport: String; let pSubtype: String?; let pStartsAt: Date; let pDurationMinutes: Int?; let pNote: String?; let pInvitees: [UUID]; enum CodingKeys: String, CodingKey { case pSport = "p_sport", pSubtype = "p_subtype", pStartsAt = "p_starts_at", pDurationMinutes = "p_duration_minutes", pNote = "p_note", pInvitees = "p_invitees" } }
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
+        struct Body: Encodable {
+            let pSport: String; let pSubtype: String?; let pStartsAt: Date; let pDurationMinutes: Int?
+            let pNote: String?; let pPlaceName: String?; let pFriendsCanJoin: Bool; let pInvitees: [UUID]
+            enum CodingKeys: String, CodingKey {
+                case pSport = "p_sport", pSubtype = "p_subtype", pStartsAt = "p_starts_at", pDurationMinutes = "p_duration_minutes"
+                case pNote = "p_note", pPlaceName = "p_place_name", pFriendsCanJoin = "p_friends_can_join", pInvitees = "p_invitees"
+            }
+        }
         struct Result: Decodable { let id: UUID }
-        let _: Result = try await client.rpc("plan_session", body: Body(pSport: sport.rawValue, pSubtype: subtype, pStartsAt: startsAt, pDurationMinutes: duration, pNote: note, pInvitees: friendIDs))
+        let _: Result = try await client.rpc("plan_session", body: Body(pSport: sport.rawValue, pSubtype: subtype, pStartsAt: startsAt, pDurationMinutes: duration, pNote: note, pPlaceName: placeName, pFriendsCanJoin: friendsCanJoin, pInvitees: friendIDs))
     }
     func invitations() async throws -> [SessionInvitation] { try await client.rpc("my_session_invites", body: [:] as [String: String]) }
+    func hostedSessions() async throws -> [HostedSession] { try await client.rpc("my_hosted_sessions", body: [:] as [String: String]) }
+    func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession {
+        struct Body: Encodable {
+            let pSession: UUID; let pStartsAt: Date; let pDurationMinutes: Int?; let pNote: String?; let pPlaceName: String?; let pFriendsCanJoin: Bool
+            enum CodingKeys: String, CodingKey {
+                case pSession = "p_session", pStartsAt = "p_starts_at", pDurationMinutes = "p_duration_minutes"
+                case pNote = "p_note", pPlaceName = "p_place_name", pFriendsCanJoin = "p_friends_can_join"
+            }
+        }
+        return try await client.rpc("update_planned_session", body: Body(pSession: session.id, pStartsAt: session.startsAt, pDurationMinutes: session.durationMinutes, pNote: session.note, pPlaceName: session.placeName, pFriendsCanJoin: session.friendsCanJoin))
+    }
     func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws { let _: Bool = try await client.rpc("respond_to_invite", body: ["p_session": sessionID.uuidString, "p_status": status.rawValue]) }
     func cancelPlannedSession(sessionID: UUID) async throws { let _: Bool = try await client.rpc("cancel_session", body: ["p_session": sessionID.uuidString]) }
     func joinPlannedSession(sessionID: UUID) async throws { let _: Bool = try await client.rpc("join_session", body: ["p_session": sessionID.uuidString]) }

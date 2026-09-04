@@ -27,8 +27,24 @@ struct FriendProfileView: View {
     @Environment(AppStore.self) private var store
     let member: CrewMember
     @State private var confirmRemove = false
+    @State private var recentActivities: [Activity] = []
     var body: some View {
-        ScrollView { VStack(spacing: 18) { AvatarView(profile: member.profile).scaleEffect(1.7).padding(22); Text(member.profile.displayName.uppercased()).font(.largeTitle.weight(.black)); Text("@\(member.profile.username)").foregroundStyle(FYColor.muted); HStack { Label("\(member.weeklyCount) / \(member.profile.weeklyGoal)", systemImage: "target"); Spacer(); Label("Wochenziel", systemImage: "flame.fill") }.fyCard(); if let activity = member.activity { ActivityLabel(activity: activity).fyCard() }; Menu("Freundschaft verwalten") { Button("Freund entfernen", role: .destructive) { confirmRemove = true }; Button("Blockieren", role: .destructive) { Task { await store.block(member.profile) } } }.foregroundStyle(FYColor.muted) }.padding(20) }.background(FYColor.background).confirmationDialog("Freund entfernen?", isPresented: $confirmRemove) { Button("Entfernen", role: .destructive) { Task { await store.removeFriend(member.profile) } } }
+        ScrollView {
+            VStack(spacing: 18) {
+                AvatarView(profile: member.profile).scaleEffect(1.7).padding(22)
+                Text(member.profile.displayName.uppercased()).font(.largeTitle.weight(.black))
+                Text("@\(member.profile.username)").foregroundStyle(FYColor.muted)
+                if let bio = member.profile.bio { Text(bio).font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.8)) }
+                HStack { Label("\(member.weeklyCount) / \(member.profile.weeklyGoal)", systemImage: "target"); Spacer(); Label("Wochenziel", systemImage: "flame.fill") }.fyCard()
+                VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
+                WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
+                if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
+                Menu("Freundschaft verwalten") { Button("Freund entfernen", role: .destructive) { confirmRemove = true }; Button("Blockieren", role: .destructive) { Task { await store.block(member.profile) } } }.foregroundStyle(FYColor.muted)
+            }.padding(20)
+        }
+        .background(FYColor.background)
+        .task { recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? [] }
+        .confirmationDialog("Freund entfernen?", isPresented: $confirmRemove) { Button("Entfernen", role: .destructive) { Task { await store.removeFriend(member.profile) } } }
     }
 }
 
