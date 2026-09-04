@@ -49,8 +49,9 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons.matching(identifier: "confirm-activity").element.tap()
         app.buttons["TRAINING ÖFFNEN"].tap()
         app.buttons["Training abbrechen"].tap()
-        XCTAssertTrue(app.buttons["Weiter trainieren"].waitForExistence(timeout: 2))
-        app.buttons["Training abbrechen"].tap()
+        let destructiveAction = app.sheets.buttons["Training abbrechen"]
+        XCTAssertTrue(destructiveAction.waitForExistence(timeout: 2))
+        destructiveAction.tap()
         XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 3))
     }
 
