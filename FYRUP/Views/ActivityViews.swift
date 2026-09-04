@@ -117,7 +117,7 @@ struct ActivityComposerView: View {
                         Spacer()
                         Image(systemName: subtype == program.rawValue ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(subtype == program.rawValue ? FYColor.lime : FYColor.muted)
                     }.padding(14).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(subtype == program.rawValue ? FYColor.lime.opacity(0.8) : FYColor.line))
-                }.buttonStyle(.plain).foregroundStyle(.white)
+                }.buttonStyle(.plain).foregroundStyle(.white).accessibilityLabel(program.rawValue).accessibilityHint(program.subtitle)
             }
 
             Text("KÖRPERGRUPPEN AUSWÄHLEN").composerSectionTitle()
