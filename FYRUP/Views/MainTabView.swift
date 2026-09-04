@@ -13,8 +13,8 @@ struct MainTabView: View {
             NavigationStack { FriendsView() }.tabItem { Label("Entdecken", systemImage: "safari") }.tag(2)
             NavigationStack { ProfileView() }.tabItem { Label("Profil", systemImage: "person.crop.circle") }.tag(3)
         }
-        .onChange(of: store.selectedTab) { _, value in if value == 1 { store.selectedTab = 0; store.showsActivityComposer = true } }
-        .sheet(isPresented: $store.showsActivityComposer) { ActivityComposerView() }
+        .onChange(of: store.selectedTab) { _, value in if value == 1 { store.activityComposerMode = 1; store.selectedTab = 0; store.showsActivityComposer = true } }
+        .sheet(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
         .task { await store.refresh() }
     }
 }

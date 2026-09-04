@@ -19,6 +19,21 @@ final class DateLogicTests: XCTestCase {
         XCTAssertEqual(DateLogic.status(for: [done, live], now: now, calendar: calendar)?.id, live.id)
     }
 
+    func testWorkoutFinishingAfterMidnightCountsForToday() {
+        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 4, hour: 0, minute: 20))!
+        let started = calendar.date(byAdding: .minute, value: -40, to: now)!
+        let ended = calendar.date(byAdding: .minute, value: -5, to: now)!
+        let activity = Activity(id: UUID(), userID: UUID(), sport: .running, subtype: nil, status: .completed, plannedAt: nil, startedAt: started, endedAt: ended, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
+        XCTAssertEqual(DateLogic.status(for: [activity], now: now, calendar: calendar)?.id, activity.id)
+    }
+
+    func testNearestPlannedWorkoutWins() {
+        let now = Date()
+        let later = Activity(id: UUID(), userID: UUID(), sport: .gym, subtype: "Pull", status: .planned, plannedAt: now.addingTimeInterval(4_000), startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: UUID())
+        let next = Activity(id: UUID(), userID: later.userID, sport: .running, subtype: nil, status: .planned, plannedAt: now.addingTimeInterval(2_000), startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: UUID())
+        XCTAssertEqual(DateLogic.status(for: [later, next], now: now, calendar: calendar)?.id, next.id)
+    }
+
     func testWeeklyGoalStreakSkipsIncompleteCurrentWeek() {
         let now = Date()
         let currentWeek = calendar.dateInterval(of: .weekOfYear, for: now)!
@@ -32,4 +47,3 @@ final class DateLogicTests: XCTestCase {
         XCTAssertEqual(LiveTimer.format(-5), "00:00:00")
     }
 }
-

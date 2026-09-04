@@ -23,6 +23,7 @@ final class AppStore {
     var isRefreshing = false
     var errorMessage: String?
     var showsActivityComposer = false
+    var activityComposerMode = 0
     var selectedTab = 0
     var opensNotifications = false
     var suggestedDisplayName = ""
@@ -146,7 +147,7 @@ final class AppStore {
     }
 
     func refresh() async {
-        guard let userID = session?.userID else { return }
+        guard let userID = session?.userID, !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
         do {
@@ -166,7 +167,17 @@ final class AppStore {
         await perform { self.myActivity = try await self.repository.startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linked, plannedSessionID: plannedSessionID); Haptics.impact(.heavy); await self.analytics.track(linked == nil ? .activityStarted : .joinLiveFriend); self.showsActivityComposer = false; await self.refresh() }
     }
 
-    func finish(distanceMeters: Int?) async { guard let id = myActivity?.id else { return }; await perform { self.myActivity = try await self.repository.completeActivity(id: id, distanceMeters: distanceMeters); Haptics.success(); await self.analytics.track(.activityCompleted); await self.refresh() } }
+    func finish(distanceMeters: Int?) async {
+        guard let id = myActivity?.id else { return }
+        let wasBelowWeeklyGoal = goals.weeklyCount < goals.weeklyGoal
+        await perform {
+            self.myActivity = try await self.repository.completeActivity(id: id, distanceMeters: distanceMeters)
+            Haptics.success()
+            await self.analytics.track(.activityCompleted)
+            await self.refresh()
+            if wasBelowWeeklyGoal && self.goals.weeklyCount >= self.goals.weeklyGoal { await self.analytics.track(.weeklyGoalCompleted) }
+        }
+    }
     func cancelCurrent() async { guard let id = myActivity?.id else { return }; await perform { try await self.repository.cancelActivity(id: id); self.myActivity = nil; await self.refresh() } }
     func fyrup(_ member: CrewMember) async { await perform { try await self.repository.fyrup(member.id); Haptics.impact(.light); await self.analytics.track(.fyrupSent) } }
     func react(_ activity: Activity, reaction: ReactionKind?) async { await perform { try await self.repository.react(activityID: activity.id, reaction: reaction) } }
@@ -184,7 +195,7 @@ final class AppStore {
 
     func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID]) async {
         guard let userID = session?.userID else { return }
-        await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees); await self.analytics.track(.activityPlanned); self.showsActivityComposer = false; await self.refresh() }
+        await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees); await self.analytics.track(.activityPlanned); if !invitees.isEmpty { await self.analytics.track(.inviteSent) }; self.showsActivityComposer = false; await self.refresh() }
     }
     func updateHostedSession(_ session: PlannedSession) async {
         await perform { _ = try await self.repository.updateHostedSession(session); await self.refresh() }
@@ -213,6 +224,7 @@ final class AppStore {
     }
 
     private func perform(_ operation: () async throws -> Void) async {
+        errorMessage = nil
         isBusy = true; defer { isBusy = false }
         do { try await operation() } catch { present(error) }
     }

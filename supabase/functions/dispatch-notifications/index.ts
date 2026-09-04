@@ -33,7 +33,7 @@ Deno.serve(async (request) => {
     const preferenceKey: Record<string, string> = {
       activity_started: "friend_starts", joined_live: "friend_starts", fyrup: "fyrup",
       session_invite: "invitations", invite_response: "invitations", session_joined: "invitations",
-      session_started: "invitations", session_cancelled: "invitations", reaction: "reactions",
+      session_started: "invitations", session_cancelled: "invitations", session_updated: "invitations", reaction: "reactions",
       friend_request: "friend_requests", friend_accepted: "friend_requests",
       session_reminder: "reminders", weekly_goal: "weekly_goal", crew_goal: "crew_goal",
     };
@@ -51,7 +51,7 @@ Deno.serve(async (request) => {
       const response = await fetch(`https://${host}/3/device/${device.token}`, {
         method: "POST",
         headers: { authorization: `bearer ${jwt}`, "apns-topic": topic, "apns-push-type": "alert", "apns-priority": "10" },
-        body: JSON.stringify({ aps: { alert: { title: note.title, body: note.body }, sound: "default", "mutable-content": 1 }, fyrup_type: note.type, ...note.data }),
+        body: JSON.stringify({ aps: { alert: { title: note.title, body: note.body }, sound: "default", "mutable-content": 1 }, ...note.data, fyrup_type: note.type }),
       });
       if (response.ok) delivered++;
       if (response.status === 410) await db.from("device_tokens").delete().eq("token", device.token);

@@ -30,13 +30,20 @@ struct TodayView: View {
         .background(FYColor.background)
         .refreshable { await store.refresh() }
         .navigationBarHidden(true)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                guard !Task.isCancelled else { break }
+                await store.refresh()
+            }
+        }
     }
 
     private var header: some View {
         HStack {
             FYRUPWordmark(size: 27)
             Spacer()
-            Button { store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(FYColor.line)) }
+            Button { store.activityComposerMode = 0; store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(FYColor.line)) }
             NavigationLink { NotificationCenterView() } label: {
                 Image(systemName: "bell").font(.headline).frame(width: 36, height: 36)
                     .overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.coral).frame(width: 7, height: 7).offset(x: -4, y: 5) } }
@@ -122,8 +129,8 @@ private struct MyFeedCard: View {
             }
             if activity == nil {
                 HStack(spacing: 10) {
-                    Button("JETZT LOS") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: true))
-                    Button("FÜR SPÄTER PLANEN") { store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: false))
+                    Button("JETZT LOS") { store.activityComposerMode = 0; store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: true))
+                    Button("FÜR SPÄTER PLANEN") { store.activityComposerMode = 1; store.showsActivityComposer = true }.buttonStyle(HomeActionStyle(primary: false))
                 }
             } else if let activity, [.planned, .ready].contains(activity.status), let sessionID = activity.plannedSessionID, let hosted = store.hostedSessions.first(where: { $0.id == sessionID }) {
                 NavigationLink { HostedSessionView(hosted: hosted) } label: { Text("TRAINING ÖFFNEN") }.buttonStyle(SecondaryButtonStyle())
@@ -223,7 +230,7 @@ private struct CrewFeedCard: View {
 
 struct LiveTimer: View {
     let start: Date
-    var body: some View { TimelineView(.periodic(from: .now, by: 1)) { context in Text(Self.format(context.date.timeIntervalSince(start))).font(.system(.title2, design: .monospaced).weight(.bold)).contentTransition(.numericText()) } }
+    var body: some View { TimelineView(.periodic(from: .now, by: 1)) { context in Text(Self.format(context.date.timeIntervalSince(start))).fontDesign(.monospaced).fontWeight(.bold).monospacedDigit().contentTransition(.numericText()) } }
     static func format(_ interval: TimeInterval) -> String { let seconds = max(0, Int(interval)); return String(format: "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60) }
 }
 

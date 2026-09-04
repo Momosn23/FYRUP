@@ -2,11 +2,11 @@
 
 ## Automatisch
 
-- [ ] `xcodegen generate` ohne Warnungen
-- [ ] Debug Build auf aktuellem iPhone-Simulator
+- [x] `xcodegen generate` in Codemagic erfolgreich
+- [x] Debug Build auf iPhone-17-Pro-Simulator
 - [ ] Release Build mit `CODE_SIGNING_ALLOWED=NO`
-- [ ] Unit- und UI-Tests grün
-- [ ] `supabase db reset` und `supabase test db` grün
+- [x] Build 10: Unit- und 9 UI-Flows grün; finaler Regressionsbuild folgt
+- [x] 30 pgTAP-Prüfungen im Produktionsprojekt bis `ok 30`
 - [ ] Edge Functions lokal typgeprüft
 
 ## Echte Geräte und Accounts
@@ -36,4 +36,3 @@
 - [ ] Export-Compliance-Frage beantworten
 - [ ] Interne Beta mit 2 Accounts, dann externe Gruppe mit 5–20 Personen
 - [ ] Feedback-Kanal und Crash-Monitoring festlegen
-

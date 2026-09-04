@@ -171,15 +171,35 @@ actor SupabaseRESTClient {
             let (data, response) = try await urlSession.data(for: request)
             guard let http = response as? HTTPURLResponse else { throw AppError.network }
             guard 200..<300 ~= http.statusCode else {
-                if http.statusCode == 401 { throw AppError.authentication }
-                if http.statusCode == 409 { throw AppError.conflict("Diese Aktion wurde bereits ausgeführt.") }
-                throw AppError.server
+                let backend = try? JSONDecoder().decode(BackendError.self, from: data)
+                throw Self.appError(status: http.statusCode, code: backend?.code, message: backend?.message)
             }
             if data.isEmpty, T.self == EmptyResponse.self { return EmptyResponse() as! T }
             return try JSONDecoder.supabase.decode(T.self, from: data)
         } catch let error as AppError { throw error }
         catch is URLError { throw AppError.network }
         catch { throw AppError.server }
+    }
+
+    static func appError(status: Int, code: String?, message: String?) -> AppError {
+        let text = [code, message].compactMap { $0 }.joined(separator: " ").lowercased()
+        if status == 401 { return .authentication }
+        if text.contains("invalid login credentials") { return .conflict("E-Mail oder Passwort ist falsch.") }
+        if text.contains("email not confirmed") { return .conflict("Bitte bestätige zuerst deine E-Mail-Adresse.") }
+        if text.contains("user already registered") { return .conflict("Für diese E-Mail gibt es bereits ein Konto.") }
+        if text.contains("password") && (text.contains("characters") || text.contains("weak")) { return .validation("Das Passwort muss mindestens 8 Zeichen lang sein.") }
+        if text.contains("reserved_username") { return .conflict("Dieser Username ist reserviert.") }
+        if text.contains("username") && (text.contains("duplicate") || code == "23505") { return .conflict("Dieser Username ist bereits vergeben.") }
+        if text.contains("already_live") { return .conflict("Du hast bereits ein LIVE-Training.") }
+        if text.contains("already_sent_today") { return .conflict("Diesen Freund hast du heute bereits motiviert.") }
+        if text.contains("friendship_exists") { return .conflict("Diese Freundschaftsanfrage gibt es bereits.") }
+        if text.contains("start_in_past") { return .validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
+        if text.contains("session_not_editable") { return .conflict("Dieses Training kann nicht mehr geändert werden.") }
+        if status == 409 || code == "23505" { return .conflict("Diese Aktion wurde bereits ausgeführt.") }
+        if status == 400 && (text.contains("provider") || text.contains("id_token") || text.contains("nonce")) {
+            return .conflict("Die Apple-Anmeldung konnte nicht bestätigt werden. Versuche es erneut.")
+        }
+        return .server
     }
 
     private func persist(_ response: AuthResponse) throws -> AuthSession? {
@@ -201,6 +221,11 @@ private struct AuthResponse: Decodable {
 }
 
 private struct EmptyResponse: Codable {}
+
+private struct BackendError: Decodable {
+    let code: String?
+    let message: String?
+}
 
 extension JSONEncoder {
     static var supabase: JSONEncoder { let value = JSONEncoder(); value.dateEncodingStrategy = .iso8601; return value }

@@ -8,9 +8,11 @@ enum AnalyticsEvent: String, Sendable {
     case activityStarted = "activity_started"
     case activityCompleted = "activity_completed"
     case activityPlanned = "activity_planned"
+    case inviteSent = "invite_sent"
     case inviteAccepted = "invite_accepted"
     case fyrupSent = "fyrup_sent"
     case joinLiveFriend = "join_live_friend"
+    case weeklyGoalCompleted = "weekly_goal_completed"
 }
 
 protocol AnalyticsTracking: Sendable { func track(_ event: AnalyticsEvent) async }
@@ -27,4 +29,3 @@ actor DevelopmentAnalytics: AnalyticsTracking {
     static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) { UIImpactFeedbackGenerator(style: style).impactOccurred() }
     static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
 }
-

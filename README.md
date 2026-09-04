@@ -109,7 +109,7 @@ xcodebuild -project FYRUP.xcodeproj -scheme FYRUP \
 supabase test db
 ```
 
-Unit Tests prüfen Tageswechsel, Feed-Priorität, Wochenziel-Streak, Timer, Activity-Lifecycle, genau eine LIVE-Aktivität, Planen und FYR-UP-Deduplizierung. UI Tests decken Start → LIVE → DONE und den Ein-Tap-FYR-UP-Flow ab. pgTAP prüft Kernschema, Constraints und RLS-Policy-Sets. GitHub Actions führt iOS Build und Tests auf macOS aus.
+Unit Tests prüfen Tageswechsel, Feed-Priorität, Wochenziel-Streak, Timer, Activity-Lifecycle, genau eine LIVE-Aktivität, Planen und FYR-UP-Deduplizierung. Neun UI-Flows decken unter anderem Start → LIVE → DONE, Planen samt Host-Details, FYR UP, Profilbearbeitung, Notifications und das dreistufige Onboarding ab. Dabei entstehen 13 Referenz-Screenshots und ein browserlesbares Kontaktblatt. pgTAP prüft 30 Schema-, RPC- und RLS-Eigenschaften. Codemagic führt iOS Build und Tests auf macOS aus.
 
 ### Ohne eigenen Mac
 
@@ -120,7 +120,7 @@ Für den signierten Workflow `FYRUP Signed TestFlight Build` werden in Codemagic
 - `appstore_credentials`: `APP_STORE_CONNECT_PRIVATE_KEY`, `APP_STORE_CONNECT_KEY_IDENTIFIER`, `APP_STORE_CONNECT_ISSUER_ID`, `CERTIFICATE_PRIVATE_KEY`
 - `fyrup_backend`: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`
 
-Der Workflow holt oder erzeugt passende App-Store-Signing-Dateien für `app.fyrup.ios`, vergibt eine eindeutige Buildnummer, baut die IPA und lädt sie zu App Store Connect hoch. Secrets werden nur während des Builds in die ignorierte `Config/Secrets.xcconfig` geschrieben.
+Der Workflow holt oder erzeugt passende App-Store-Signing-Dateien für `app.fyrup.ios`, vergibt eine eindeutige Buildnummer, baut die IPA und lädt sie zu App Store Connect hoch. Secrets werden nur während des Builds in die ignorierte `Config/Secrets.xcconfig` geschrieben. Der Cloud-Testworkflow veröffentlicht ausschließlich ein visuelles Kontaktblatt; Testlogs bleiben direkt in Codemagic verfügbar.
 
 ## Release / TestFlight
 

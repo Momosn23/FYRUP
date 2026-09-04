@@ -13,10 +13,23 @@ enum DateLogic {
         let today = todayInterval(now: now, calendar: calendar)
         return activities.filter { activity in
             if activity.status == .live { return true }
-            let reference = activity.startedAt ?? activity.plannedAt ?? activity.endedAt
+            let reference: Date? = switch activity.status {
+            case .completed: activity.endedAt ?? activity.startedAt
+            case .planned, .ready: activity.plannedAt
+            case .live: activity.startedAt
+            case .cancelled: nil
+            }
             return reference.map(today.contains) ?? false
         }.sorted {
-            TodayStatus(activity: $0) < TodayStatus(activity: $1)
+            let left = TodayStatus(activity: $0)
+            let right = TodayStatus(activity: $1)
+            if left != right { return left < right }
+            switch left {
+            case .live: return ($0.startedAt ?? .distantPast) > ($1.startedAt ?? .distantPast)
+            case .planned: return ($0.plannedAt ?? .distantFuture) < ($1.plannedAt ?? .distantFuture)
+            case .done: return ($0.endedAt ?? .distantPast) > ($1.endedAt ?? .distantPast)
+            case .notYet: return false
+            }
         }.first
     }
 

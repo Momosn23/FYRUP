@@ -105,7 +105,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Sichtbarer Schalter „Freunde dürfen sich anschließen“ beim Planen
 - [x] ✅ Geplante Session wechselt serverseitig auf READY
 - [x] ✅ 30-Minuten-Erinnerung ist serverseitig vorbereitet
-- [ ] 🧪 Cron-Zeitplan und Erinnerungs-Push im Produktionsprojekt verifizieren
+- [x] ✅ Supabase-Cron ruft `process_scheduled_sessions` alle fünf Minuten im Produktionsprojekt auf
+- [ ] 🧪 Erinnerungs-Push mit echtem APNs-Key und zwei Geräten verifizieren
 
 ## 10. Social Motivation
 
@@ -140,7 +141,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Push-Taps öffnen abhängig vom Ereignis Freunde oder Mitteilungsfeed
 - [x] ✅ Push-Dispatcher als Edge Function im Produktionsprojekt veröffentlicht
 - [x] ✅ APNs-Key `ZAYGWU8U3P` für Sandbox und Produktion erstellt und sicher heruntergeladen
-- [ ] 🧪 APNs-Private-Key, Team-ID, Topic und Cron-Secret als verschlüsselte Supabase-Secrets speichern
+- [x] ✅ APNs-Team-ID, Key-ID, Topic und Cron-Secret als verschlüsselte Supabase-Secrets gespeichert
+- [ ] 🧪 APNs-Private-Key einmalig manuell als verschlüsseltes Supabase-Secret einfügen
 
 ## 13. Datenschutz, Sicherheit und Account
 
@@ -199,8 +201,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
 - [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
-- [x] ✅ Codemagic Build 8: 8 UI-/Unit-Testflüsse, 0 Fehler, TEST SUCCEEDED
-- [ ] 🧪 Erweiterte Planungs-/Profiltests des nächsten Builds grün
+- [x] ✅ Codemagic Build 10: 9 UI-Flows inklusive Planung/Host-Details und Profilbearbeitung, 0 Fehler, TEST SUCCEEDED
+- [x] ✅ Visuelles QA-Kontaktblatt wird bei jedem Cloud-Testbuild erzeugt
 
 ## 18. TestFlight und Store-Vorbereitung
 
@@ -224,8 +226,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## Nächste Reihenfolge
 
-1. Planungsdetails-Migration ausrollen und den erweiterten Cloud-iPhone-Testbuild grün bekommen.
-2. Alle erzeugten Referenz-PNGs gegen die gelieferten Zielbilder prüfen und Abweichungen korrigieren.
-3. APNs-Secrets einmalig sicher in Supabase speichern und Push-Cron verifizieren.
+1. Letzten Cloud-iPhone-Testbuild mit Planungsmodus-, Datums- und Fehlermeldungsregressionen grün bekommen.
+2. Das erzeugte Kontaktblatt aus Codemagic gegen die gelieferten Zielbilder prüfen und Abweichungen korrigieren.
+3. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
 4. Neuen signierten TestFlight-Build erzeugen und auf dem iPhone installieren.
 5. Zwei-Konten-Endabnahme auf echten iPhones durchführen.

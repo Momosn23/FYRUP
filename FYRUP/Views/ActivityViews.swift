@@ -6,7 +6,7 @@ struct ActivityComposerView: View {
     let linkedActivityID: UUID?
     @State private var sport: SportKind?
     @State private var subtype: String?
-    @State private var mode = 0
+    @State private var mode: Int
     @State private var startsAt = Date().addingTimeInterval(3600)
     @State private var duration = 60
     @State private var note = ""
@@ -15,7 +15,10 @@ struct ActivityComposerView: View {
     @State private var invitees = Set<UUID>()
     @State private var search = ""
 
-    init(linkedActivityID: UUID? = nil) { self.linkedActivityID = linkedActivityID }
+    init(linkedActivityID: UUID? = nil, initialMode: Int = 0) {
+        self.linkedActivityID = linkedActivityID
+        _mode = State(initialValue: initialMode)
+    }
     var body: some View {
         NavigationStack {
             ScrollView {

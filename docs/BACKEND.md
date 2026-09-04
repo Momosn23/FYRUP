@@ -5,7 +5,7 @@
 - `profiles`: Identität, Sportpräferenzen, Ziel, Sichtbarkeit; 1:1 zu `auth.users`.
 - `friendships`: gerichtete Anfrage mit beidseitigem Accepted-Zustand; ein kanonischer Paar-Index verhindert Duplikate.
 - `blocks`: einseitige Sperre. Die Helper `is_blocked` und `are_friends` werden von Feed, Suche und Mutationen genutzt.
-- `planned_sessions`: gemeinsamer Termin des Hosts.
+- `planned_sessions`: gemeinsamer Termin des Hosts einschließlich optionalem Treffpunkt und Beitrittsfreigabe.
 - `session_invites`: Antwort je eingeladenem Nutzer (`pending`, `accepted`, `maybe`, `declined`).
 - `activities`: persönliche Aktivität jedes Teilnehmers; optionale `planned_session_id` hält den Zusammenhang.
 - `fyrups`: Motivation mit eindeutigem `(sender, recipient, sender_local_date)`.
@@ -22,13 +22,13 @@ Sofort: `live → completed | cancelled`. Geplant: `planned → ready → live �
 
 ## Planned Sessions
 
-`plan_session` erzeugt Termin, Host-Activity, Einladungen und Inbox-Ereignisse in einer Transaktion. `respond_to_invite` verwaltet Antworten und legt bei Accepted/Maybe eine eigene verknüpfte Activity an. Startet der Host die Session, werden Accepted-Teilnehmer benachrichtigt; jeder startet seine Activity selbst. `cancel_session` storniert noch nicht gestartete Activities und informiert Eingeladene.
+`plan_session` erzeugt Termin, Host-Activity, Einladungen und Inbox-Ereignisse in einer Transaktion. `respond_to_invite` verwaltet Antworten und legt bei `accepted` eine eigene verknüpfte Activity an; `maybe` bleibt bewusst unverbindlich. `my_hosted_sessions` liefert dem Host die Status Wartet/Dabei/Vielleicht/Kann nicht. `update_planned_session` ändert Uhrzeit, Dauer, Notiz, Treffpunkt und Beitrittsfreigabe atomar, setzt die Erinnerung zurück, aktualisiert noch nicht gestartete Teilnehmer-Activities und informiert Betroffene. Startet der Host die Session, werden Accepted-Teilnehmer benachrichtigt; jeder startet seine Activity selbst. `cancel_session` storniert noch nicht gestartete Activities und informiert Eingeladene.
 
-`process_scheduled_sessions` markiert erreichte Termine als Ready und legt 30-Minuten-Erinnerungen idempotent an. Der Betrieb plant diese Funktion via Supabase Cron.
+`process_scheduled_sessions` markiert erreichte Termine als Ready und legt 30-Minuten-Erinnerungen idempotent an. Die Migration `202609040008_scheduled_session_cron.sql` plant diese Funktion idempotent alle fünf Minuten via Supabase Cron. Der HTTP-Aufruf des Push-Dispatchers wird erst nach Hinterlegung des privaten APNs-Schlüssels aktiviert.
 
 ## Friendship und FYR UP
 
-Suche läuft über eine begrenzte Security-Definer-Funktion, weil Profile sonst nur für sich und Accepted Friends lesbar sind. Request, Answer, Remove und Block sind serverseitige RPCs. Ein Block entfernt bestehende Freundschaft und verhindert neue Social-Aktionen.
+Suche läuft über eine begrenzte Security-Definer-Funktion, weil Profile sonst nur für sich und Accepted Friends lesbar sind. Request, Answer, Remove und Block sind serverseitige RPCs. Entfernen oder Blockieren räumt offene gemeinsame Session-Einladungen und geplante Teilnehmer-Activities auf, sodass die frühere Freundschaft keinen weiteren Lesezugriff vermittelt. Ein Block verhindert außerdem neue Social-Aktionen.
 
 `send_fyrup` akzeptiert ausschließlich Accepted Friends und berechnet das Datum serverseitig in der Client-Zeitzone. Der Unique Constraint verhindert Retries und Doppeltaps zuverlässig.
 
@@ -49,4 +49,3 @@ Security-Definer-Funktionen setzen `search_path=''` und qualifizieren Objekte vo
 ## Account-Löschung
 
 Die App ruft `delete-account` mit dem aktuellen Bearer Token auf. Die Function validiert den User und löscht ihn über Admin Auth. Foreign-Key-Cascades entfernen Profil, Freundschaften, Aktivitäten, Einladungen, Notifications und Device Tokens. Danach wird der lokale Keychain-Eintrag entfernt.
-
