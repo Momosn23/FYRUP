@@ -2,84 +2,143 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(AppStore.self) private var store
+
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).foregroundStyle(FYColor.muted).textCase(.uppercase)
-                HStack { Text("HEUTE 🔥").font(.system(size: 36, weight: .black)); Spacer(); NavigationLink { NotificationCenterView() } label: { Image(systemName: "bell.fill").font(.title3).overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.lime).frame(width: 8, height: 8) } } }.accessibilityLabel("Mitteilungen") }
-                MyStatusCard(activity: store.myActivity)
+            LazyVStack(alignment: .leading, spacing: 14) {
+                header
+                crewStrip
+                Text("Heute").font(.title2.weight(.bold)).padding(.top, 4)
+                MyFeedCard(activity: store.myActivity)
                 ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
-                CrewGoalCard(summary: store.goals)
-                Text("DEINE CREW").font(.headline.weight(.black)).padding(.top, 6)
+                ForEach(store.crew) { member in CrewFeedCard(member: member) }
                 if store.crew.isEmpty {
                     ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2", description: Text("Füge Freunde hinzu und bewegt euch gemeinsam."))
-                    Button("FREUND HINZUFÜGEN") { store.selectedTab = 1 }.buttonStyle(SecondaryButtonStyle())
-                } else {
-                    ForEach(store.crew) { member in CrewCard(member: member) }
+                    Button("Freund hinzufügen") { store.selectedTab = 2 }.buttonStyle(SecondaryButtonStyle())
                 }
-            }.padding(20)
-        }.background(FYColor.background).refreshable { await store.refresh() }.navigationBarHidden(true)
+                MotivationCard()
+                CrewGoalCard(summary: store.goals)
+            }
+            .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
+        }
+        .background(FYColor.background)
+        .refreshable { await store.refresh() }
+        .navigationBarHidden(true)
     }
+
+    private var header: some View {
+        HStack {
+            FYRUPWordmark(size: 27)
+            Spacer()
+            Button { store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()) }
+            NavigationLink { NotificationCenterView() } label: {
+                Image(systemName: "bell").font(.headline).frame(width: 36, height: 36)
+                    .overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.coral).frame(width: 7, height: 7).offset(x: -4, y: 5) } }
+            }
+        }.foregroundStyle(.white)
+    }
+
+    private var crewStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                StoryAvatar(profile: store.profile, status: store.myActivity.map { $0.status == .live ? .live : $0.status == .completed ? .done : .planned } ?? .notYet, label: "Du")
+                ForEach(store.crew) { member in StoryAvatar(profile: member.profile, status: member.todayStatus, label: member.profile.displayName.components(separatedBy: " ").first ?? member.profile.displayName) }
+            }
+        }
+    }
+}
+
+private struct StoryAvatar: View {
+    let profile: Profile?
+    let status: TodayStatus
+    let label: String
+    var body: some View {
+        VStack(spacing: 5) {
+            ZStack {
+                Circle().stroke(ringColor, lineWidth: 2).frame(width: 52, height: 52)
+                if let profile { AvatarView(profile: profile).scaleEffect(0.88) }
+                else { Circle().fill(FYColor.elevated).frame(width: 46, height: 46).overlay(Image(systemName: "person.fill").foregroundStyle(FYColor.muted)) }
+                Circle().fill(ringColor).frame(width: 12, height: 12).overlay(Image(systemName: status == .done ? "checkmark" : "flame.fill").font(.system(size: 7)).foregroundStyle(.black)).offset(x: 19, y: 19)
+            }
+            Text(label).font(.caption2).lineLimit(1).frame(width: 58)
+        }
+    }
+    private var ringColor: Color { switch status { case .live: FYColor.live; case .planned: FYColor.planned; case .done: FYColor.lime; case .notYet: FYColor.muted } }
+}
+
+private struct MyFeedCard: View {
+    @Environment(AppStore.self) private var store
+    let activity: Activity?
+    var body: some View {
+        HStack(spacing: 12) {
+            if let profile = store.profile { AvatarView(profile: profile) }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(store.profile?.displayName ?? "Du").font(.headline)
+                if let activity {
+                    Text(activityTitle(activity)).font(.subheadline).foregroundStyle(FYColor.muted)
+                    HStack(spacing: 5) {
+                        StatusBadge(status: todayStatus(activity))
+                        if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
+                        else if let plannedAt = activity.plannedAt { Text("· \(plannedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
+                    }
+                } else { Text("Noch nicht aktiv").font(.subheadline).foregroundStyle(FYColor.muted) }
+            }
+            Spacer()
+            if let activity, activity.status == .live { NavigationLink { LiveActivityView() } label: { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral) }.accessibilityLabel("TRAINING ÖFFNEN") }
+            else { Button { store.showsActivityComposer = true } label: { Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(.white) }.accessibilityLabel("JETZT LOS") }
+        }.fyCard()
+    }
+    private func todayStatus(_ activity: Activity) -> TodayStatus { activity.status == .live ? .live : activity.status == .completed ? .done : .planned }
+    private func activityTitle(_ activity: Activity) -> String { [activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ") }
 }
 
 private struct InvitationCard: View {
     @Environment(AppStore.self) private var store
     let invitation: SessionInvitation
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Text("\(invitation.host.displayName) geht trainieren. You in?").font(.headline)
-            HStack { Image(systemName: invitation.session.sport.symbol).foregroundStyle(FYColor.lime); Text(invitation.session.sport.title).bold(); if let subtype = invitation.session.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
-            Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(FYColor.muted)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack { Image(systemName: "envelope.badge.fill").foregroundStyle(FYColor.violet); Text("Einladung von \(invitation.host.displayName)").font(.headline); Spacer() }
+            HStack { Image(systemName: invitation.session.sport.symbol).foregroundStyle(invitation.session.sport.accentColor); Text(invitation.session.sport.title).bold(); if let subtype = invitation.session.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
+            Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(FYColor.muted)
             HStack {
-                Button("✓ Dabei") { Task { await store.respond(to: invitation, status: .accepted) } }.buttonStyle(PrimaryButtonStyle())
-                Menu("Antwort") { Button("Vielleicht") { Task { await store.respond(to: invitation, status: .maybe) } }; Button("Kann nicht") { Task { await store.respond(to: invitation, status: .declined) } } }.buttonStyle(SecondaryButtonStyle())
+                Button("Ablehnen") { Task { await store.respond(to: invitation, status: .declined) } }.buttonStyle(SecondaryButtonStyle())
+                Button("Dabei") { Task { await store.respond(to: invitation, status: .accepted) } }.buttonStyle(PrimaryButtonStyle())
             }
-        }.fyCard()
+        }.fyCard().overlay(alignment: .topTrailing) { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral).padding(14) }
     }
 }
 
-private struct MyStatusCard: View {
-    @Environment(AppStore.self) private var store
-    let activity: Activity?
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("DU").font(.caption.weight(.black)).foregroundStyle(FYColor.muted)
-            if let activity {
-                StatusBadge(status: activity.status == .live ? .live : activity.status == .completed ? .done : .planned)
-                ActivityLabel(activity: activity)
-                if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now); NavigationLink("TRAINING ÖFFNEN") { LiveActivityView() }.buttonStyle(PrimaryButtonStyle()) }
-                else if [.planned, .ready].contains(activity.status), let date = activity.plannedAt {
-                    Text(date.formatted(date: .omitted, time: .shortened)).foregroundStyle(FYColor.muted)
-                    Button("TRAINING STARTEN") { Task { await store.start(sport: activity.sport, subtype: activity.subtype, plannedSessionID: activity.plannedSessionID) } }.buttonStyle(PrimaryButtonStyle())
-                    if let sessionID = activity.plannedSessionID { Button("Training absagen") { Task { await store.cancelPlannedSession(sessionID) } }.font(.footnote).foregroundStyle(FYColor.muted) }
-                }
-                else if activity.status == .completed { Text("Heute geschafft ✓").foregroundStyle(FYColor.muted) }
-            } else {
-                StatusBadge(status: .notYet)
-                Text("Noch nichts geplant").font(.title2.bold())
-                HStack { Button("JETZT LOS") { store.showsActivityComposer = true }.buttonStyle(PrimaryButtonStyle()); Button("PLANEN") { store.showsActivityComposer = true }.buttonStyle(SecondaryButtonStyle()) }
-            }
-        }.fyCard()
-    }
-}
-
-private struct CrewCard: View {
+private struct CrewFeedCard: View {
     @Environment(AppStore.self) private var store
     let member: CrewMember
     @State private var showJoin = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack { AvatarView(profile: member.profile); VStack(alignment: .leading) { Text(member.profile.displayName).font(.headline); Text("@\(member.profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); StatusBadge(status: member.todayStatus) }
-            if let activity = member.activity {
-                ActivityLabel(activity: activity)
-                if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.subheadline).foregroundStyle(FYColor.muted); Button("MITZIEHEN 🔥") { showJoin = true }.buttonStyle(PrimaryButtonStyle()) }
-                else if [.planned, .ready].contains(activity.status), let date = activity.plannedAt { Text(date.formatted(date: .omitted, time: .shortened)).foregroundStyle(FYColor.muted); if let sessionID = activity.plannedSessionID { Button("MITMACHEN") { Task { await store.joinPlannedSession(sessionID) } }.buttonStyle(SecondaryButtonStyle()) } }
-                else if activity.status == .completed {
-                    HStack { ForEach(ReactionKind.allCases, id: \.rawValue) { reaction in Button(reaction.rawValue) { Task { await store.react(activity, reaction: reaction) } }.buttonStyle(.plain).font(.title2) }; Menu { Button("Reaktion entfernen") { Task { await store.react(activity, reaction: nil) } } } label: { Image(systemName: "ellipsis.circle").foregroundStyle(FYColor.muted) } }
-                }
-            } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.buttonStyle(SecondaryButtonStyle()) }
-            Text("\(member.weeklyCount) Trainings diese Woche").font(.caption).foregroundStyle(FYColor.muted)
+        HStack(spacing: 12) {
+            AvatarView(profile: member.profile)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(member.profile.displayName).font(.headline)
+                if let activity = member.activity {
+                    Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).font(.subheadline).foregroundStyle(FYColor.muted)
+                    HStack(spacing: 5) {
+                        StatusBadge(status: member.todayStatus)
+                        if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
+                        else if let time = activity.plannedAt { Text("· \(time.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
+                    }
+                    NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { Text("Details").font(.caption2).foregroundStyle(FYColor.cyan) }
+                } else { Text("Noch nichts heute").font(.caption).foregroundStyle(FYColor.muted) }
+            }
+            Spacer()
+            action
         }.fyCard().sheet(isPresented: $showJoin) { ActivityComposerView(linkedActivityID: member.activity?.id) }
+    }
+    @ViewBuilder private var action: some View {
+        if let activity = member.activity, activity.status == .live {
+            Button("Dabei?") { showJoin = true }.font(.caption.bold()).foregroundStyle(.black).padding(.horizontal, 14).padding(.vertical, 9).background(.white, in: Capsule())
+        } else if let activity = member.activity, activity.status == .completed {
+            Button("🔥") { Task { await store.react(activity, reaction: .fire) } }.font(.title3)
+        } else if let sessionID = member.activity?.plannedSessionID {
+            Button("Dabei?") { Task { await store.joinPlannedSession(sessionID) } }.font(.caption.bold()).foregroundStyle(.black).padding(.horizontal, 14).padding(.vertical, 9).background(.white, in: Capsule())
+        } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()).foregroundStyle(FYColor.coral) }
     }
 }
 
@@ -89,7 +148,11 @@ struct LiveTimer: View {
     static func format(_ interval: TimeInterval) -> String { let seconds = max(0, Int(interval)); return String(format: "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60) }
 }
 
+private struct MotivationCard: View {
+    var body: some View { Text("„Disziplin heute.\nEin besseres morgen.“").font(.subheadline).multilineTextAlignment(.center).frame(maxWidth: .infinity).foregroundStyle(.white.opacity(0.82)).fyCard() }
+}
+
 private struct CrewGoalCard: View {
     let summary: GoalSummary
-    var body: some View { VStack(alignment: .leading, spacing: 10) { HStack { Text("CREW GOAL").font(.caption.weight(.black)); Spacer(); Text("\(summary.crewCount) / \(summary.crewTarget)").bold() }; ProgressView(value: Double(summary.crewCount), total: Double(summary.crewTarget)).tint(FYColor.lime); Text("Gemeinsam diese Woche").font(.caption).foregroundStyle(FYColor.muted) }.fyCard() }
+    var body: some View { VStack(alignment: .leading, spacing: 9) { HStack { Text("CREW GOAL").font(.caption.weight(.black)); Spacer(); Text("\(summary.crewCount) / \(summary.crewTarget)").bold() }; ProgressView(value: Double(summary.crewCount), total: Double(summary.crewTarget)).tint(FYColor.lime); Text("Gemeinsam diese Woche").font(.caption).foregroundStyle(FYColor.muted) }.fyCard() }
 }

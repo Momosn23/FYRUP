@@ -9,13 +9,21 @@ struct ProfileView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
-                Text("PROFIL").font(.largeTitle.weight(.black)).frame(maxWidth: .infinity, alignment: .leading)
+                HStack { Text("Profil").font(.title2.weight(.bold)); Spacer(); Image(systemName: "gearshape").font(.title3) }
                 if let profile = store.profile {
-                    AvatarView(profile: profile).scaleEffect(1.7).padding(24)
-                    Text(profile.displayName.uppercased()).font(.title.weight(.black))
-                    Text("@\(profile.username)").foregroundStyle(FYColor.muted)
-                    Text("🔥 \(store.goals.streak) Wochen Streak").font(.headline)
-                    HStack { Metric(value: "\(store.goals.weeklyCount) / \(profile.weeklyGoal)", label: "Diese Woche"); Metric(value: "\(store.goals.monthCount)", label: "Diesen Monat"); Metric(value: "\(store.crew.count)", label: "Freunde") }.fyCard()
+                    HStack(spacing: 16) {
+                        AvatarView(profile: profile).scaleEffect(1.45).padding(14)
+                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted) }
+                        Spacer()
+                    }
+                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts"); Metric(value: "\(store.goals.streak)", label: "Wochenstreak") }
+                    Text("„Disziplin ist die Brücke zwischen Zielen und Ergebnissen.“").font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.82)).fyCard()
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Meine Statistiken").font(.headline)
+                        HStack { Text("Woche").foregroundStyle(.black).padding(.horizontal, 22).padding(.vertical, 7).background(.white, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
+                        HStack { Text("Workouts"); Spacer(); Text("\(store.goals.weeklyCount) / \(profile.weeklyGoal)").bold() }
+                        HStack { Text("Aktive Wochen"); Spacer(); Text("\(store.goals.streak)").bold() }
+                    }.fyCard()
                     VStack(alignment: .leading, spacing: 16) {
                         Label("Sportarten", systemImage: "figure.run").bold()
                         Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)

@@ -2,17 +2,34 @@ import AuthenticationServices
 import SwiftUI
 
 struct WelcomeView: View {
+    @Environment(AppStore.self) private var store
     @State private var showsAuth = false
+    @State private var createsAccount = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Spacer()
-            Image(systemName: "flame.fill").font(.system(size: 72, weight: .black)).foregroundStyle(FYColor.lime)
-            Text("FYRUP").font(.system(size: 58, weight: .black, design: .rounded))
-            Text("Your friends make you move.").font(.title2.bold())
-            Text("Sieh, wer heute aktiv ist, plane Training mit Freunden und motiviert euch gegenseitig.").font(.body).foregroundStyle(FYColor.muted)
-            Spacer()
-            Button("LOS GEHT'S") { showsAuth = true }.buttonStyle(PrimaryButtonStyle())
-        }.padding(24).sheet(isPresented: $showsAuth) { AuthView() }
+        ZStack {
+            Image("SplashHero").resizable().scaledToFill().ignoresSafeArea()
+            LinearGradient(colors: [.black.opacity(0.12), .black.opacity(0.25), .black.opacity(0.96)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            VStack(spacing: 14) {
+                Spacer()
+                FYRUPWordmark(size: 54)
+                Text("SAME ENERGY.\nHIGHER STANDARDS.")
+                    .font(.caption.weight(.bold)).tracking(1.8).multilineTextAlignment(.center)
+                Spacer().frame(height: 48)
+                SignInWithAppleButton(.signIn) { store.configureAppleRequest($0) } onCompletion: { result in
+                    Task { await store.handleAppleResult(result) }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Button("Mit E-Mail anmelden") { createsAccount = false; showsAuth = true }.buttonStyle(SecondaryButtonStyle())
+                Button("Account erstellen") { createsAccount = true; showsAuth = true }
+                    .font(.footnote).foregroundStyle(.white.opacity(0.75)).underline()
+                Text("More than training. A stronger you.")
+                    .font(.footnote.italic()).foregroundStyle(.white.opacity(0.64)).padding(.top, 18)
+            }
+            .padding(.horizontal, 28).padding(.bottom, 28)
+        }
+        .sheet(isPresented: $showsAuth) { AuthView(initiallyCreatesAccount: createsAccount) }
     }
 }
 
@@ -21,7 +38,8 @@ struct AuthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var password = ""
-    @State private var createsAccount = false
+    @State private var createsAccount: Bool
+    init(initiallyCreatesAccount: Bool = false) { _createsAccount = State(initialValue: initiallyCreatesAccount) }
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -93,4 +111,3 @@ struct SportGrid: View {
         }
     }
 }
-
