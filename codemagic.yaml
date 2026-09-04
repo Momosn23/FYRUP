@@ -39,11 +39,10 @@ workflows:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP.xcresult \
             CODE_SIGNING_ALLOWED=NO
+      - name: Create visual QA contact sheet
+        script: swift scripts/make_contact_sheet.swift /tmp/fyrup-screenshots /tmp/fyrup-contact-sheet.png
     artifacts:
-      - build/FYRUP.xcresult
-      - /tmp/fyrup-screenshots/*.png
-      - /tmp/fyrup-build-settings.txt
-      - /tmp/xcodebuild_logs/*.log
+      - /tmp/fyrup-contact-sheet.png
 
   ios-testflight:
     name: FYRUP Signed TestFlight Build
