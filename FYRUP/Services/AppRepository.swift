@@ -12,6 +12,7 @@ protocol AppRepository: Sendable {
     func uploadAvatar(userID: UUID, data: Data) async throws -> String
     func avatarData(path: String) async throws -> Data
     func today(userID: UUID) async throws -> (Activity?, [CrewMember])
+    func recentActivities(userID: UUID) async throws -> [Activity]
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
     func cancelActivity(id: UUID) async throws
@@ -29,6 +30,8 @@ protocol AppRepository: Sendable {
     func fyrup(_ userID: UUID) async throws
     func react(activityID: UUID, reaction: ReactionKind?) async throws
     func notifications() async throws -> [AppNotification]
+    func notificationPreferences() async throws -> NotificationPreferences
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences
     func goalSummary() async throws -> GoalSummary
     func markNotificationsRead() async throws
     func registerDeviceToken(_ token: String) async throws
@@ -79,6 +82,16 @@ actor LiveAppRepository: AppRepository {
         return (feed.me, feed.crew.map { CrewMember(profile: $0.profile, activity: $0.activity, weeklyCount: $0.weeklyCount) })
     }
 
+    func recentActivities(userID: UUID) async throws -> [Activity] {
+        try await client.select("activities", query: [
+            .init(name: "user_id", value: "eq.\(userID)"),
+            .init(name: "status", value: "eq.completed"),
+            .init(name: "select", value: "*"),
+            .init(name: "order", value: "created_at.desc"),
+            .init(name: "limit", value: "20")
+        ])
+    }
+
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
         struct Body: Encodable { let pSport: String; let pSubtype: String?; let pLinkedActivityID: UUID?; let pPlannedSessionID: UUID?; enum CodingKeys: String, CodingKey { case pSport = "p_sport", pSubtype = "p_subtype", pLinkedActivityID = "p_linked_activity_id", pPlannedSessionID = "p_planned_session_id" } }
         return try await client.rpc("start_activity", body: Body(pSport: sport.rawValue, pSubtype: subtype, pLinkedActivityID: linkedActivityID, pPlannedSessionID: plannedSessionID))
@@ -115,6 +128,23 @@ actor LiveAppRepository: AppRepository {
     func fyrup(_ userID: UUID) async throws { let _: Bool = try await client.rpc("send_fyrup", body: ["p_recipient": userID.uuidString, "p_timezone": TimeZone.current.identifier]) }
     func react(activityID: UUID, reaction: ReactionKind?) async throws { let _: Bool = try await client.rpc("set_reaction", body: ["p_activity": activityID.uuidString, "p_reaction": reaction?.rawValue ?? ""]) }
     func notifications() async throws -> [AppNotification] { try await client.select("notifications", query: [.init(name: "select", value: "*"), .init(name: "order", value: "created_at.desc"), .init(name: "limit", value: "50")]) }
+    func notificationPreferences() async throws -> NotificationPreferences { try await client.rpc("get_notification_preferences", body: [:] as [String: String]) }
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        struct Body: Encodable {
+            let pFriendStarts: Bool; let pFyrup: Bool; let pInvitations: Bool; let pReactions: Bool
+            let pFriendRequests: Bool; let pReminders: Bool; let pWeeklyGoal: Bool; let pCrewGoal: Bool
+            enum CodingKeys: String, CodingKey {
+                case pFriendStarts = "p_friend_starts", pFyrup = "p_fyrup", pInvitations = "p_invitations", pReactions = "p_reactions"
+                case pFriendRequests = "p_friend_requests", pReminders = "p_reminders", pWeeklyGoal = "p_weekly_goal", pCrewGoal = "p_crew_goal"
+            }
+        }
+        return try await client.rpc("save_notification_preferences", body: Body(
+            pFriendStarts: preferences.friendStarts, pFyrup: preferences.fyrup,
+            pInvitations: preferences.invitations, pReactions: preferences.reactions,
+            pFriendRequests: preferences.friendRequests, pReminders: preferences.reminders,
+            pWeeklyGoal: preferences.weeklyGoal, pCrewGoal: preferences.crewGoal
+        ))
+    }
     func goalSummary() async throws -> GoalSummary { try await client.rpc("goal_summary", body: ["p_timezone": TimeZone.current.identifier]) }
     func markNotificationsRead() async throws { let _: Bool = try await client.rpc("mark_notifications_read", body: [:] as [String: String]) }
     func registerDeviceToken(_ token: String) async throws {

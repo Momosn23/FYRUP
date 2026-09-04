@@ -30,5 +30,4 @@ secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 verify_jwt = false
 
 [functions.delete-account]
-verify_jwt = true
-
+verify_jwt = false

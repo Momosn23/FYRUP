@@ -13,13 +13,17 @@ final class AppStore {
     var crew: [CrewMember] = []
     var friendRequests: [Profile] = []
     var notifications: [AppNotification] = []
+    var notificationPreferences: NotificationPreferences = .standard
     var invitations: [SessionInvitation] = []
+    var recentActivities: [Activity] = []
     var userSearchResults: [Profile] = []
     var goals: GoalSummary = .empty
     var isBusy = false
+    var isRefreshing = false
     var errorMessage: String?
     var showsActivityComposer = false
     var selectedTab = 0
+    var opensNotifications = false
     var suggestedDisplayName = ""
     private(set) var session: AuthSession?
     let repository: any AppRepository
@@ -30,6 +34,7 @@ final class AppStore {
     init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics()) { self.repository = repository; self.analytics = analytics }
 
     static func make() -> AppStore {
+        if ProcessInfo.processInfo.arguments.contains("--onboarding-demo") { return AppStore(repository: DemoRepository(startsWithoutProfile: true)) }
         if ProcessInfo.processInfo.arguments.contains("--demo") { return AppStore(repository: DemoRepository()) }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -140,11 +145,13 @@ final class AppStore {
 
     func refresh() async {
         guard let userID = session?.userID else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
         do {
             let result = try await repository.today(userID: userID)
             myActivity = result.0; crew = result.1
-            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let summary = repository.goalSummary()
-            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; goals = (try? await summary) ?? .empty
+            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
+            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
             if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1; goals = cached.2 }
@@ -181,6 +188,16 @@ final class AppStore {
     func cancelPlannedSession(_ id: UUID) async { await perform { try await self.repository.cancelPlannedSession(sessionID: id); await self.refresh() } }
     func joinPlannedSession(_ id: UUID) async { await perform { try await self.repository.joinPlannedSession(sessionID: id); Haptics.impact(.medium); await self.refresh() } }
     func markNotificationsRead() async { try? await repository.markNotificationsRead(); notifications = notifications.map { var item = $0; item.readAt = item.readAt ?? Date(); return item } }
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async {
+        await perform { self.notificationPreferences = try await self.repository.saveNotificationPreferences(preferences) }
+    }
+
+    func handleNotificationTap(type: String?) async {
+        guard route == .main else { return }
+        if type == "friend_request" || type == "friend_accepted" { selectedTab = 2 }
+        else { selectedTab = 0; opensNotifications = true }
+        await refresh()
+    }
 
     private func loadProfileAndRoute() async throws {
         guard let userID = session?.userID else { route = .signedOut; return }
@@ -214,6 +231,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func uploadAvatar(userID: UUID, data: Data) async throws -> String { throw AppError.configuration }
     func avatarData(path: String) async throws -> Data { throw AppError.configuration }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) { (nil, []) }
+    func recentActivities(userID: UUID) async throws -> [Activity] { [] }
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity { throw AppError.configuration }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity { throw AppError.configuration }
     func cancelActivity(id: UUID) async throws {}
@@ -223,6 +241,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func sendFriendRequest(to userID: UUID) async throws {}; func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
     func removeFriend(_ userID: UUID) async throws {}; func block(_ userID: UUID) async throws {}; func fyrup(_ userID: UUID) async throws {}
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}; func notifications() async throws -> [AppNotification] { [] }
+    func notificationPreferences() async throws -> NotificationPreferences { .standard }; func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { preferences }
     func goalSummary() async throws -> GoalSummary { .empty }; func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}; func deleteAccount() async throws {}
 }

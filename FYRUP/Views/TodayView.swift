@@ -9,14 +9,18 @@ struct TodayView: View {
                 header
                 crewStrip
                 Text("Heute").font(.title2.weight(.bold)).padding(.top, 4)
-                MyFeedCard(activity: store.myActivity)
-                ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
-                ForEach(store.crew) { member in CrewFeedCard(member: member) }
-                if store.crew.isEmpty {
-                    EmptyCrewCard { store.selectedTab = 2 }
+                if store.isRefreshing && store.crew.isEmpty && store.myActivity == nil {
+                    FeedSkeleton()
+                } else {
+                    MyFeedCard(activity: store.myActivity)
+                    ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
+                    ForEach(store.crew) { member in CrewFeedCard(member: member) }
+                    if store.crew.isEmpty {
+                        EmptyCrewCard { store.selectedTab = 2 }
+                    }
+                    MotivationCard()
+                    if !store.crew.isEmpty { CrewGoalCard(summary: store.goals) }
                 }
-                MotivationCard()
-                if !store.crew.isEmpty { CrewGoalCard(summary: store.goals) }
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
@@ -33,7 +37,7 @@ struct TodayView: View {
             NavigationLink { NotificationCenterView() } label: {
                 Image(systemName: "bell").font(.headline).frame(width: 36, height: 36)
                     .overlay(alignment: .topTrailing) { if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.coral).frame(width: 7, height: 7).offset(x: -4, y: 5) } }
-            }
+            }.accessibilityLabel("Mitteilungen")
         }.foregroundStyle(.white)
     }
 
@@ -44,6 +48,29 @@ struct TodayView: View {
                 ForEach(store.crew) { member in StoryAvatar(profile: member.profile, status: member.todayStatus, label: member.profile.displayName.components(separatedBy: " ").first ?? member.profile.displayName) }
             }
         }
+    }
+}
+
+private struct FeedSkeleton: View {
+    @State private var pulses = false
+    var body: some View {
+        VStack(spacing: 12) {
+            ForEach(0..<4, id: \.self) { index in
+                HStack(spacing: 12) {
+                    Circle().fill(FYColor.elevated).frame(width: 46, height: 46)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Capsule().fill(FYColor.elevated).frame(width: index == 0 ? 92 : 128, height: 12)
+                        Capsule().fill(FYColor.elevated).frame(maxWidth: index == 0 ? 180 : 220).frame(height: 10)
+                    }
+                    Spacer()
+                }.fyCard()
+            }
+        }
+        .opacity(pulses ? 0.46 : 0.85)
+        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulses)
+        .onAppear { pulses = true }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Heute-Feed wird geladen")
     }
 }
 

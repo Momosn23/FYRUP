@@ -6,6 +6,11 @@ set public = excluded.public,
     file_size_limit = excluded.file_size_limit,
     allowed_mime_types = excluded.allowed_mime_types;
 
+drop policy if exists avatars_insert_own on storage.objects;
+drop policy if exists avatars_update_own on storage.objects;
+drop policy if exists avatars_delete_own on storage.objects;
+drop policy if exists avatars_read_self_or_friends on storage.objects;
+
 create policy avatars_insert_own
 on storage.objects for insert to authenticated
 with check (

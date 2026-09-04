@@ -24,6 +24,7 @@ struct ProfileView: View {
                     }
                     HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts"); Metric(value: "\(store.goals.streak)", label: "Wochenstreak") }
                     Text("„Disziplin ist die Brücke zwischen Zielen und Ergebnissen.“").font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.82)).fyCard()
+                    WeekActivityStrip(activities: store.recentActivities)
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
                         HStack { Text("Woche").foregroundStyle(.black).padding(.horizontal, 22).padding(.vertical, 7).background(.white, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
@@ -35,9 +36,11 @@ struct ProfileView: View {
                         Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
                         Stepper("Wochenziel: \(profile.weeklyGoal)", value: weeklyGoalBinding, in: 1...7)
                     }.fyCard()
+                    RecentActivitiesCard(activities: store.recentActivities, profile: profile)
                 }
                 VStack(spacing: 0) {
                     Toggle(isOn: $notificationsEnabled) { Label("Mitteilungen", systemImage: "bell") }.padding().onChange(of: notificationsEnabled) { _, enabled in if enabled { Task { let center = UNUserNotificationCenter.current(); if try await center.requestAuthorization(options: [.alert, .badge, .sound]) { await MainActor.run { UIApplication.shared.registerForRemoteNotifications() } } } } }
+                    Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Datenschutz", symbol: "hand.raised") }
                     Divider(); Button { Task { await store.logout() } } label: { SettingsRow(title: "Abmelden", symbol: "rectangle.portrait.and.arrow.right") }
                     Divider(); Button(role: .destructive) { showsDelete = true } label: { SettingsRow(title: "Account löschen", symbol: "trash") }
@@ -110,6 +113,84 @@ private struct ProfileEditView: View {
 }
 
 private struct Metric: View { let value: String; let label: String; var body: some View { VStack { Text(value).font(.title2.bold()); Text(label).font(.caption).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity) } }
+
+private struct WeekActivityStrip: View {
+    let activities: [Activity]
+    private let calendar = Calendar(identifier: .iso8601)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack {
+                Text("Diese Woche").font(.headline)
+                Spacer()
+                Text("\(completedDays.count) von 7 Tagen").font(.caption).foregroundStyle(FYColor.muted)
+            }
+            HStack(spacing: 8) {
+                ForEach(Array(days.enumerated()), id: \.offset) { _, day in
+                    let isDone = completedDays.contains(calendar.startOfDay(for: day))
+                    VStack(spacing: 7) {
+                        Text(day.formatted(.dateTime.weekday(.narrow))).font(.caption2.bold()).foregroundStyle(FYColor.muted)
+                        ZStack {
+                            Circle().fill(isDone ? FYColor.lime : FYColor.elevated).frame(width: 31, height: 31)
+                            if isDone { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) }
+                            else { Text(day.formatted(.dateTime.day())).font(.caption.bold()).foregroundStyle(.white.opacity(0.82)) }
+                        }
+                    }.frame(maxWidth: .infinity)
+                }
+            }
+        }.fyCard()
+    }
+
+    private var days: [Date] {
+        let start = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? calendar.startOfDay(for: Date())
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    private var completedDays: Set<Date> {
+        Set(activities.compactMap { activity in
+            guard activity.status == .completed, let date = activity.endedAt ?? activity.startedAt else { return nil }
+            return calendar.startOfDay(for: date)
+        })
+    }
+}
+
+private struct RecentActivitiesCard: View {
+    let activities: [Activity]
+    let profile: Profile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Letzte Aktivitäten").font(.headline).padding(.bottom, 8)
+            if activities.isEmpty {
+                Text("Dein erstes abgeschlossenes Training erscheint hier.")
+                    .font(.subheadline).foregroundStyle(FYColor.muted).padding(.vertical, 10)
+            } else {
+                ForEach(Array(activities.prefix(4).enumerated()), id: \.offset) { index, activity in
+                    if index > 0 { Divider().overlay(FYColor.line) }
+                    NavigationLink { ActivityDetailView(activity: activity, owner: profile) } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: activity.sport.symbol).foregroundStyle(activity.sport.accentColor)
+                                .frame(width: 36, height: 36).background(activity.sport.accentColor.opacity(0.12), in: Circle())
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).font(.subheadline.bold())
+                                Text(detail(activity)).font(.caption).foregroundStyle(FYColor.muted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
+                        }.foregroundStyle(.white).padding(.vertical, 10)
+                    }
+                }
+            }
+        }.fyCard()
+    }
+
+    private func detail(_ activity: Activity) -> String {
+        let date = (activity.endedAt ?? activity.startedAt ?? Date()).formatted(date: .abbreviated, time: .omitted)
+        guard let duration = activity.duration else { return date }
+        return "\(date) · \(max(1, Int(duration / 60))) Min."
+    }
+}
+
 private struct SettingsRow: View { let title: String; let symbol: String; var body: some View { HStack { Label(title, systemImage: symbol); Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }.foregroundStyle(.white).padding() } }
 
 private struct PrivacyView: View {
@@ -123,4 +204,41 @@ private struct PrivacyView: View {
         }.scrollContentBackground(.hidden).background(FYColor.background).navigationTitle("Datenschutz")
     }
     private var visibilityBinding: Binding<String> { Binding(get: { store.profile?.activityVisibility ?? "friends" }, set: { value in guard var profile = store.profile else { return }; profile.activityVisibility = value; Task { try? await store.repository.saveProfile(profile); await MainActor.run { store.profile = profile } } }) }
+}
+
+private struct NotificationPreferencesView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: NotificationPreferences = .standard
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Freund startet Training", isOn: $draft.friendStarts)
+                Toggle("FYR UP", isOn: $draft.fyrup)
+                Toggle("Trainingseinladungen", isOn: $draft.invitations)
+                Toggle("Reaktionen", isOn: $draft.reactions)
+                Toggle("Freundschaftsanfragen", isOn: $draft.friendRequests)
+            } footer: {
+                Text("Normale Trainingsstarts sind standardmäßig aus, damit deine Crew nicht mit Pushs überladen wird.")
+            }
+            Section("Ziele und Erinnerungen") {
+                Toggle("Trainingserinnerungen", isOn: $draft.reminders)
+                Toggle("Wochenziel", isOn: $draft.weeklyGoal)
+                Toggle("Crew-Ziel", isOn: $draft.crewGoal)
+            }
+            Section {
+                Button("Einstellungen speichern") {
+                    Task {
+                        await store.saveNotificationPreferences(draft)
+                        if store.errorMessage == nil { dismiss() }
+                    }
+                }.frame(maxWidth: .infinity).fontWeight(.bold)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(FYColor.background)
+        .navigationTitle("Benachrichtigungen")
+        .task { draft = store.notificationPreferences }
+    }
 }

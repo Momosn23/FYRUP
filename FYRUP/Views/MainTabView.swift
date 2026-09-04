@@ -5,7 +5,10 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var store = store
         TabView(selection: $store.selectedTab) {
-            NavigationStack { TodayView() }.tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
+            NavigationStack {
+                TodayView()
+                    .navigationDestination(isPresented: $store.opensNotifications) { NotificationCenterView() }
+            }.tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
             Color.clear.tabItem { Label("Planen", systemImage: "clock") }.tag(1)
             NavigationStack { FriendsView() }.tabItem { Label("Entdecken", systemImage: "safari") }.tag(2)
             NavigationStack { ProfileView() }.tabItem { Label("Profil", systemImage: "person.crop.circle") }.tag(3)

@@ -125,6 +125,28 @@ struct AppNotification: Codable, Identifiable, Sendable {
     enum CodingKeys: String, CodingKey { case id, type, title, body, data; case createdAt = "created_at", readAt = "read_at" }
 }
 
+struct NotificationPreferences: Codable, Equatable, Sendable {
+    var friendStarts: Bool
+    var fyrup: Bool
+    var invitations: Bool
+    var reactions: Bool
+    var friendRequests: Bool
+    var reminders: Bool
+    var weeklyGoal: Bool
+    var crewGoal: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case fyrup, invitations, reactions, reminders
+        case friendStarts = "friend_starts", friendRequests = "friend_requests"
+        case weeklyGoal = "weekly_goal", crewGoal = "crew_goal"
+    }
+
+    static let standard = NotificationPreferences(
+        friendStarts: false, fyrup: true, invitations: true, reactions: true,
+        friendRequests: true, reminders: true, weeklyGoal: true, crewGoal: true
+    )
+}
+
 struct GoalSummary: Codable, Sendable {
     let weeklyCount: Int
     let weeklyGoal: Int

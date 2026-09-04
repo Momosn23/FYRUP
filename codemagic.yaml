@@ -41,6 +41,7 @@ workflows:
             CODE_SIGNING_ALLOWED=NO
     artifacts:
       - build/FYRUP.xcresult
+      - /tmp/fyrup-screenshots/*.png
       - /tmp/fyrup-build-settings.txt
       - /tmp/xcodebuild_logs/*.log
 
@@ -105,6 +106,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - build/FYRUP-Release.xcresult
+      - /tmp/fyrup-screenshots/*.png
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:

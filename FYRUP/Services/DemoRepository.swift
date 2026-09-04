@@ -7,8 +7,11 @@ actor DemoRepository: AppRepository {
     private var avatarObjects: [String: Data] = [:]
     private var crew: [Profile]
     private var sentFyrups = Set<UUID>()
+    private var profileExists: Bool
+    private var pushPreferences: NotificationPreferences = .standard
 
-    init() {
+    init(startsWithoutProfile: Bool = false) {
+        profileExists = !startsWithoutProfile
         me = Profile(id: meID, username: "momo", displayName: "Momo", avatarPath: nil, birthYear: nil, city: "Berlin", bio: "Move together.", sports: [.gym, .running], weeklyGoal: 4, activityVisibility: "friends")
         crew = [
             Profile(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, username: "max", displayName: "Max", avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [.gym], weeklyGoal: 4, activityVisibility: "friends"),
@@ -18,7 +21,10 @@ actor DemoRepository: AppRepository {
         let now = Date()
         activities = [
             Activity(id: UUID(), userID: crew[0].id, sport: .gym, subtype: "Pull", status: .live, plannedAt: nil, startedAt: now.addingTimeInterval(-28 * 60), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
-            Activity(id: UUID(), userID: crew[1].id, sport: .running, subtype: "Easy Run", status: .completed, plannedAt: nil, startedAt: now.addingTimeInterval(-3_000), endedAt: now.addingTimeInterval(-780), distanceMeters: 6_400, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
+            Activity(id: UUID(), userID: crew[1].id, sport: .running, subtype: "Easy Run", status: .completed, plannedAt: nil, startedAt: now.addingTimeInterval(-3_000), endedAt: now.addingTimeInterval(-780), distanceMeters: 6_400, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
+            Activity(id: UUID(), userID: meID, sport: .gym, subtype: "Push", status: .completed, plannedAt: nil, startedAt: Calendar.current.date(byAdding: .day, value: -1, to: now)?.addingTimeInterval(-3_900), endedAt: Calendar.current.date(byAdding: .day, value: -1, to: now), distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
+            Activity(id: UUID(), userID: meID, sport: .running, subtype: "Easy Run", status: .completed, plannedAt: nil, startedAt: Calendar.current.date(byAdding: .day, value: -3, to: now)?.addingTimeInterval(-2_760), endedAt: Calendar.current.date(byAdding: .day, value: -3, to: now), distanceMeters: 5_200, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
+            Activity(id: UUID(), userID: meID, sport: .yoga, subtype: "Mobility", status: .completed, plannedAt: nil, startedAt: Calendar.current.date(byAdding: .day, value: -5, to: now)?.addingTimeInterval(-1_800), endedAt: Calendar.current.date(byAdding: .day, value: -5, to: now), distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
         ]
     }
 
@@ -28,14 +34,19 @@ actor DemoRepository: AppRepository {
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { try await signIn(email: "", password: "") }
     func resetPassword(email: String) async throws {}
     func signOut() async {}
-    func profile(userID: UUID) async throws -> Profile? { me }
-    func saveProfile(_ profile: Profile) async throws { me = profile }
+    func profile(userID: UUID) async throws -> Profile? { profileExists ? me : nil }
+    func saveProfile(_ profile: Profile) async throws { me = profile; profileExists = true }
     func uploadAvatar(userID: UUID, data: Data) async throws -> String { let path = "\(userID.uuidString.lowercased())/avatar.jpg"; avatarObjects[path] = data; return path }
     func avatarData(path: String) async throws -> Data { guard let data = avatarObjects[path] else { throw AppError.server }; return data }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {
         let mine = DateLogic.status(for: activities.filter { $0.userID == meID })
         let members = crew.map { profile in CrewMember(profile: profile, activity: DateLogic.status(for: activities.filter { $0.userID == profile.id }), weeklyCount: profile.id == crew[1].id ? 5 : 3) }.sorted { $0.todayStatus < $1.todayStatus }
         return (mine, members)
+    }
+    func recentActivities(userID: UUID) async throws -> [Activity] {
+        activities
+            .filter { $0.userID == userID && $0.status == .completed }
+            .sorted { ($0.endedAt ?? .distantPast) > ($1.endedAt ?? .distantPast) }
     }
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
         guard !activities.contains(where: { $0.userID == meID && $0.status == .live }) else { throw AppError.conflict("Du hast bereits ein LIVE-Training.") }
@@ -64,6 +75,8 @@ actor DemoRepository: AppRepository {
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
     func notifications() async throws -> [AppNotification] { [] }
+    func notificationPreferences() async throws -> NotificationPreferences { pushPreferences }
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { pushPreferences = preferences; return preferences }
     func goalSummary() async throws -> GoalSummary { GoalSummary(weeklyCount: 3, weeklyGoal: me.weeklyGoal, streak: 6, monthCount: 17, crewCount: 15, crewTarget: 16) }
     func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}

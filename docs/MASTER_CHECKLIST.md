@@ -22,7 +22,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Apple-, E-Mail-Login und Account-erstellen-Aktionen sichtbar
 - [x] ✅ Vier Hauptziele: Home, Planen, Entdecken/Freunde und Profil
 - [x] ✅ Schnellzugriff zum Planen/Starten und Benachrichtigungsglocke
-- [ ] 🧪 Sichtprüfung aller zehn Referenzansichten im Cloud-iPhone-Simulator
+- [ ] 🧪 Alle Referenzansichten werden im Cloud-iPhone als PNG erfasst; visueller Vergleich des nächsten Builds offen
 
 ## 3. Authentifizierung und Session
 
@@ -119,8 +119,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Eigenes Profil mit Name, Username, Sportarten, Ziel, Freunden und Statistiken
 - [x] ✅ Profilbearbeitung inklusive Foto
 - [x] ✅ Freundesprofil mit Status und Wochenfortschritt
-- [ ] ⚠️ Minimalistische MO–SO-Wochenleiste ergänzen
-- [ ] ⚠️ Letzte Aktivitäten im eigenen Profil ergänzen
+- [x] ✅ Minimalistische MO–SO-Wochenleiste mit abgeschlossenen Trainingstagen
+- [x] ✅ Letzte Aktivitäten im eigenen Profil mit Datum und Dauer
 
 ## 12. Notifications und Push
 
@@ -130,9 +130,11 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Serverseitiger APNs-Dispatcher; keine APNs-Schlüssel im Client
 - [x] ✅ Ungültige APNs-Tokens werden entfernt
 - [x] ✅ Systemweite Mitteilungsfreigabe kann im Profil angefordert werden
-- [ ] ⚠️ Feingranulare Einstellungen nach Ereignistyp ergänzen
-- [ ] ⚠️ Deep Links aus Push-Mitteilungen ergänzen
-- [ ] 🧪 APNs-Key, Cron-Secret und Production-Topic im Supabase-Projekt verifizieren
+- [x] ✅ Acht feingranulare Push-Einstellungen mit serverseitiger Filterung
+- [x] ✅ Push-Taps öffnen abhängig vom Ereignis Freunde oder Mitteilungsfeed
+- [x] ✅ Push-Dispatcher als Edge Function im Produktionsprojekt veröffentlicht
+- [x] ✅ APNs-Key `ZAYGWU8U3P` für Sandbox und Produktion erstellt und sicher heruntergeladen
+- [ ] 🧪 APNs-Private-Key, Team-ID, Topic und Cron-Secret als verschlüsselte Supabase-Secrets speichern
 
 ## 13. Datenschutz, Sicherheit und Account
 
@@ -142,6 +144,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Private Avatar-Bucket-Policies für Eigentümer und Freunde
 - [x] ✅ Blockierung wird in zentralen DB-Helpern berücksichtigt
 - [x] ✅ Account-Löschung über authentifizierte Edge Function
+- [x] ✅ Account-Löschfunktion im Produktionsprojekt veröffentlicht und mit eigener Token-Prüfung geschützt
 - [x] ✅ Datenschutzansicht und Sichtbarkeit Freunde/Niemand
 - [ ] 🧪 Remote-RLS- und Account-Löschtest im Produktionsprojekt
 
@@ -153,7 +156,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Timer basiert auf Startzeit statt Sekundenwrites
 - [x] ✅ Doppelte LIVE-Aktivität, Freundschaftsanfrage und FYR UP serverseitig geschützt
 - [x] ✅ Leere Freunde-, Notification- und Feed-Zustände
-- [ ] ⚠️ Skeleton-Loading statt ausschließlich Spinner ergänzen
+- [x] ✅ Skeleton-Loading für den initialen Heute-Feed, Spinner für Mutationen
 - [ ] 🧪 Offline → Reconnect auf echtem Gerät
 
 ## 15. Accessibility, Lokalisierung und Qualität
@@ -174,7 +177,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Security-Definer-RPCs mit festem `search_path`
 - [x] ✅ Lokale Seed-Daten für Momo, Max, Sarah, Leon und Tim
 - [x] ✅ pgTAP-Schema-/Policy-Prüfungen
-- [ ] 🧪 Neue Avatar-Migration in das Produktionsprojekt ausrollen
+- [x] ✅ Notification-Preferences-Migration im Produktionsprojekt ausgerollt und Tabelle/RLS/RPCs/Trigger geprüft
+- [x] ✅ Private Avatar-Migration im Produktionsprojekt ausgerollt und Bucket/Policies geprüft
 - [ ] ⚠️ pgTAP um Storage-Policies und weitere Negativtests erweitern
 
 ## 17. Automatisierte Tests
@@ -186,7 +190,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Auth-URL-Regressionstest
 - [x] ✅ UI: Start → LIVE → DONE
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
-- [ ] ⚠️ UI: vollständiges Onboarding und optionale Profilfelder
+- [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
 - [ ] 🧪 Sämtliche Tests im neuesten Codemagic-Build grün
 
