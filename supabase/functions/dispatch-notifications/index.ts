@@ -29,6 +29,7 @@ Deno.serve(async (request) => {
   const jwt = await apnsToken();
   const topic = Deno.env.get("APNS_TOPIC") ?? "app.fyrup.ios";
   let delivered = 0;
+  let deferred = 0;
   for (const note of notifications) {
     const preferenceKey: Record<string, string> = {
       activity_started: "friend_starts", joined_live: "friend_starts", fyrup: "fyrup",
@@ -46,6 +47,7 @@ Deno.serve(async (request) => {
       }
     }
     const { data: tokens } = await db.from("device_tokens").select("token,environment").eq("user_id", note.recipient_id);
+    let canFinalize = true;
     for (const device of tokens ?? []) {
       const host = device.environment === "ios-sandbox" ? "api.sandbox.push.apple.com" : "api.push.apple.com";
       const response = await fetch(`https://${host}/3/device/${device.token}`, {
@@ -54,9 +56,11 @@ Deno.serve(async (request) => {
         body: JSON.stringify({ aps: { alert: { title: note.title, body: note.body }, sound: "default", "mutable-content": 1 }, ...note.data, fyrup_type: note.type }),
       });
       if (response.ok) delivered++;
-      if (response.status === 410) await db.from("device_tokens").delete().eq("token", device.token);
+      else if (response.status === 410) await db.from("device_tokens").delete().eq("token", device.token);
+      else canFinalize = false;
     }
-    await db.from("notifications").update({ push_sent_at: new Date().toISOString() }).eq("id", note.id);
+    if (canFinalize) await db.from("notifications").update({ push_sent_at: new Date().toISOString() }).eq("id", note.id);
+    else deferred++;
   }
-  return json({ delivered });
+  return json({ delivered, deferred });
 });
