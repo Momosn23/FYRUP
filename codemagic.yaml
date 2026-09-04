@@ -40,9 +40,10 @@ workflows:
     name: FYRUP Signed TestFlight Build
     instance_type: mac_mini_m2
     max_build_duration: 120
+    integrations:
+      app_store_connect: Codemagic FYRUP
     environment:
       groups:
-        - appstore_credentials
         - fyrup_backend
       ios_signing:
         distribution_type: app_store
@@ -95,7 +96,5 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: false
