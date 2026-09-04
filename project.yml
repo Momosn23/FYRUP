@@ -1,0 +1,76 @@
+name: FYRUP
+options:
+  bundleIdPrefix: app.fyrup
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+configs:
+  Debug: debug
+  Release: release
+packages: {}
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    VERSIONING_SYSTEM: apple-generic
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+targets:
+  FYRUP:
+    type: application
+    platform: iOS
+    sources:
+      - path: FYRUP
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.fyrup.ios
+        PRODUCT_NAME: FYRUP
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: FYRUP
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.healthcare-fitness
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
+        INFOPLIST_KEY_NSFaceIDUsageDescription: FYRUP kann Face ID zum Schutz deiner Sitzung verwenden.
+        INFOPLIST_KEY_SUPABASE_URL: $(SUPABASE_URL)
+        INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
+        INFOPLIST_KEY_APP_ENVIRONMENT: $(APP_ENVIRONMENT)
+        CODE_SIGN_ENTITLEMENTS: FYRUP/FYRUP.entitlements
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        TARGETED_DEVICE_FAMILY: 1
+    entitlements:
+      path: FYRUP/FYRUP.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.applesignin:
+          - Default
+    scheme:
+      testTargets:
+        - FYRUPTests
+        - FYRUPUITests
+      gatherCoverageData: true
+  FYRUPTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [FYRUPTests]
+    dependencies:
+      - target: FYRUP
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  FYRUPUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [FYRUPUITests]
+    dependencies:
+      - target: FYRUP
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES

@@ -1,0 +1,95 @@
+workflows:
+  ios-cloud-validation:
+    name: FYRUP iOS Cloud Build & Tests
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: latest
+    cache:
+      cache_paths:
+        - $HOME/Library/Caches/org.swift.swiftpm
+        - $HOME/Library/Developer/Xcode/DerivedData
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+      - name: Generate Xcode project
+        script: xcodegen generate
+      - name: Validate project settings
+        script: xcodebuild -project FYRUP.xcodeproj -scheme FYRUP -showBuildSettings > /tmp/fyrup-build-settings.txt
+      - name: Build and run tests
+        script: |
+          set -o pipefail
+          xcodebuild clean test \
+            -project FYRUP.xcodeproj \
+            -scheme FYRUP \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -resultBundlePath build/FYRUP.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+    artifacts:
+      - build/FYRUP.xcresult
+      - /tmp/fyrup-build-settings.txt
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-testflight:
+    name: FYRUP Signed TestFlight Build
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      groups:
+        - appstore_credentials
+        - fyrup_backend
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.fyrup.ios
+      vars:
+        BUNDLE_ID: app.fyrup.ios
+        XCODE_PROJECT: FYRUP.xcodeproj
+        XCODE_SCHEME: FYRUP
+      xcode: latest
+    cache:
+      cache_paths:
+        - $HOME/Library/Caches/org.swift.swiftpm
+        - $HOME/Library/Developer/Xcode/DerivedData
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+      - name: Inject Supabase configuration
+        script: |
+          ESCAPED_URL=$(printf '%s' "$SUPABASE_URL" | sed 's#://#:/$()/#')
+          printf 'SUPABASE_URL = %s\nSUPABASE_PUBLISHABLE_KEY = %s\n' "$ESCAPED_URL" "$SUPABASE_PUBLISHABLE_KEY" > Config/Secrets.xcconfig
+      - name: Generate Xcode project
+        script: xcodegen generate
+      - name: Run unit and UI tests
+        script: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -resultBundlePath build/FYRUP-Release.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Initialize signing keychain
+        script: keychain initialize
+      - name: Fetch or create signing files
+        script: app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+      - name: Add signing certificate
+        script: keychain add-certificates
+      - name: Apply provisioning profiles
+        script: xcode-project use-profiles
+      - name: Set unique build number
+        script: agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/FYRUP-Release.xcresult
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false

@@ -1,0 +1,5 @@
+#include "Shared.xcconfig"
+#include? "Secrets.xcconfig"
+APP_ENVIRONMENT = production
+SWIFT_COMPILATION_MODE = wholemodule
+

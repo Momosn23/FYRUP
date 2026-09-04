@@ -1,0 +1,11 @@
+.DS_Store
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+.swiftpm/
+FYRUP.xcodeproj/
+Config/Secrets.xcconfig
+supabase/.temp/
+.env
+
