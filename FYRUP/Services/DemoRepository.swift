@@ -4,6 +4,7 @@ actor DemoRepository: AppRepository {
     private let meID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
     private var me: Profile
     private var activities: [Activity]
+    private var avatarObjects: [String: Data] = [:]
     private var crew: [Profile]
     private var sentFyrups = Set<UUID>()
 
@@ -29,6 +30,8 @@ actor DemoRepository: AppRepository {
     func signOut() async {}
     func profile(userID: UUID) async throws -> Profile? { me }
     func saveProfile(_ profile: Profile) async throws { me = profile }
+    func uploadAvatar(userID: UUID, data: Data) async throws -> String { let path = "\(userID.uuidString.lowercased())/avatar.jpg"; avatarObjects[path] = data; return path }
+    func avatarData(path: String) async throws -> Data { guard let data = avatarObjects[path] else { throw AppError.server }; return data }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {
         let mine = DateLogic.status(for: activities.filter { $0.userID == meID })
         let members = crew.map { profile in CrewMember(profile: profile, activity: DateLogic.status(for: activities.filter { $0.userID == profile.id }), weeklyCount: profile.id == crew[1].id ? 5 : 3) }.sorted { $0.todayStatus < $1.todayStatus }

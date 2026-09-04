@@ -1,6 +1,7 @@
 import AuthenticationServices
 import CryptoKit
 import SwiftUI
+import UIKit
 
 @MainActor
 @Observable
@@ -24,6 +25,7 @@ final class AppStore {
     let repository: any AppRepository
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
+    private var avatarCache: [String: UIImage] = [:]
 
     init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics()) { self.repository = repository; self.analytics = analytics }
 
@@ -78,7 +80,7 @@ final class AppStore {
         }
     }
 
-    func saveProfile(displayName: String, username: String, birthYear: Int? = nil, city: String? = nil, sports: [SportKind]? = nil) async {
+    func saveProfile(displayName: String, username: String, birthYear: Int? = nil, city: String? = nil, avatarJPEG: Data? = nil, sports: [SportKind]? = nil) async {
         guard let userID = session?.userID else { return }
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else { errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."; return }
@@ -89,9 +91,44 @@ final class AppStore {
         if let city { value.city = city.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }
         if let sports { value.sports = sports }
         await perform {
+            if let avatarJPEG {
+                let path = try await self.repository.uploadAvatar(userID: userID, data: avatarJPEG)
+                value.avatarPath = path
+                if let image = UIImage(data: avatarJPEG) { self.avatarCache[path] = image }
+            }
             try await self.repository.saveProfile(value)
             self.profile = value
             self.route = value.sports.isEmpty ? .sportsSetup : .onboardingComplete
+        }
+    }
+
+    func avatarImage(path: String) async -> UIImage? {
+        if let cached = avatarCache[path] { return cached }
+        guard let data = try? await repository.avatarData(path: path), let image = UIImage(data: data) else { return nil }
+        avatarCache[path] = image
+        return image
+    }
+
+    func updateProfile(displayName: String, username: String, birthYear: Int?, city: String, bio: String, avatarJPEG: Data?) async {
+        guard let userID = session?.userID, var value = profile else { return }
+        let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else {
+            errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."
+            return
+        }
+        value.username = normalized
+        value.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.birthYear = birthYear
+        value.city = city.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        value.bio = bio.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        await perform {
+            if let avatarJPEG {
+                let path = try await self.repository.uploadAvatar(userID: userID, data: avatarJPEG)
+                value.avatarPath = path
+                if let image = UIImage(data: avatarJPEG) { self.avatarCache[path] = image }
+            }
+            try await self.repository.saveProfile(value)
+            self.profile = value
         }
     }
 
@@ -174,6 +211,8 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { throw AppError.configuration }
     func resetPassword(email: String) async throws {} ; func signOut() async {}
     func profile(userID: UUID) async throws -> Profile? { nil }; func saveProfile(_ profile: Profile) async throws {}
+    func uploadAvatar(userID: UUID, data: Data) async throws -> String { throw AppError.configuration }
+    func avatarData(path: String) async throws -> Data { throw AppError.configuration }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) { (nil, []) }
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity { throw AppError.configuration }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity { throw AppError.configuration }

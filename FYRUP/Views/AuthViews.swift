@@ -70,6 +70,7 @@ struct ProfileSetupView: View {
     @State private var username = ""
     @State private var birthYear = ""
     @State private var city = ""
+    @State private var avatarJPEG: Data?
     @FocusState private var focusedField: Field?
 
     private enum Field { case name, username, birthYear, city }
@@ -83,12 +84,8 @@ struct ProfileSetupView: View {
                 Text("Profil erstellen").font(.system(size: 30, weight: .bold))
                 Text("Erzähl uns ein paar Infos über dich.").foregroundStyle(FYColor.muted)
 
-                ZStack(alignment: .bottomTrailing) {
-                    Image("SplashHero").resizable().scaledToFill().frame(width: 92, height: 92).clipShape(Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.72), lineWidth: 2))
-                    Image(systemName: "camera.fill").font(.caption.bold()).frame(width: 30, height: 30)
-                        .background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(.white.opacity(0.45)))
-                }.frame(maxWidth: .infinity).padding(.vertical, 4)
+                AvatarPicker(profile: store.profile, jpegData: $avatarJPEG)
+                    .frame(maxWidth: .infinity).padding(.vertical, 4)
 
                 OnboardingField(title: "Anzeigename", placeholder: "z. B. Max", text: $name, symbol: "person", suffix: nil)
                     .textContentType(.name).focused($focusedField, equals: .name)
@@ -102,7 +99,7 @@ struct ProfileSetupView: View {
 
                 Button("Weiter") {
                     focusedField = nil
-                    Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city) }
+                    Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city, avatarJPEG: avatarJPEG) }
                 }
                 .buttonStyle(PrimaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid)
                 Text("Keine Sorge, du kannst das später jederzeit in deinem Profil ändern.")

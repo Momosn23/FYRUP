@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct StatusBadge: View {
     let status: TodayStatus
@@ -18,14 +19,25 @@ struct ActivityLabel: View {
 }
 
 struct AvatarView: View {
+    @Environment(AppStore.self) private var store
     let profile: Profile
+    @State private var image: UIImage?
     var body: some View {
         ZStack {
             Circle().fill(LinearGradient(colors: [FYColor.elevated, FYColor.surface], startPoint: .topLeading, endPoint: .bottomTrailing))
-            Text(profile.displayName.prefix(1).uppercased()).font(.headline.bold()).foregroundStyle(.white)
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Text(profile.displayName.prefix(1).uppercased()).font(.headline.bold()).foregroundStyle(.white)
+            }
         }
         .frame(width: 48, height: 48)
+        .clipShape(Circle())
         .overlay(Circle().stroke(Color.white.opacity(0.18)))
         .accessibilityLabel("Profilbild von \(profile.displayName)")
+        .task(id: profile.avatarPath) {
+            guard let path = profile.avatarPath else { image = nil; return }
+            image = await store.avatarImage(path: path)
+        }
     }
 }

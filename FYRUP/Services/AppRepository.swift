@@ -9,6 +9,8 @@ protocol AppRepository: Sendable {
     func signOut() async
     func profile(userID: UUID) async throws -> Profile?
     func saveProfile(_ profile: Profile) async throws
+    func uploadAvatar(userID: UUID, data: Data) async throws -> String
+    func avatarData(path: String) async throws -> Data
     func today(userID: UUID) async throws -> (Activity?, [CrewMember])
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
@@ -55,6 +57,16 @@ actor LiveAppRepository: AppRepository {
             enum CodingKeys: String, CodingKey { case pUsername = "p_username", pDisplayName = "p_display_name", pAvatarPath = "p_avatar_path", pBirthYear = "p_birth_year", pCity = "p_city", pBio = "p_bio", pSports = "p_sports", pWeeklyGoal = "p_weekly_goal", pActivityVisibility = "p_activity_visibility" }
         }
         let _: Profile = try await client.rpc("upsert_profile", body: Body(pUsername: profile.username, pDisplayName: profile.displayName, pAvatarPath: profile.avatarPath, pBirthYear: profile.birthYear, pCity: profile.city, pBio: profile.bio, pSports: profile.sports, pWeeklyGoal: profile.weeklyGoal, pActivityVisibility: profile.activityVisibility))
+    }
+
+    func uploadAvatar(userID: UUID, data: Data) async throws -> String {
+        let path = "\(userID.uuidString.lowercased())/avatar.jpg"
+        try await client.uploadObject(bucket: "avatars", path: path, data: data, contentType: "image/jpeg")
+        return path
+    }
+
+    func avatarData(path: String) async throws -> Data {
+        try await client.downloadObject(bucket: "avatars", path: path)
     }
 
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {

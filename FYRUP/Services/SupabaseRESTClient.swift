@@ -85,6 +85,35 @@ actor SupabaseRESTClient {
         return try await execute(request)
     }
 
+    func uploadObject(bucket: String, path: String, data: Data, contentType: String) async throws {
+        guard let token = session?.accessToken else { throw AppError.authentication }
+        var request = URLRequest(url: storageURL(parts: ["object", bucket] + path.split(separator: "/").map(String.init)))
+        request.httpMethod = "POST"
+        request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.setValue("true", forHTTPHeaderField: "x-upsert")
+        request.httpBody = data
+        let (_, response) = try await urlSession.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw AppError.server }
+    }
+
+    func downloadObject(bucket: String, path: String) async throws -> Data {
+        guard let token = session?.accessToken else { throw AppError.authentication }
+        var request = URLRequest(url: storageURL(parts: ["object", "authenticated", bucket] + path.split(separator: "/").map(String.init)))
+        request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await urlSession.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw AppError.server }
+        return data
+    }
+
+    private func storageURL(parts: [String]) -> URL {
+        parts.reduce(configuration.supabaseURL.appending(path: "storage/v1")) { url, part in
+            url.appending(path: part)
+        }
+    }
+
     private func databaseRequest<Body: Encodable, Result: Decodable>(path: String, method: Method, query: [URLQueryItem], body: Body?) async throws -> Result {
         guard let token = session?.accessToken else { throw AppError.authentication }
         var components = URLComponents(url: configuration.supabaseURL.appending(path: "rest/v1/\(path)"), resolvingAgainstBaseURL: false)!
