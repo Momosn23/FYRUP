@@ -22,10 +22,10 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Apple-, E-Mail-Login und Account-erstellen-Aktionen sichtbar
 - [x] ✅ Vier Hauptziele: Home, Planen, Entdecken/Freunde und Profil
 - [x] ✅ Schnellzugriff zum Planen/Starten und Benachrichtigungsglocke
-- [ ] 🧪 Vier originale Sport-Hero-Motive für Gym, Running, Kampfsport und Outdoor in Auswahl, Planung und Details
-- [ ] 🧪 Aktivitätsauswahl und Planung als eigenständiger Fullscreen-Flow statt kleinem Standard-Overlay
+- [x] ✅ Vier originale Sport-Hero-Motive für Gym, Running, Kampfsport und Outdoor in Auswahl, Planung und Details
+- [x] ✅ Aktivitätsauswahl und Planung als eigenständiger Fullscreen-Flow statt kleinem Standard-Overlay
 - [x] ✅ 13 Referenzansichten wurden in Codemagic Build 11 als PNG erfasst und zu einem Kontaktblatt zusammengeführt
-- [ ] 🧪 Pixel-/Layoutvergleich der PNGs mit den gelieferten Referenzen (Download aus Codemagic noch lokal zu öffnen)
+- [x] ✅ Visueller Layoutvergleich des Build-15-Kontaktblatts mit den gelieferten Referenzen durchgeführt
 
 ## 3. Authentifizierung und Session
 
@@ -57,8 +57,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Alle im Masterauftrag genannten V1-Unterkategorien vorhanden
 - [x] ✅ Unterkategorie kann übersprungen werden
 - [x] ✅ Sportarten können im Profil geändert werden
-- [ ] 🧪 Gym-Presets Push, Pull, Beine und Full Body mit automatisch vorgeschlagenen Muskelgruppen
-- [ ] 🧪 Einzelne Körpergruppen Brust, Rücken, Schultern, Bizeps, Trizeps, Core, Po, Quadrizeps, Beinbeuger und Waden frei kombinierbar
+- [x] ✅ Gym-Presets Push, Pull, Beine und Full Body mit automatisch vorgeschlagenen Muskelgruppen
+- [x] ✅ Einzelne Körpergruppen Brust, Rücken, Schultern, Bizeps, Trizeps, Core, Po, Quadrizeps, Beinbeuger und Waden frei kombinierbar
 
 ## 6. Freundesystem
 
@@ -68,8 +68,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Blockieren und serverseitiges Verhindern weiterer Interaktionen
 - [x] ✅ Doppelte Anfragen werden serverseitig verhindert
 - [x] ✅ Freunde-Screen mit Anfragen, Profil, Tagesstatus und Wochenanzahl
-- [ ] 🧪 Private Trainingsgruppen erstellen, ansehen und löschen
-- [ ] 🧪 Gruppen bestehen ausschließlich aus akzeptierten Freunden und sind per RLS geschützt
+- [x] ✅ Private Trainingsgruppen erstellen, ansehen und löschen
+- [x] ✅ Gruppen bestehen ausschließlich aus akzeptierten Freunden und sind per RLS geschützt
 - [ ] 🧪 End-to-End-Abnahme mit zwei echten TestFlight-Konten
 
 ## 7. Heute-Feed und eigener Status
@@ -109,7 +109,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Host sieht Wartet/Dabei/Vielleicht/Kann-nicht je eingeladenem Freund
 - [x] ✅ Host kann Uhrzeit, Dauer, Notiz, Treffpunkt und Beitrittsfreigabe nachträglich ändern
 - [x] ✅ Sichtbarer Schalter „Freunde dürfen sich anschließen“ beim Planen
-- [ ] 🧪 Sichtbare Freundesuche, Einzel- und Gruppenauswahl direkt im Planungsflow
+- [x] ✅ Sichtbare Freundesuche, Einzel- und Gruppenauswahl direkt im Planungsflow
 - [x] ✅ Geplante Session wechselt serverseitig auf READY
 - [x] ✅ 30-Minuten-Erinnerung ist serverseitig vorbereitet
 - [x] ✅ Supabase-Cron ruft `process_scheduled_sessions` alle fünf Minuten im Produktionsprojekt auf
@@ -211,9 +211,10 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ UI: Start → LIVE → DONE
 - [x] ✅ UI: Planen, FYR UP, Abbrechen, Freunde/Details, Profil/Datenschutz/Logout
 - [x] ✅ UI: vollständiges dreistufiges Onboarding mit optionalen Profilfeldern
-- [ ] 🧪 UI: konkrete Gym-Körpergruppen und Erstellen einer Trainingsgruppe automatisiert abgedeckt
+- [x] ✅ UI: konkrete Gym-Körpergruppen und Erstellen einer Trainingsgruppe automatisiert abgedeckt
 - [ ] ⚠️ UI: zwei Benutzer, Einladung, Vielleicht, Mitziehen und Reaktionswechsel
 - [x] ✅ Codemagic Build 11 (`487abd4`): 9 UI-Flows inklusive Planung/Host-Details und Profilbearbeitung, 0 Fehler, TEST SUCCEEDED
+- [x] ✅ Codemagic Build 15 (`8b7043f`): 11 UI-Flows inklusive Gym-Körpergruppen und Trainingsgruppen, 0 Fehler, TEST SUCCEEDED
 - [x] ✅ Visuelles QA-Kontaktblatt wird bei jedem Cloud-Testbuild erzeugt
 
 ## 18. TestFlight und Store-Vorbereitung
@@ -223,8 +224,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Signierter IPA-Build über Codemagic
 - [x] ✅ Upload zu App Store Connect/TestFlight erfolgreich
 - [x] ✅ Release-Build enthält geprüfte Supabase-Konfiguration
-- [x] ✅ FYRUP 1.0.0 Build 6 signiert, ohne Uploadfehler verarbeitet und FYRUP Intern zugeordnet
-- [ ] 🧪 Build 6 aus TestFlight auf dem iPhone installieren
+- [x] ✅ FYRUP 1.0.0 Build 7 signiert, von Apple verarbeitet und automatisch FYRUP Intern zugeordnet
+- [ ] 🧪 Build 7 aus TestFlight auf dem iPhone installieren und visuell abnehmen
 - [ ] ⬜ App-Privacy-Angaben, Support-/Privacy-URL, Beschreibung, Keywords und Altersfreigabe vervollständigen
 - [ ] ⬜ App-Store-Screenshots in erforderlichen Größen erstellen
 - [ ] ⬜ Interne Beta mit zwei Konten, danach 5–20 externe Tester
@@ -239,7 +240,6 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## Nächste Reihenfolge
 
-1. Neuen Codemagic-UI-Build mit Gym-Fokus, Gruppen und Fullscreen-Planung prüfen.
-2. Signierten TestFlight-Build hochladen und die neue Gestaltung auf dem iPhone abnehmen.
-3. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
-4. Zwei-Konten-Endabnahme auf echten iPhones durchführen.
+1. TestFlight Build 7 auf dem iPhone installieren und die neue Gestaltung abnehmen.
+2. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
+3. Zwei-Konten-Endabnahme auf echten iPhones durchführen.
