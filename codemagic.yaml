@@ -75,12 +75,6 @@ workflows:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP-Release.xcresult \
             CODE_SIGNING_ALLOWED=NO
-      - name: Initialize signing keychain
-        script: keychain initialize
-      - name: Fetch or create signing files
-        script: app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-      - name: Add signing certificate
-        script: keychain add-certificates
       - name: Apply provisioning profiles
         script: xcode-project use-profiles
       - name: Set unique build number
