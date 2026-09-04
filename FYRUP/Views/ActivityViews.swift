@@ -108,8 +108,10 @@ struct LiveActivityView: View {
 }
 
 struct ActivityDetailView: View {
+    @Environment(AppStore.self) private var store
     let activity: Activity
     let owner: Profile
+    @State private var showsJoin = false
 
     var body: some View {
         ScrollView {
@@ -125,10 +127,33 @@ struct ActivityDetailView: View {
                     if let date = activity.plannedAt ?? activity.startedAt { DetailRow(symbol: "calendar", title: "Datum", value: date.formatted(date: .abbreviated, time: .shortened)) }
                     if let minutes = activity.plannedDurationMinutes { DetailRow(symbol: "clock", title: "Dauer (geplant)", value: "ca. \(minutes) min") }
                     HStack(spacing: -7) { AvatarView(profile: owner).scaleEffect(0.72); Text(owner.displayName).font(.subheadline.bold()).padding(.leading, 12); Spacer(); StatusBadge(status: activity.status == .live ? .live : activity.status == .completed ? .done : .planned) }.padding(.vertical, 16)
-                    Button("Freunde einladen") { }.buttonStyle(PrimaryButtonStyle()).padding(.top, 10)
+                    detailAction.padding(.top, 10)
                 }.padding(.horizontal, 18)
             }
-        }.background(FYColor.background).navigationTitle("Aktivitätsdetails").navigationBarTitleDisplayMode(.inline)
+        }
+        .background(FYColor.background)
+        .navigationTitle("Aktivitätsdetails")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showsJoin) { ActivityComposerView(linkedActivityID: activity.id) }
+    }
+
+    @ViewBuilder private var detailAction: some View {
+        if owner.id == store.profile?.id, activity.status == .live {
+            NavigationLink { LiveActivityView() } label: { Text("TRAINING ÖFFNEN") }.buttonStyle(PrimaryButtonStyle())
+        } else if activity.status == .live {
+            Button("MITZIEHEN 🔥") { showsJoin = true }.buttonStyle(PrimaryButtonStyle())
+        } else if let sessionID = activity.plannedSessionID {
+            Button("DABEI?") { Task { await store.joinPlannedSession(sessionID) } }.buttonStyle(PrimaryButtonStyle())
+        } else if activity.status == .completed {
+            HStack(spacing: 12) {
+                ForEach(ReactionKind.allCases, id: \.rawValue) { reaction in
+                    Button(reaction.rawValue) { Task { await store.react(activity, reaction: reaction) } }
+                        .font(.title2).frame(maxWidth: .infinity, minHeight: 48)
+                        .background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
+                        .accessibilityLabel("Mit \(reaction.rawValue) reagieren")
+                }
+            }
+        }
     }
 }
 

@@ -142,6 +142,7 @@ private struct InvitationCard: View {
             Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(FYColor.muted)
             HStack {
                 Button("Ablehnen") { Task { await store.respond(to: invitation, status: .declined) } }.buttonStyle(SecondaryButtonStyle())
+                Button("Vielleicht") { Task { await store.respond(to: invitation, status: .maybe) } }.buttonStyle(SecondaryButtonStyle())
                 Button("Dabei") { Task { await store.respond(to: invitation, status: .accepted) } }.buttonStyle(PrimaryButtonStyle())
             }
         }.fyCard().overlay(alignment: .topTrailing) { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral).padding(14) }
@@ -175,7 +176,12 @@ private struct CrewFeedCard: View {
         if let activity = member.activity, activity.status == .live {
             Button("Dabei?") { showJoin = true }.font(.caption.bold()).foregroundStyle(.black).padding(.horizontal, 14).padding(.vertical, 9).background(.white, in: Capsule())
         } else if let activity = member.activity, activity.status == .completed {
-            Button("🔥") { Task { await store.react(activity, reaction: .fire) } }.font(.title3)
+            HStack(spacing: 5) {
+                ForEach(ReactionKind.allCases, id: \.rawValue) { reaction in
+                    Button(reaction.rawValue) { Task { await store.react(activity, reaction: reaction) } }
+                        .font(.body).accessibilityLabel("Mit \(reaction.rawValue) reagieren")
+                }
+            }
         } else if let sessionID = member.activity?.plannedSessionID {
             Button("Dabei?") { Task { await store.joinPlannedSession(sessionID) } }.font(.caption.bold()).foregroundStyle(.black).padding(.horizontal, 14).padding(.vertical, 9).background(.white, in: Capsule())
         } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()).foregroundStyle(FYColor.coral) }

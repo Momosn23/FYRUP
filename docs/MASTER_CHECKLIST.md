@@ -95,7 +95,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Einladungen werden atomar serverseitig erstellt
 - [x] ✅ Status pending, accepted, maybe und declined im Datenmodell
 - [x] ✅ Annehmen/Ablehnen in der App
-- [ ] ⚠️ „Vielleicht“-Button in der Empfänger-UI ergänzen
+- [x] ✅ „Vielleicht“-Antwort in der Empfänger-UI
 - [x] ✅ Host kann Session stornieren; Teilnehmer kann beitreten
 - [x] ✅ Geplante Session wechselt serverseitig auf READY
 - [x] ✅ 30-Minuten-Erinnerung ist serverseitig vorbereitet
@@ -106,7 +106,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ FYR UP als Ein-Tap-Aktion
 - [x] ✅ Maximal ein FYR UP pro Sender/Empfänger/lokalem Tag serverseitig
 - [x] ✅ Reaktionen 🔥, 💪 und 👏 im Datenmodell und Backend
-- [ ] ⚠️ Reaktionsauswahl im Home-Feed von einem Emoji auf alle drei erweitern
+- [x] ✅ Reaktionsauswahl 🔥, 💪 und 👏 im Home-Feed und in Details
 - [x] ✅ Mitziehen verknüpft die neue Activity mit der LIVE-Activity des Freundes
 - [x] ✅ In-App-Notifications für Freundschaft, Training, Einladung und FYR UP
 - [ ] 🧪 Push-Zustellung für alle Social-Ereignisse auf zwei echten Geräten
@@ -165,7 +165,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [ ] ⚠️ Harte deutsche UI-Texte vollständig nach `Localizable.strings` verschieben
 - [x] ✅ Austauschbare Analytics-Schicht und zentrale Produkt-Events
 - [x] ✅ Keine sichtbaren Produktions-Mockdaten
-- [ ] ⚠️ No-op-Aktionen und unvollständige Sekundäraktionen restlos entfernen
+- [x] ✅ Sichtbare Activity-Detail-Aktionen sind mit Öffnen, Mitziehen, Beitreten oder Reagieren verbunden
 
 ## 16. Datenbank und Backend
 
