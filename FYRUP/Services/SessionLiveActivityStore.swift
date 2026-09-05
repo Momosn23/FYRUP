@@ -5,7 +5,7 @@ import UIKit
 
 @MainActor @Observable
 final class SessionLiveActivityStore {
-    struct Input: Equatable {
+    struct Input: Equatable, Sendable {
         let sessionID: UUID
         let state: SessionLiveAttributes.ContentState
     }
@@ -41,15 +41,13 @@ final class SessionLiveActivityStore {
     private func drain() async {
         while !Task.isCancelled {
             let version = revision, input = desired
-            for existing in ActivityKit.Activity<SessionLiveAttributes>.activities where existing.attributes.sessionID != input?.sessionID {
-                await existing.end(nil, dismissalPolicy: .immediate)
-            }
+            await Self.endOtherActivities(keeping: input?.sessionID)
             if version != revision { continue }
             if let input {
                 let content = ActivityContent(state: input.state, staleDate: nil)
-                if let existing = ActivityKit.Activity<SessionLiveAttributes>.activities.first(where: { $0.attributes.sessionID == input.sessionID }) {
-                    if existing.activityState == .active || existing.activityState == .stale { await existing.update(content) }
-                } else if UIApplication.shared.applicationState == .active, !defaults.bool(forKey: attemptedKey(input.sessionID)) {
+                let alreadyExists = await Self.updateExistingActivity(input)
+                if version != revision { continue }
+                if !alreadyExists, UIApplication.shared.applicationState == .active, !defaults.bool(forKey: attemptedKey(input.sessionID)) {
                     do {
                         _ = try ActivityKit.Activity<SessionLiveAttributes>.request(attributes: .init(sessionID: input.sessionID), content: content, pushType: nil)
                         defaults.set(true, forKey: attemptedKey(input.sessionID)); errorMessage = nil
@@ -59,5 +57,21 @@ final class SessionLiveActivityStore {
             if version == revision { break }
         }
         worker = nil
+    }
+
+    // The older iOS SDK does not declare Activity handles Sendable. Obtain and
+    // consume them inside one nonisolated task; never send a main-actor handle
+    // across an await. Only our immutable Sendable snapshot crosses the boundary.
+    nonisolated private static func endOtherActivities(keeping sessionID: UUID?) async {
+        for existing in ActivityKit.Activity<SessionLiveAttributes>.activities where existing.attributes.sessionID != sessionID {
+            await existing.end(nil, dismissalPolicy: .immediate)
+        }
+    }
+    nonisolated private static func updateExistingActivity(_ input: Input) async -> Bool {
+        guard let existing = ActivityKit.Activity<SessionLiveAttributes>.activities.first(where: { $0.attributes.sessionID == input.sessionID }) else { return false }
+        if existing.activityState == .active || existing.activityState == .stale {
+            await existing.update(ActivityContent(state: input.state, staleDate: nil))
+        }
+        return true
     }
 }

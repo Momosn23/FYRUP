@@ -65,6 +65,36 @@ final class PersonalSetupTests: XCTestCase {
         for result in [-1, .nan, .infinity, 50001] { reader.result = result; await checked.refresh(force: true); XCTAssertNil(checked.kilocalories) }
         reader.result = 0; await checked.refresh(force: true); XCTAssertEqual(checked.kilocalories, 0)
     }
+
+    func testLateHealthAuthorizationCannotEnableNextAccount() async {
+        let setup = PersonalSetupStore(persistence: MemoryPersonalSetupPersistence()), owner = UUID(), other = UUID()
+        setup.activate(userID: owner)
+        let reader = SuspendedEnergyReader()
+        // Keep the held reader explicit so the exact account-switch boundary is tested.
+        let held = ActiveEnergyStore(setup: setup, reader: reader); held.accountChanged(to: owner)
+        let connect = Task { await held.connect() }
+        for _ in 0..<100 where reader.authorization == nil { await Task.yield() }
+        XCTAssertNotNil(reader.authorization)
+        setup.activate(userID: other); held.accountChanged(to: other)
+        reader.authorization?.resume(); reader.authorization = nil
+        await connect.value
+        XCTAssertEqual(setup.value?.energyRequested, false); XCTAssertNil(held.kilocalories); XCTAssertFalse(held.isBusy)
+        XCTAssertEqual(reader.reads, 0)
+    }
+
+    func testLateHealthQueryCannotRestoreValueAfterDisconnect() async {
+        let setup = PersonalSetupStore(persistence: MemoryPersonalSetupPersistence()), owner = UUID(); setup.activate(userID: owner)
+        XCTAssertTrue(setup.update { $0.energyRequested = true })
+        let reader = SuspendedEnergyReader()
+        let held = ActiveEnergyStore(setup: setup, reader: reader); held.accountChanged(to: owner)
+        let refresh = Task { await held.refresh(force: true) }
+        for _ in 0..<100 where reader.query == nil { await Task.yield() }
+        XCTAssertNotNil(reader.query)
+        held.disconnect()
+        reader.query?.resume(returning: 999); reader.query = nil
+        await refresh.value
+        XCTAssertNil(held.kilocalories); XCTAssertFalse(held.isRefreshing); XCTAssertEqual(setup.value?.energyRequested, false)
+    }
 }
 
 @MainActor private final class FailingSetupPersistence: PersonalSetupPersisting {
@@ -82,4 +112,16 @@ final class PersonalSetupTests: XCTestCase {
 @MainActor private final class EnergyTestClock {
     var date: Date
     init(date: Date) { self.date = date }
+}
+
+@MainActor private final class SuspendedEnergyReader: ActiveEnergyReading {
+    var isAvailable = true
+    var reads = 0
+    var authorization: CheckedContinuation<Void, Never>?
+    var query: CheckedContinuation<Double?, Never>?
+    func requestAccess() async throws { await withCheckedContinuation { authorization = $0 } }
+    func todayKilocalories(now: Date, calendar: Calendar) async throws -> Double? {
+        reads += 1
+        return await withCheckedContinuation { query = $0 }
+    }
 }

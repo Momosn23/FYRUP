@@ -41,6 +41,10 @@ struct BodyAndEnergySettings: View {
             if let message = error ?? store.setup.errorMessage ?? store.energy.errorMessage { Text(message).font(.caption).foregroundStyle(FYColor.coral) }
             Button("Körperdaten & Ziel speichern") { save() }.buttonStyle(OutlineButtonStyle()).disabled(store.setup.value == nil)
                 .accessibilityIdentifier("save-body-and-goal")
+            if [height, weight, goal] != baseline {
+                Button("Änderungen verwerfen") { loadFields(); focusedField = nil; onEditingChanged(false) }
+                    .font(.subheadline).frame(minHeight: 44).accessibilityIdentifier("discard-body-changes")
+            }
             if saved { Label("Privat auf diesem iPhone gespeichert", systemImage: "checkmark.shield.fill").font(.caption).foregroundStyle(FYColor.lime).accessibilityIdentifier("body-data-saved") }
         }.onAppear { loadFields() }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Fertig") { focusedField = nil } } }
@@ -88,7 +92,7 @@ struct ActiveEnergyCard: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { _ in
             NavigationLink {
-                ScrollView { BodyAndEnergySettings().padding(20).padding(.bottom, 80) }.background(FYColor.background).navigationTitle("Bewegungskalorien")
+                BodyAndEnergyPage()
             } label: {
                 HStack(spacing: 16) {
                     ZStack {
@@ -114,5 +118,15 @@ struct ActiveEnergyCard: View {
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: store.energy.kilocalories)
             }.buttonStyle(FYPressStyle()).accessibilityIdentifier("active-energy-card")
         }
+    }
+}
+
+private struct BodyAndEnergyPage: View {
+    @State private var hasUnsavedChanges = false
+    var body: some View {
+        ScrollView {
+            BodyAndEnergySettings(onEditingChanged: { hasUnsavedChanges = $0 }).padding(20).padding(.bottom, 80)
+        }.background(FYColor.background).navigationTitle("Bewegungskalorien")
+            .navigationBarBackButtonHidden(hasUnsavedChanges).interactiveDismissDisabled(hasUnsavedChanges)
     }
 }
