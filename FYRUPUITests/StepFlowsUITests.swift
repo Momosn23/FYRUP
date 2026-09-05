@@ -4,13 +4,6 @@ import XCTest
 final class StepFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
-    override func tearDownWithError() throws {
-        if testRun?.hasSucceeded == false {
-            capture("failure-\(name.replacingOccurrences(of: "/", with: "-"))")
-            recordSharingDiagnostics(in: XCUIApplication(), name: "Failed step screen")
-        }
-    }
-
     private func recordSharingDiagnostics(in app: XCUIApplication, name: String) {
         let switches = app.switches.matching(identifier: "share-steps").allElementsBoundByIndex.enumerated().map { index, element in
             "switch[\(index)] exists=\(element.exists) enabled=\(element.isEnabled) hittable=\(element.isHittable) value=\(String(describing: element.value)) frame=\(element.frame)"
@@ -53,7 +46,12 @@ final class StepFlowsUITests: XCTestCase {
         // Confirmed preferences replace the temporary loading row after each request.
         let predicate = NSPredicate(format: "exists == true AND hittable == true AND enabled == true AND value == %@", enabled ? "1" : "0")
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
-        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 4), .completed, file: file, line: line)
+        let result = XCTWaiter.wait(for: [expectation], timeout: 4)
+        if result != .completed {
+            capture("failure-step-sharing")
+            recordSharingDiagnostics(in: XCUIApplication(), name: "Expected sharing \(enabled)")
+        }
+        XCTAssertEqual(result, .completed, file: file, line: line)
     }
 
     private func tap(_ element: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {

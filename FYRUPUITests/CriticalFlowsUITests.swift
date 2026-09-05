@@ -4,16 +4,6 @@ import XCTest
 final class CriticalFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
-    override func tearDownWithError() throws {
-        if testRun?.hasSucceeded == false {
-            capture("failure-\(name.replacingOccurrences(of: "/", with: "-"))")
-            let details = XCUIApplication().debugDescription
-            let attachment = XCTAttachment(string: details)
-            attachment.name = "Failed critical screen accessibility"; attachment.lifetime = .keepAlways; add(attachment)
-            print("CRITICAL_UI_FAILURE_HIERARCHY\n\(details)")
-        }
-    }
-
     private func capture(_ name: String) {
         let screenshot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
