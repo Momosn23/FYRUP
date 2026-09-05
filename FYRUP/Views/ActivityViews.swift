@@ -433,7 +433,7 @@ private extension Text {
     func composerSectionTitle() -> some View { self.font(.caption.weight(.black)).foregroundStyle(FYColor.muted).tracking(0.6) }
 }
 
-private extension String {
+extension String {
     var trimmedNil: String? { let value = trimmingCharacters(in: .whitespacesAndNewlines); return value.isEmpty ? nil : value }
 }
 

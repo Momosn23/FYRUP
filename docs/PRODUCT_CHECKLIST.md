@@ -33,6 +33,8 @@ Nachtrag nach Bündelung: Acht Commits wurden bis `4896581` gemeinsam auf `main`
 
 Korrekturlauf: `a964fe6` wurde auf `main` geladen. [Codemagic 39](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c75b03cf4759eab7e97fe) kam über den Widget-Fehler hinaus und stoppte nach 48 Sekunden exakt in `SessionIntervalView.swift:72`: Swift 6 erlaubt keinen gemeinsamen `@State`-Wrapper für drei Variablen. Die drei Intervallfelder sind im nächsten Quellstand getrennt; vollständige native Tests, Bildschirmbilder und TestFlight bleiben bis zum grünen Folgelauf offen.
 
+Zweiter Korrekturlauf: `e0e1192` wurde auf `main` geladen. [Codemagic 40](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c7715fac9a246beda8cc5) passierte beide älteren Fehler und stoppte nach 2 Minuten 6 Sekunden beim Übersetzen zweier Demo-Datenwege: Der bestehende Helfer `trimmedNil` war noch dateiprivat, wurde aber nun für die freiwillige Ortsangabe modulweit benötigt. Der Helfer ist im nächsten Quellstand ausschließlich app-intern sichtbar; native Tests und Bilder wurden in Lauf 40 noch nicht erreicht.
+
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 
 ## 1. Status und Abnahmeregel
