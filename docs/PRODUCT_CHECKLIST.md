@@ -4,6 +4,8 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 ## 1. Status und Abnahmeregel
 
+Aktualisierung 15:03 CEST: GitHub 46 ist nach 29 min 4 s fehlgeschlagen; der Datumsknopf-Fehler ist als lokale Korrektur `a56f89d` gesichert. Zusätzlich hat Apple den älteren signierten Build 9 nach erfolgreichem App-Bau mit 90683 wegen fehlendem Health-Erklärungstext abgewiesen. [Ergänzter Text und IPA-Vorabprüfung](HEALTH_PURPOSE_RELEASE_FIX.md), sieben lokale Tests bestanden. **Noch kein neuer Apple-Upload erfolgreich.** Die bisherigen erfolgreichen Einzelnachweise bleiben gültig, beweisen aber keine erfolgreiche Auslieferung.
+
 Neuester Nachtrag, 14:54 CEST: `717472c` ist auf `main`. GitHub 46 hat **396 Einzeltests, den erweiterten Privatsphäre-Bedientest und den Supplement-Bedientest bestanden**. Beim neuen Datumsknopf scheitert dagegen die Button-Erkennung; [gezielte Korrektur und zusätzlicher Diagnosenachweis](SESSION_DATE_BUTTON_FIX.md) sind lokal vorbereitet, noch nicht nativ nachgeprüft. Die [sieben einzeln betrachteten Bilder aus Build 35](VISUAL_QA_BUILD35.md) bestätigen die Satzfeld-Beschriftungen, zeigen aber weiterhin Abweichungen bei Onboarding und Home-Gewichtung. Kein pixelgleicher oder vollständiger Produktabschluss.
 
 Der ältere signierte Build 9 (`7472300`) hat inzwischen alle **27 Bedienabläufe mit 0 Fehlern** bestanden, `TEST SUCCEEDED`. Profilprüfung bestanden; eigentliche IPA-Erstellung, eingebettete Konfiguration und Apple-Verarbeitung bleiben noch offen. Er enthält nicht `717472c` oder die jüngste Datumsknopf-Korrektur. Ältere Standangaben darunter sind historische Nachweise.

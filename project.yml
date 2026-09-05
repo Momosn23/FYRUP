@@ -46,6 +46,7 @@ targets:
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
         INFOPLIST_KEY_NSFaceIDUsageDescription: FYRUP kann Face ID zum Schutz deiner Sitzung verwenden.
         INFOPLIST_KEY_NSHealthShareUsageDescription: FYRUP liest auf deinen Wunsch deine heutigen Schritte. Ob Freunde die zusammengefasste Schrittzahl sehen dürfen, entscheidest du getrennt in den Privatsphäre-Einstellungen.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: FYRUP schreibt keine Daten in Apple Health. Für deine Schrittanzeige werden ausschließlich die von dir freigegebenen Schritte gelesen.
         INFOPLIST_KEY_SUPABASE_URL: $(SUPABASE_URL)
         INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
         INFOPLIST_KEY_APP_ENVIRONMENT: $(APP_ENVIRONMENT)

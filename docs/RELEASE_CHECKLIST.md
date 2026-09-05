@@ -6,11 +6,13 @@ Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. F
 
 - [x] Signierter [TestFlight-Build 9](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c07536942048ebcb1f844) mit `codex/signing-profile-pipe` / `7472300` gestartet. Vorgänger 8 scheiterte vor dem App-Bau am inzwischen korrigierten Parser.
 - [x] Sieben Parser-Prüfungen und das tatsächlich verwendete Apple-Profil auf HealthKit, Apple-Anmeldung und Production-Push geprüft; Ausgabe `Verified FYRUP profile: HealthKit, Apple sign-in and production push` im Lauf 9 gelesen.
-- [ ] Vollständige Unit-/UI-Prüfung dieses signierten Laufs erfolgreich.
+- [x] Native Tests dieses signierten Laufs erfolgreich (`TEST SUCCEEDED`); insbesondere 27 UI-Abläufe, 0 Fehler, Ende 14:54 CEST.
 - [ ] Tatsächliche signierte IPA auf Apple-Login, Push und HealthKit geprüft.
 - [ ] Eingebettete Backend-Konfiguration erfolgreich geprüft.
 - [ ] IPA von Apple angenommen und verarbeitet.
 - [ ] Neue Version in der internen TestFlight-Gruppe sichtbar und installierbar.
+
+**Build 9 beim Apple-Upload gescheitert**, 14:57 CEST: Fehler 90683 verlangt den fehlenden Health-Erklärungstext `NSHealthUpdateUsageDescription`. Die IPA ist gebaut, aber nicht als neue TestFlight-Version verfügbar. [Korrektur, Vorabprüfung und offener Nachtest](HEALTH_PURPOSE_RELEASE_FIX.md).
 
 Simulator- und TestFlight-Buildnummern gehören zu getrennten Abläufen. Kandidat 9 enthält die dauerhaft sichtbaren Satzfeld-Beschriftungen und den stabilen Privatsphäre-Header aus `1a953af` sowie die Parser-Korrektur. Er enthält **nicht** die späteren bestätigten Sichtbarkeits-Speicherungen, Datumsauswahl und Supplement-Textkorrekturen aus `717472c`. Diese prüft GitHub 46 (396 Einzeltests bestanden, UI noch offen); Simulator 36 wartet. Das Fehlen des privaten Apple-Push-Schlüssels im Serverbereich blockiert echte Pushzustellung weiterhin; hierfür ist eine konkrete Freigabe angefragt.
 

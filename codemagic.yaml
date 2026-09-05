@@ -124,13 +124,11 @@ workflows:
             --scheme "$XCODE_SCHEME"
       - name: Verify release backend configuration
         script: |
+          set -euo pipefail
+          python3 scripts/test_release_ipa.py
           IPA_PATH=$(find build/ios/ipa -name '*.ipa' -print -quit)
           test -n "$IPA_PATH"
-          unzip -p "$IPA_PATH" 'Payload/*.app/BackendConfig.plist' > /tmp/FYRUP-BackendConfig.plist
-          EMBEDDED_URL=$(plutil -extract SUPABASE_URL raw -o - /tmp/FYRUP-BackendConfig.plist)
-          EMBEDDED_KEY=$(plutil -extract SUPABASE_PUBLISHABLE_KEY raw -o - /tmp/FYRUP-BackendConfig.plist)
-          test "$EMBEDDED_URL" = "$SUPABASE_URL"
-          test "$EMBEDDED_KEY" = "$SUPABASE_PUBLISHABLE_KEY"
+          python3 scripts/verify-release-ipa.py "$IPA_PATH"
     artifacts:
       - build/ios/ipa/*.ipa
       - build/FYRUP-Release.xcresult
