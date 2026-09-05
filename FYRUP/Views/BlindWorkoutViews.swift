@@ -177,6 +177,7 @@ struct BlindWorkoutDetailView: View {
     @State private var copiedPlan: WorkoutPlan?
     @State private var confirmsDiscardSetDrafts = false
     @State private var restoredDraftMode = false
+    @State private var completionCelebration: UUID?
     private var state: BlindWorkoutState? { store.blind.state(id: id) }
 
     var body: some View {
@@ -215,6 +216,7 @@ struct BlindWorkoutDetailView: View {
             }.padding(20).padding(.bottom, 76)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: state?.currentExercise?.id)
         }.background(FYColor.background).foregroundStyle(FYColor.ink)
+            .overlay { TrainingConfetti(trigger: completionCelebration) }
             .navigationTitle("Blind Workout").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
             .toolbarBackground(FYColor.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
             .accessibilityElement(children: .contain).accessibilityIdentifier("blind-detail-screen")
@@ -327,6 +329,7 @@ struct BlindWorkoutDetailView: View {
                     Button("BLIND WORKOUT BEENDEN") {
                         Task {
                             if await store.blind.finish(id: id) {
+                                completionCelebration = UUID()
                                 await store.refresh(); await store.weekly.refresh(force: true); await store.weekly.prepareCelebration()
                             }
                         }
@@ -350,6 +353,7 @@ struct BlindWorkoutDetailView: View {
                 Text("\(value.summary.completedExercises) / \(value.summary.exerciseCount) Übungen").font(.headline)
                 if let duration = value.activity?.duration { Text(duration < 60 ? "\(Int(duration)) Sekunden" : "\(Int(duration / 60)) Minuten").foregroundStyle(FYColor.muted) }
             }.frame(maxWidth: .infinity).padding(.vertical, 12)
+            if let activity = value.activity { WorkoutFeedbackButton(activityID: activity.id) }
             feedback(value)
             ForEach(value.visibleExercises) { exercise in revealedExercise(exercise, editable: false) }
         case .cancelled, .declined:
@@ -376,6 +380,10 @@ struct BlindWorkoutDetailView: View {
                 }
             } else if !editable && state?.viewerRole == .recipient {
                 ForEach(exercise.sets.sorted { $0.setNumber < $1.setNumber }) { set in WorkoutSetRow(set: set, unit: exercise.exercise.repetitionUnit, editable: false) }
+            }
+            if state?.viewerRole == .recipient, let activity = state?.activity {
+                ExerciseEffortControl(activityID: activity.id, exerciseID: exercise.id, editable: editable)
+                    .disabled(store.blind.isBusy)
             }
         }.fyCard().accessibilityElement(children: .contain)
     }

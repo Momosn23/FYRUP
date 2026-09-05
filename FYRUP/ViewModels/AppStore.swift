@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 @Observable
 final class AppStore {
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, friendsSetup, onboardingComplete, main }
+    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, onboardingComplete, main }
     var route: Route = .loading {
         didSet { notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID) }
     }
@@ -38,6 +38,7 @@ final class AppStore {
             accountGeneration = UUID(); isRefreshing = false
             notificationSettings.activate(userID: session?.userID)
             trackingDrafts.activate(userID: session?.userID)
+            personal.activate(userID: session?.userID)
             notificationRouting.accountChanged(to: session?.userID)
         }
     }
@@ -46,6 +47,7 @@ final class AppStore {
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
     let trackingDrafts: WorkoutTrackingDraftStore
+    let personal: PersonalTrainingStore
     let steps: StepStore
     let weekly: WeeklyFlameStore
     let blind: BlindWorkoutStore
@@ -61,6 +63,7 @@ final class AppStore {
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
+        self.personal = PersonalTrainingStore(repository: repository)
         self.steps = steps ?? StepStore(repository: repository)
         self.weekly = weekly ?? WeeklyFlameStore(repository: repository)
         self.blind = BlindWorkoutStore(repository: repository)
@@ -202,14 +205,14 @@ final class AppStore {
         guard let userID = session?.userID else { return }
         await weekly.activate(userID: userID)
         guard await weekly.confirmGoal(goal), session?.userID == userID else { return }
-        await saveOnboardingStep("friends")
+        route = .routineSetup
     }
 
     private func onboardingRoute(_ step: String?) -> Route {
         switch step {
         case "sports": .sportsSetup
         case "gym": .gymSetup
-        case "weekly_goal": .weeklyGoalSetup
+        case "weekly_goal": weekly.state?.goalConfirmed == true ? .routineSetup : .weeklyGoalSetup
         case "friends": .friendsSetup
         case "complete": .onboardingComplete
         default: .main
@@ -390,6 +393,7 @@ final class AppStore {
 
     private func revokeFriendAccess(userID: UUID) {
         revokedFriendIDs.insert(userID); friendAccessRevision += 1
+        personal.invalidateWeekAccess()
         notificationRouting.revokeSocialDestinations()
         crew.removeAll { $0.id == userID }
         friendRequests.removeAll { $0.id == userID }

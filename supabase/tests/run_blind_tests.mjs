@@ -10,7 +10,8 @@ const { citext } = require('@electric-sql/pglite/contrib/citext');
 const { pgcrypto } = require('@electric-sql/pglite/contrib/pgcrypto');
 const { pgtap } = require('@electric-sql/pglite-pgtap');
 const db = new PGlite({ extensions: { citext, pgcrypto, pgtap } });
-const includePreferenceCAS = process.argv.includes('--preference-cas');
+const includePersonalTraining = process.argv.includes('--personal-training');
+const includePreferenceCAS = process.argv.includes('--preference-cas') || includePersonalTraining;
 const includeCopies = process.argv.includes('--copy-requests') || includePreferenceCAS;
 const includeShots = process.argv.includes('--shots') || includeCopies;
 try {
@@ -33,6 +34,7 @@ try {
     ...(includeShots ? ['202609050008_call_my_shot.sql', '202609050009_push_friendship_authorization.sql'] : []),
     ...(includeCopies ? ['202609050010_workout_copy_idempotency.sql'] : []),
     ...(includePreferenceCAS ? ['202609050011_notification_preference_cas.sql'] : []),
+    ...(includePersonalTraining ? ['202609050012_personal_training.sql'] : []),
   ]) {
     if (filename === '202609050005_weekly_flames.sql') {
       await db.exec(`insert into auth.users values
@@ -49,7 +51,7 @@ try {
     await db.exec(await readFile(resolve('supabase/migrations', filename), 'utf8'));
     console.log(`Applied ${filename}`);
   }
-  for (const filename of [...(includePreferenceCAS ? ['notification_preference_cas.sql'] : []), ...(includeCopies ? ['workout_copy_idempotency.sql'] : []), ...(includeShots ? ['call_my_shot.sql'] : []), 'blind_workouts.sql', 'weekly_flames.sql', 'workout_plans.sql', 'activity_pause.sql', 'daily_steps.sql']) {
+  for (const filename of [...(includePersonalTraining ? ['personal_training.sql'] : []), ...(includePreferenceCAS ? ['notification_preference_cas.sql'] : []), ...(includeCopies ? ['workout_copy_idempotency.sql'] : []), ...(includeShots ? ['call_my_shot.sql'] : []), 'blind_workouts.sql', 'weekly_flames.sql', 'workout_plans.sql', 'activity_pause.sql', 'daily_steps.sql']) {
     console.log(`Suite: ${filename}`);
     let sql = await readFile(resolve('supabase/tests', filename), 'utf8');
     if (includeCopies && filename === 'workout_plans.sql') {

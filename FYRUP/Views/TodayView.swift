@@ -7,6 +7,7 @@ struct TodayView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
                 header
+                TrainingWeekCard()
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Dein Status").font(.headline)
                 }.padding(.top, 4)
@@ -30,7 +31,7 @@ struct TodayView: View {
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
+        .refreshable { await store.refresh(); await store.personal.loadWeek(); await store.personal.loadRoutine(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
         .navigationBarHidden(true)
         .task {
             await store.steps.refresh()
@@ -41,6 +42,7 @@ struct TodayView: View {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
                 guard !Task.isCancelled else { break }
                 await store.refresh()
+                await store.personal.loadWeek()
                 await store.steps.refresh()
                 await store.weekly.refresh()
                 await store.weekly.refreshFriends()
@@ -77,6 +79,7 @@ struct TodayView: View {
 }
 
 private struct FeedSkeleton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulses = false
     var body: some View {
         VStack(spacing: 12) {
@@ -91,9 +94,10 @@ private struct FeedSkeleton: View {
                 }.fyCard()
             }
         }
-        .opacity(pulses ? 0.46 : 0.85)
-        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulses)
-        .onAppear { pulses = true }
+        .opacity(pulses && !reduceMotion ? 0.46 : 0.85)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulses)
+        .onAppear { pulses = !reduceMotion }
+        .onChange(of: reduceMotion) { _, reduced in pulses = !reduced }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Heute-Feed wird geladen")
     }

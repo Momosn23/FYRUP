@@ -12,6 +12,7 @@ struct RootView: View {
             case .sportsSetup: SportsSetupView()
             case .gymSetup: GymSetupView()
             case .weeklyGoalSetup: WeeklyGoalSelectionView(isOnboarding: true)
+            case .routineSetup: TrainingRoutineEditor(isOnboarding: true)
             case .friendsSetup: FriendsSetupView()
             case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()

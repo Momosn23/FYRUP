@@ -80,6 +80,7 @@ struct WorkoutTrackingView: View {
     @State private var confirmsCancel = false
     @State private var confirmsLeave = false
     @State private var shareSummary: WorkoutShareSummary?
+    @State private var completionCelebration: UUID?
     @State private var draftConflict = false
     @State private var confirmsDiscardDrafts = false
 
@@ -96,6 +97,7 @@ struct WorkoutTrackingView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let completedActivity, let confirmed {
                     WorkoutResultHeader(activity: completedActivity, log: confirmed)
+                    WorkoutFeedbackButton(activityID: completedActivity.id)
                     WorkoutRecordedExercises(log: confirmed)
                 } else if let log = displayed, let activity = currentActivity {
                     liveHeader(activity: activity, log: log)
@@ -150,6 +152,7 @@ struct WorkoutTrackingView: View {
             }
         }
         .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Training" : "Geschafft")
+        .overlay { TrainingConfetti(trigger: completionCelebration) }
         .navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout-tracking-screen")
@@ -278,6 +281,9 @@ struct WorkoutTrackingView: View {
                     }
                 }
             }
+            if let activityID = capturedID {
+                ExerciseEffortControl(activityID: activityID, exerciseID: exercise.id).disabled(controlsDisabled)
+            }
             Button {
                 Task { await setExerciseCompleted(exerciseID: exercise.id, completed: !exercise.completed) }
             } label: {
@@ -370,7 +376,7 @@ struct WorkoutTrackingView: View {
         guard capturedOwnerID == store.profile?.id else { return }
         if let finished {
             store.trackingDrafts.clearActivity(finished.id)
-            completedActivity = finished; activitySnapshot = finished; message = nil
+            completedActivity = finished; activitySnapshot = finished; message = nil; completionCelebration = UUID()
             await store.weekly.prepareCelebration()
         } else { message = store.errorMessage ?? "Der Abschluss wurde noch nicht bestätigt. Versuche es erneut." }
     }
@@ -543,6 +549,7 @@ struct WorkoutHistoryView: View {
                 if let log {
                     Text(log.planName).font(.title.bold())
                     Label("Dein privates Trainingsprotokoll", systemImage: "lock.fill").font(.footnote).foregroundStyle(FYColor.muted)
+                    WorkoutFeedbackButton(activityID: activityID)
                     HStack { WorkoutSummaryMetric(value: "\(log.completedExercises)/\(log.exercises.count)", title: "Übungen"); WorkoutSummaryMetric(value: "\(log.completedSets)", title: "Erfasste Sätze") }.fyCard()
                     WorkoutRecordedExercises(log: log)
                 } else if isLoading { ProgressView("Protokoll wird geladen …").frame(maxWidth: .infinity, minHeight: 160) }
@@ -633,6 +640,7 @@ private struct WorkoutRecordedExercises: View {
                             WorkoutSetRow(set: set, unit: exercise.exercise.repetitionUnit, editable: false)
                         }
                     }
+                    ExerciseEffortControl(activityID: log.activityID, exerciseID: exercise.id, editable: false)
                 }.fyCard()
             }
         }

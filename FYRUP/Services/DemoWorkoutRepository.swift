@@ -24,6 +24,8 @@ actor DemoWorkoutStorage {
         var revokedFriendships: Set<String> = []
         // Optional for persisted demos created before request-idempotent copying.
         var copyRequests: [UUID: [UUID: CopyRequest]]?
+        var routines: [UUID: TrainingRoutine]?
+        var feedback: [UUID: [UUID: PersonalWorkoutFeedback]]?
     }
 
     private var state: State
@@ -44,6 +46,37 @@ actor DemoWorkoutStorage {
 
     private func checkLoaded() throws {
         if failedToLoad { throw AppError.conflict("Die gespeicherten Demo-Trainings konnten nicht geladen werden. Deine Daten wurden nicht überschrieben.") }
+    }
+
+    func routine(userID: UUID) throws -> TrainingRoutine {
+        try checkLoaded()
+        return state.routines?[userID] ?? TrainingRoutine()
+    }
+
+    func saveRoutine(_ value: TrainingRoutine, userID: UUID) throws -> TrainingRoutine {
+        try checkLoaded()
+        if let message = value.validationMessage { throw AppError.validation(message) }
+        guard value.revision == (state.routines?[userID]?.revision ?? 0) else { throw AppError.conflict("Dein Wochenplan wurde inzwischen geändert. Lade ihn erneut.") }
+        var saved = value; saved.revision += 1
+        if state.routines == nil { state.routines = [:] }
+        state.routines?[userID] = saved
+        try persist(); return saved
+    }
+
+    func feedback(activityID: UUID, userID: UUID) throws -> PersonalWorkoutFeedback {
+        try checkLoaded()
+        return state.feedback?[userID]?[activityID] ?? PersonalWorkoutFeedback(activityID: activityID)
+    }
+
+    func saveFeedback(_ value: PersonalWorkoutFeedback, userID: UUID) throws -> PersonalWorkoutFeedback {
+        try checkLoaded()
+        if let message = value.validationMessage { throw AppError.validation(message) }
+        guard value.revision == (state.feedback?[userID]?[value.activityID]?.revision ?? 0) else { throw AppError.conflict("Deine Bewertung wurde inzwischen geändert. Lade sie erneut.") }
+        var saved = value; saved.revision += 1; saved.note = WorkoutLimits.optionalText(saved.note)
+        if state.feedback == nil { state.feedback = [:] }
+        if state.feedback?[userID] == nil { state.feedback?[userID] = [:] }
+        state.feedback?[userID]?[value.activityID] = saved
+        try persist(); return saved
     }
 
     private func persist() throws {
@@ -448,6 +481,8 @@ actor DemoWorkoutStorage {
         state.sessions = state.sessions.filter { $0.value.host.id != userID }
         state.notifications.removeValue(forKey: userID)
         state.copyRequests?.removeValue(forKey: userID)
+        state.routines?.removeValue(forKey: userID)
+        state.feedback?.removeValue(forKey: userID)
         state.shares = state.shares.filter { !planIDs.contains($0.key) }.mapValues { $0.subtracting([userID]) }
         try persist()
     }

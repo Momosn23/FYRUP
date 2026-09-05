@@ -261,6 +261,7 @@ struct FlameCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let celebration: WeeklyFlameCelebration
     @State private var appeared = false
+    @State private var celebrationTrigger: UUID?
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -282,7 +283,9 @@ struct FlameCelebrationView: View {
             Button("Weiter") { store.weekly.dismissCelebration() }.buttonStyle(PrimaryButtonStyle())
                 .accessibilityIdentifier("dismiss-flame-celebration")
         }.padding(28).background(FYColor.background).foregroundStyle(FYColor.ink)
+            .overlay { TrainingConfetti(trigger: celebrationTrigger) }
             .onAppear {
+                if !appeared { celebrationTrigger = UUID() }
                 withAnimation(reduceMotion ? nil : .spring(response: 0.65, dampingFraction: 0.72)) { appeared = true }
                 Haptics.success()
             }

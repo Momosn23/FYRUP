@@ -4,9 +4,17 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 ## 1. Status und Abnahmeregel
 
-**Aktuell: Build26 (`a94fb6e`), 346 native Unit-Tests und23/24 UI-Abläufe bestanden.** Der fehlgeschlagene Teilen-Vorschauablauf ist untersucht und wird nach der Korrektur erneut geprüft. Letzter vollständig grüner Lauf: Build25 (`559b6f7`),247 Unit-Tests und22 UI-Abläufe. Produktive Migrationen001–011 und Benachrichtigungsdienst inzwischen ausgerollt und separat überprüft: [Deploymentnachweis](DEPLOYMENT_2026-09-05.md). Kein echter HealthKit-/APNs-/TestFlight-Nachweis. Ältere Bereichstabellen unten sind historische Zwischenstände.
+**Aktuell: Build27 (`63047cb`), am05.09.2026 nach21m22s erfolgreich beendet; alle24 UI-Abläufe bestanden, einschließlich korrigierter Teilen-Vorschau.** Build26 hatte zuvor346 Unit-Tests und23/24 UI-Abläufe bestanden. Der neue Wochenrhythmus-/Bewertungsblock ist noch nicht Teil von Build27; sein [separater Prüfstand](PERSONAL_TRAINING_IMPLEMENTATION_STATUS.md) weist836 lokale Datenbankprüfungen aus. Produktive Migrationen001–011 und Benachrichtigungsdienst ausgerollt und separat überprüft: [Deploymentnachweis](DEPLOYMENT_2026-09-05.md). Kein echter HealthKit-/APNs-/neuer TestFlight-Nachweis. Ältere Bereichstabellen unten sind historische Zwischenstände.
 
 Neu hinzugekommen am 05.09.: sichtbare Bezeichnung „Deine Streak“; freiwilliger sportbezogener Trainingsrhythmus mit Häufigkeit, Dauer, frei gewählten Wochentagen und einer Wochenleiste auf Heute. Die zusätzlichen Anforderungen werden in [WEEKLY_ROUTINE_CHECKLIST.md](WEEKLY_ROUTINE_CHECKLIST.md) separat geführt und ersetzen nicht die Abnahmeregeln dieser Liste.
+
+Weitere Ergänzungen desselben Tages: private Trainings-/Übungsbewertung und Animationen in der Wochenplanliste; [Einladungslinks und freiwillige Kontakte-Suche](FRIEND_INVITES_CHECKLIST.md); [Trainingsort, Stammgym, Ankunftserinnerung, Live-Aktivität, Homescreen-Widget und Satzpausentimer](LOCATION_LIVE_ACTIVITY_CHECKLIST.md). Alle Zusatzlisten sind Bestandteil dieser zentralen Liste; „aufgenommen“ bedeutet nicht „ausgeliefert“.
+
+Ebenfalls aufgenommen: [freiwillige Supplement-Liste auf Heute mit Abhaken und begrenzt wiederholbaren Erinnerungen](SUPPLEMENT_REMINDER_CHECKLIST.md). Auswahl, Zeiten und Erinnerungshäufigkeit bestimmt der Nutzer; keine Dosierungs- oder Produkteempfehlungen.
+
+Zusätzlich: [geschätzter Kalorienverbrauch auf Heute, Körperdaten bei der Einrichtung, Tagesziel und freiwilliger KI-Zielvorschlag](CALORIE_ESTIMATE_CHECKLIST.md). Aktive Energie und Gesamtverbrauch unterscheiden, Überlappungen vermeiden und keine Schätzung als exakte Messung ausgeben.
+
+Neueste Bildreferenz: [moderne Bildsprache auf allen Seiten und interaktive Körperfigur mit aufleuchtenden Muskelgruppen](MODERN_VISUALS_CHECKLIST.md). Die Funktionsidee wird in das helle FYRUP-Design integriert; konkrete visuelle und funktionale Abnahmepunkte bleiben bis zum Nachweis offen.
 
 `[ ]` = noch nicht vollständig abgenommen. `[x]` = umgesetzt und durch einen konkreten Prüfnachweis belegt. Vorbereiteter Code, ein grüner Build oder ein einzelner Screenshot bedeuten jeweils noch keine vollständige Funktionsabnahme.
 

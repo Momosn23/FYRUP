@@ -306,6 +306,12 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("37-weekly-goal")
         confirmWeeklyGoal.tap()
 
+        XCTAssertTrue(app.staticTexts["Dein Trainingsrhythmus"].waitForExistence(timeout: 4))
+        capture("57-onboarding-training-routine")
+        let skipRoutine = app.buttons["skip-training-routine"]
+        waitUntilReady(skipRoutine)
+        skipRoutine.tap()
+
         XCTAssertTrue(app.staticTexts["Freunde hinzufügen"].waitForExistence(timeout: 3))
         let friendSearch = app.textFields["Username suchen …"]
         friendSearch.tap()

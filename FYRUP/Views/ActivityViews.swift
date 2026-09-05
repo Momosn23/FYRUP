@@ -337,6 +337,8 @@ private struct FreeActivityView: View {
     @State private var completedActivity: Activity?
     private var didComplete: Bool { completedActivity != nil }
     var body: some View {
+        GeometryReader { geometry in
+        ScrollView {
         VStack(spacing: 24) {
             HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
             Spacer(minLength: 20)
@@ -363,6 +365,7 @@ private struct FreeActivityView: View {
             }
             Spacer()
             if didComplete {
+                if let activity = completedActivity { WorkoutFeedbackButton(activityID: activity.id) }
                 Text("Deine Aktivität erscheint entsprechend deiner Privatsphäre-Einstellung im Feed.").font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
                 Button("Im Feed ansehen") { store.selectedTab = 0; dismiss() }.buttonStyle(OutlineButtonStyle())
                 Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle())
@@ -385,8 +388,11 @@ private struct FreeActivityView: View {
                 Text("Du machst das stark! 🔥").font(.subheadline).foregroundStyle(FYColor.muted)
                 Button("Training abbrechen") { confirmCancel = true }.font(.caption).foregroundStyle(FYColor.coral)
             }
-        }.padding(24).background(FYColor.background).navigationBarBackButtonHidden()
+        }.frame(minHeight: max(0, geometry.size.height - 48)).padding(24)
+        }.background(FYColor.background).navigationBarBackButtonHidden()
+            .overlay { TrainingConfetti(trigger: completedActivity?.id) }
             .confirmationDialog("Training wirklich abbrechen?", isPresented: $confirmCancel) { Button("Training abbrechen", role: .destructive) { Task { await store.cancelCurrent(); if store.errorMessage == nil { dismiss() } } }; Button("Weiter trainieren", role: .cancel) {} }
+        }
     }
 }
 

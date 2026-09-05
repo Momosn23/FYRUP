@@ -150,6 +150,19 @@ final class WorkoutFlowsUITests: XCTestCase {
         // Inspect and cancel the preview; no recipient is selected and nothing is sent.
         tap(app.buttons["cancel-workout-share"], in: app)
         waitUntilDismissed(export)
+        tap(app.buttons["review-completed-workout"], in: app)
+        let feeling = app.buttons["workout-feeling-great"]
+        XCTAssertTrue(waitUntilReady(feeling))
+        tap(feeling, in: app)
+        capture("58-private-workout-review")
+        tap(app.buttons["save-workout-review"], in: app)
+        waitUntilDismissed(feeling)
+        XCTAssertTrue(app.buttons["review-completed-workout"].label.contains("Richtig gut"))
+        tap(app.buttons["review-completed-workout"], in: app)
+        XCTAssertTrue(feeling.waitForExistence(timeout: 4))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: feeling)], timeout: 4), .completed)
+        tap(app.buttons["Ohne Änderung schließen"], in: app)
+        waitUntilDismissed(feeling)
         tap(done, in: app)
         XCTAssertTrue(app.navigationBars["Trainingsplan"].waitForExistence(timeout: 4))
     }
@@ -163,6 +176,29 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["Custom Push"], in: app)
         XCTAssertTrue(app.staticTexts["Prime Chest Press"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.alerts["Hinweis"].exists)
+    }
+
+    func testWeeklyRoutineSavesDaysAndSurvivesRelaunch() {
+        let app = launch()
+        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["profile-weekly-routine"], in: app)
+        XCTAssertTrue(app.navigationBars["Mein Wochenplan"].waitForExistence(timeout: 5))
+        tap(app.buttons["routine-add-sport"], in: app)
+        let monday = app.buttons["routine-gym-day-1"]
+        let friday = app.buttons["routine-gym-day-5"]
+        tap(monday, in: app); tap(friday, in: app)
+        XCTAssertTrue(monday.isSelected); XCTAssertTrue(friday.isSelected)
+        capture("59-weekly-routine-editor")
+        tap(app.buttons["save-training-routine"], in: app)
+        waitUntilDismissed(app.navigationBars["Mein Wochenplan"])
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 8))
+        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["profile-weekly-routine"], in: app)
+        XCTAssertTrue(monday.waitForExistence(timeout: 5))
+        XCTAssertTrue(monday.isSelected); XCTAssertTrue(friday.isSelected)
+        XCTAssertFalse(app.buttons["routine-gym-day-2"].isSelected)
+        capture("60-weekly-routine-restored")
     }
 
     func testUnsavedPlanDraftSurvivesTerminationAndCanBeResumed() {
@@ -206,6 +242,12 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["save-workout-set"], in: app)
         waitUntilDismissed(weight)
         XCTAssertTrue(app.buttons["workout-set-0-1"].waitForExistence(timeout: 5))
+        let effort = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'effort-' AND identifier ENDSWITH '-hardcore'")).firstMatch
+        tap(effort, in: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: effort)], timeout: 4), .completed)
+        capture("61-private-exercise-effort")
+        tap(effort, in: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == false"), object: effort)], timeout: 4), .completed)
         capture("30-workout-set-tracking")
         tap(app.buttons["pause-plan-workout"], in: app)
         XCTAssertTrue(app.staticTexts["PAUSIERT"].waitForExistence(timeout: 5))

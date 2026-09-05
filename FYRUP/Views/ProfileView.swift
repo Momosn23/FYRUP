@@ -24,6 +24,9 @@ struct ProfileView: View {
                     }
                     HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts / Monat"); Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak") }
                     OwnWeeklyCard()
+                    NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: {
+                        HStack { Label("Mein Wochenplan", systemImage: "calendar").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
+                    }.buttonStyle(.plain).accessibilityIdentifier("profile-weekly-routine")
                     WeekActivityStrip(activities: store.recentActivities + [store.myActivity].compactMap { $0 })
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
