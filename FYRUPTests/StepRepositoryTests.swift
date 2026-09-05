@@ -241,9 +241,14 @@ final class StepRepositoryTests: XCTestCase {
         let acceptedSkew = try await sync(momo, clock: clock, steps: 8421, revision: preference.sharingRevision,
                                          observedAt: noon.addingTimeInterval(240))
         XCTAssertTrue(acceptedSkew)
-        clock.advance(1)
+        // The corrected observation intentionally has exactly the clamped receipt
+        // timestamp, as on a low-resolution or non-advancing server clock.
         let correctlyTimed = try await sync(momo, clock: clock, steps: 8425, revision: preference.sharingRevision)
         XCTAssertTrue(correctlyTimed)
+        let conflictingRepeat = try await sync(momo, clock: clock, steps: 9999, revision: preference.sharingRevision)
+        XCTAssertFalse(conflictingRepeat, "After correction, ordinary equal-timestamp conflicts must still be rejected")
+        let exactRetry = try await sync(momo, clock: clock, steps: 8425, revision: preference.sharingRevision)
+        XCTAssertTrue(exactRetry)
         let values = try await max.sharedSteps()
         XCTAssertEqual(values.first?.steps, 8425)
         let restartedOwner = DemoRepository(stepStorage: storage)

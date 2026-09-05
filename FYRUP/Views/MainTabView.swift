@@ -47,10 +47,11 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
         .task {
             await store.refresh()
-            if let userID = store.profile?.id { await store.steps.activate(userID: userID) }
+            guard !Task.isCancelled, store.route == .main, let userID = store.session?.userID, store.profile?.id == userID else { return }
+            await store.steps.activate(userID: userID)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await store.refresh(); await store.steps.refresh(force: true) } }
+            if phase == .active && store.route == .main { Task { await store.refresh(); await store.steps.refresh(force: true) } }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             Task { await store.steps.refresh(force: true) }

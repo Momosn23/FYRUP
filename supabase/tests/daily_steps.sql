@@ -145,6 +145,16 @@ select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',50,3,
  'small clock skew is tolerated within current day');
 select ok((select last_observed_at<=clock_timestamp() from public.step_sharing_preferences where user_id=auth.uid()),'tolerated future observation is clamped to server receipt time');
 select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',55,3,clock_timestamp()),true,'legitimate next upload is not blocked by tolerated future timestamp');
+select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',60,3,
+ least(clock_timestamp()+interval '1 minute',((current_date+1)::timestamp at time zone 'UTC')-interval '1 microsecond')),true,
+ 'deterministic regression sets another clamped observation');
+insert into qa_step_state select 'clamped_cursor',to_jsonb(last_observed_at) from public.step_sharing_preferences where user_id=auth.uid();
+select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',61,3,(select (value #>> '{}')::timestamptz from qa_step_state where key='clamped_cursor')),true,
+ 'normal observation exactly equal to synthetic clamped cursor can replace it');
+select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',62,3,(select (value #>> '{}')::timestamptz from qa_step_state where key='clamped_cursor')),false,
+ 'equal conflicting real observation is still rejected after synthetic cursor replacement');
+select is(public.sync_daily_steps(auth.uid(),current_date,'UTC',61,3,(select (value #>> '{}')::timestamptz from qa_step_state where key='clamped_cursor')),true,
+ 'equal exact retry remains idempotent after synthetic cursor replacement');
 
 select set_config('request.jwt.claim.sub','a3000000-0000-0000-0000-000000000002',true);
 select lives_ok($$select public.block_user('a3000000-0000-0000-0000-000000000001')$$,'accepted friend can block owner');

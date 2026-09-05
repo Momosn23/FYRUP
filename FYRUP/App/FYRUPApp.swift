@@ -11,7 +11,8 @@ struct FYRUPApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
+                .environment(\.locale, Locale(identifier: "de_DE"))
                 .task {
                     appDelegate.store = store
                     await store.bootstrap()

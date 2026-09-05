@@ -13,6 +13,7 @@ actor DemoStepStorage {
     private var preferences: [UUID: StepSharingPreference] = [:]
     private var records: [UUID: Record] = [:]
     private var observations: [UUID: Date] = [:]
+    private var clampedObservations: Set<UUID> = []
     private var revokedFriendships = Set<String>()
     private let now: @Sendable () -> Date
 
@@ -27,6 +28,7 @@ actor DemoStepStorage {
         if value.sharingEnabled != enabled {
             value.sharingRevision += 1
             observations.removeValue(forKey: userID)
+            clampedObservations.remove(userID)
         }
         value.sharingEnabled = enabled
         preferences[userID] = value
@@ -57,13 +59,18 @@ actor DemoStepStorage {
         let observed = min(observedAt, receipt)
         if let previous = observations[userID] {
             if observed < previous { return false }
-            if observed == previous {
+            // A correctly timed observation can replace a skewed one at the same
+            // receipt tick. Ordinary equal-time conflicts remain rejected.
+            let replacesClamped = clampedObservations.contains(userID) && observedAt <= receipt
+            if observed == previous && !replacesClamped {
                 guard let steps else { return records[userID] == nil }
                 guard let record = records[userID] else { return false }
                 return record.localDate == localDate && record.timezone == timezone && record.steps == steps
             }
         }
         observations[userID] = observed
+        if observedAt > receipt { clampedObservations.insert(userID) }
+        else { clampedObservations.remove(userID) }
         if let steps {
             records[userID] = Record(userID: userID, localDate: localDate, timezone: timezone, steps: steps, updatedAt: receipt)
         } else { records.removeValue(forKey: userID) }
@@ -88,6 +95,7 @@ actor DemoStepStorage {
         preferences.removeValue(forKey: userID)
         records.removeValue(forKey: userID)
         observations.removeValue(forKey: userID)
+        clampedObservations.remove(userID)
     }
 
     private func friendshipKey(_ first: UUID, _ second: UUID) -> String {

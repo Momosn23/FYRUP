@@ -28,7 +28,10 @@ final class AppStore {
     var selectedTab = 0
     var opensNotifications = false
     var suggestedDisplayName = ""
-    private(set) var session: AuthSession?
+    private(set) var session: AuthSession? {
+        didSet { accountGeneration = UUID(); isRefreshing = false }
+    }
+    private var accountGeneration = UUID()
     let repository: any AppRepository
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
@@ -86,13 +89,18 @@ final class AppStore {
 
     func resetPassword(email: String) async { await perform { try await self.repository.resetPassword(email: email); self.errorMessage = "Wir haben dir einen Link zum Zurücksetzen gesendet." } }
     func logout() async {
+        guard !isBusy else { return }
+        isBusy = true
         if let id = session?.userID { FeedCache.clear(userID: id) }
         workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount()
         steps.reset()
-        await repository.signOut()
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
+        goals = .empty; friendRequests = []; userSearchResults = []; errorMessage = nil
+        route = .loading
+        await repository.signOut()
+        isBusy = false
         route = .signedOut
     }
 
@@ -193,15 +201,29 @@ final class AppStore {
 
     func refresh() async {
         guard let userID = session?.userID, !isRefreshing else { return }
+        let generation = accountGeneration
         isRefreshing = true
-        defer { isRefreshing = false }
+        defer { if generation == accountGeneration { isRefreshing = false } }
         do {
             let result = try await repository.today(userID: userID)
-            myActivity = result.0; crew = result.1
+            guard generation == accountGeneration, session?.userID == userID else { return }
             async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let groups = repository.trainingGroups(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
-            friendRequests = (try? await requests) ?? []; notifications = (try? await notes) ?? []; invitations = (try? await invites) ?? []; hostedSessions = (try? await hosted) ?? []; trainingGroups = (try? await groups) ?? []; goals = (try? await summary) ?? .empty; recentActivities = (try? await recent) ?? []; notificationPreferences = (try? await preferences) ?? .standard
+            let loadedRequests = (try? await requests) ?? []
+            let loadedNotifications = (try? await notes) ?? []
+            let loadedInvitations = (try? await invites) ?? []
+            let loadedHosted = (try? await hosted) ?? []
+            let loadedGroups = (try? await groups) ?? []
+            let loadedSummary = (try? await summary) ?? .empty
+            let loadedRecent = (try? await recent) ?? []
+            let loadedPreferences = (try? await preferences) ?? .standard
+            guard generation == accountGeneration, session?.userID == userID else { return }
+            myActivity = result.0; crew = result.1
+            friendRequests = loadedRequests; notifications = loadedNotifications; invitations = loadedInvitations
+            hostedSessions = loadedHosted; trainingGroups = loadedGroups; goals = loadedSummary
+            recentActivities = loadedRecent; notificationPreferences = loadedPreferences
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
+            guard generation == accountGeneration, session?.userID == userID else { return }
             if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1; goals = cached.2 }
             present(error)
         }

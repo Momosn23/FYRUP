@@ -1,5 +1,6 @@
 name: FYRUP
 options:
+  developmentLanguage: de
   bundleIdPrefix: app.fyrup
   deploymentTarget:
     iOS: "17.0"

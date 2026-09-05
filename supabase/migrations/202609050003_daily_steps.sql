@@ -7,6 +7,7 @@ create table public.step_sharing_preferences (
  sharing_enabled boolean not null default false,
  sharing_revision bigint not null default 0 check(sharing_revision>=0),
  last_observed_at timestamptz,
+ last_observation_was_clamped boolean not null default false,
  updated_at timestamptz not null default now()
 );
 create table public.daily_activity_metrics (
@@ -55,6 +56,7 @@ begin
      sharing_revision=step_sharing_preferences.sharing_revision+
        case when step_sharing_preferences.sharing_enabled is distinct from excluded.sharing_enabled then 1 else 0 end,
      last_observed_at=case when step_sharing_preferences.sharing_enabled is distinct from excluded.sharing_enabled then null else step_sharing_preferences.last_observed_at end,
+     last_observation_was_clamped=case when step_sharing_preferences.sharing_enabled is distinct from excluded.sharing_enabled then false else step_sharing_preferences.last_observation_was_clamped end,
      updated_at=now();
  -- Revocation and its row flags commit atomically. Enabling does not republish
  -- any old values: a fresh, correctly versioned aggregate upload is required.
@@ -86,7 +88,8 @@ begin
  v_observed_at := least(p_observed_at,v_now);
  if v_preference.last_observed_at is not null then
    if v_observed_at<v_preference.last_observed_at then return false; end if;
-   if v_observed_at=v_preference.last_observed_at then
+   if v_observed_at=v_preference.last_observed_at
+      and not (v_preference.last_observation_was_clamped and p_observed_at<=v_now) then
      -- Identical retries are harmless; same-time conflicting values cannot win.
      return (p_steps is null and not exists(select 1 from public.daily_activity_metrics where user_id=p_user and steps_shared))
        or (p_steps is not null and exists(select 1 from public.daily_activity_metrics where user_id=p_user and local_date=p_date and timezone=p_timezone and steps=p_steps and steps_shared));
@@ -102,7 +105,10 @@ begin
    on conflict(user_id,local_date) do update
    set steps=excluded.steps,timezone=excluded.timezone,steps_shared=true,updated_at=v_now;
  end if;
- update public.step_sharing_preferences set last_observed_at=v_observed_at where user_id=p_user;
+ -- A clamped cursor is synthetic: a normal observation at precisely the same
+ -- clock tick may replace it. After that, real equal-time conflicts stay denied.
+ update public.step_sharing_preferences set last_observed_at=v_observed_at,
+   last_observation_was_clamped=(p_observed_at>v_now) where user_id=p_user;
  return true;
 end; $$;
 
