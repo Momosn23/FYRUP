@@ -468,10 +468,20 @@ struct WorkoutSetEntrySheet: View {
                     Text("Trage nur ein, was du wirklich gemacht hast. Beide Felder dürfen leer bleiben.").font(.footnote).foregroundStyle(FYColor.muted)
                 }
                 Section("Deine tatsächlichen Werte") {
-                    TextField("Gewicht in kg (optional)", text: $input.weight).keyboardType(.decimalPad)
-                        .accessibilityLabel("Gewicht in kg").accessibilityIdentifier("set-weight")
-                    TextField("\(selection.unit) (optional)", text: $input.reps).keyboardType(.numberPad)
-                        .accessibilityLabel(selection.unit == "Sek." ? "Sekunden" : "Wiederholungen").accessibilityIdentifier("set-reps")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Gewicht (kg)").font(.subheadline.bold())
+                            .accessibilityIdentifier("set-weight-label")
+                        TextField("Optional", text: $input.weight).keyboardType(.decimalPad)
+                            .frame(minHeight: 44)
+                            .accessibilityLabel("Gewicht in kg").accessibilityIdentifier("set-weight")
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(selection.unit == "Sek." ? "Zeit (Sekunden)" : "Wiederholungen")
+                            .font(.subheadline.bold()).accessibilityIdentifier("set-reps-label")
+                        TextField("Optional", text: $input.reps).keyboardType(.numberPad)
+                            .frame(minHeight: 44)
+                            .accessibilityLabel(selection.unit == "Sek." ? "Sekunden" : "Wiederholungen").accessibilityIdentifier("set-reps")
+                    }
                 }
                 if let validation = validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.coral) }
                 if let error { Text(error).font(.footnote).foregroundStyle(FYColor.coral).accessibilityIdentifier("set-save-error") }

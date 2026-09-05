@@ -31,4 +31,4 @@ Build30 (`dc9d543`, `6a9be930fac9a246bed9474a`) enthält die Sprachüberarbeitun
 
 Vorheriger Build29 (`073b933`) bestand 365 Einzeltests und 26 UI-Abläufe; **er enthält diese Sprachüberarbeitung nicht**. Der noch nicht gestartete TestFlight-Dialog wurde geschlossen, damit der nächste Upload die neuen Begriffe berücksichtigen kann.
 
-Build31 (`7910f6c`, `6a9befa83cf4759eab7d62a6`) hat inzwischen alle382 Einzeltests ohne Fehler bestanden. Die Bildschirmtests laufen noch; kein vorweggenommener Gesamterfolg oder TestFlight-Nachweis.
+Build 31 (`7910f6c`, `6a9befa83cf4759eab7d62a6`) ist vollständig erfolgreich: 382 Einzeltests und 27 UI-Abläufe. [Einzelbildvergleich mit offenen Restabweichungen](VISUAL_QA_BUILD31.md). Aktueller Textaudit: 82 Dateien ohne ungeprüfte Alttexte. Produktiver Dispatcher-Quelltext vollständig verglichen, automatische Aufrufe 12:54–12:56 CEST mit HTTP 200. Keine echte Push-/TestFlight-Abnahme; neuere GitHub-Kompatibilitäts- und Layoutkorrekturen werden separat nachgetestet.

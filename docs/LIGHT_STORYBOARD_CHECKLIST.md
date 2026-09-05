@@ -2,6 +2,8 @@
 
 Referenz: `docs/reference/FYRUP-light-storyboard.png`
 
+Neuester Einzelbild-Nachweis: [Build 31](VISUAL_QA_BUILD31.md). Jede Referenzseite ist dort einer tatsächlich betrachteten Aufnahme oder einem ausdrücklich offenen Nachweis zugeordnet. Abweichungen sind dokumentiert; keine vollständige Gleichheit und keine neue iPhone-Auslieferung behauptet.
+
 Diese Tabelle erfasst die 24 bestehenden Referenzseiten. Die [zentrale Produkt-Checkliste](PRODUCT_CHECKLIST.md) ergänzt verbindlich neue Seiten, Funktionsprüfung, Animationen und Abnahmetests. „Umgesetzt“ ist hier kein Beleg für Funktionsfähigkeit oder visuellen Gleichstand im aktuellen TestFlight-Build. Neue Erweiterungen sind noch nicht abgenommen.
 
 Status: ✅ umgesetzt · 🧪 im Cloud-Build visuell zu prüfen · ⚙️ iOS-Systemansicht

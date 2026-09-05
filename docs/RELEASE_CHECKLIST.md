@@ -2,6 +2,17 @@
 
 Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. Für den nächsten Release gelten zusätzlich alle Schranken der [zentralen Produkt-Checkliste](PRODUCT_CHECKLIST.md), insbesondere neue Features, Design, Animationen, Datenschutz und getrennte Simulator-/Gerätenachweise. Keine alte Buildnummer als aktuell installierte Version ausgeben. Gültige bisherige Gerätetests bleiben Pflicht.
 
+## Laufender Release-Kandidat am 05.09.2026
+
+- [x] Signierter [TestFlight-Build 8](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9bfd86b233a8e3792c5733) mit `main` / `6e79a31` angefordert; um 13:38 CEST als queued bestätigt.
+- [ ] Vollständige Unit-/UI-Prüfung dieses signierten Laufs erfolgreich.
+- [ ] Erneuertes Profil und tatsächliche IPA auf Apple-Login, Push und HealthKit geprüft.
+- [ ] Eingebettete Backend-Konfiguration erfolgreich geprüft.
+- [ ] IPA von Apple angenommen und verarbeitet.
+- [ ] Neue Version in der internen TestFlight-Gruppe sichtbar und installierbar.
+
+Simulator-Build 34 und TestFlight-Build 8 sind getrennte Workflow-Nummern. Die später lokal ergänzten dauerhaften Satzfeld-Beschriftungen sind noch nicht in diesem Kandidaten enthalten. Das Fehlen des privaten Apple-Push-Schlüssels im Serverbereich blockiert echte Pushzustellung weiterhin; hierfür ist eine konkrete Freigabe angefragt.
+
 ## Automatisch
 
 - [x] `xcodegen generate` in Codemagic erfolgreich

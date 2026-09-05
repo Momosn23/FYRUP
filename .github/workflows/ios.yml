@@ -15,3 +15,11 @@ jobs:
       - run: brew install xcodegen
       - run: xcodegen generate
       - run: xcodebuild -project FYRUP.xcodeproj -scheme FYRUP -destination 'platform=iOS Simulator,name=iPhone 16 Pro' CODE_SIGNING_ALLOWED=NO build test
+      - name: Keep simulator screenshots for visual diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fyrup-simulator-screenshots
+          path: /tmp/fyrup-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 7

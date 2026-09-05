@@ -258,8 +258,11 @@ private struct PrivacyView: View {
     @Environment(AppStore.self) private var store
     var body: some View {
         Form {
-            Section("Wer sieht meine Aktivitäten?") {
+            Section {
                 Picker("Sichtbarkeit", selection: visibilityBinding) { Text("Freunde").tag("friends"); Text("Niemand").tag("nobody") }.pickerStyle(.inline)
+            } header: {
+                Text("Wer sieht meine Aktivitäten?").textCase(nil)
+                    .accessibilityIdentifier("privacy-visibility-heading")
             }
             Section { NavigationLink { StepSettingsView() } label: { Label("Schritte", systemImage: "figure.walk") }.accessibilityIdentifier("privacy-steps") }
             Section { Text("FYRUP zeigt in V1 weder Live-Standort noch GPS-Daten. Deine Aktivitäten sind niemals öffentlich.") }

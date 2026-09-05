@@ -188,7 +188,10 @@ final class CriticalFlowsUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Privatsphäre"].tap()
         XCTAssertTrue(app.navigationBars["Datenschutz"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Wer sieht meine Aktivitäten?"].exists)
+        capture("69-privacy-settings")
+        let privacyHeading = app.staticTexts["privacy-visibility-heading"]
+        XCTAssertTrue(privacyHeading.waitForExistence(timeout: 3))
+        XCTAssertEqual(privacyHeading.label, "Wer sieht meine Aktivitäten?")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
         XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))

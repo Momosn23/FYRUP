@@ -308,6 +308,8 @@ final class WorkoutFlowsUITests: XCTestCase {
         let weight = app.textFields["set-weight"]; tap(weight, in: app); weight.typeText("81")
         let reps = app.textFields["set-reps"]; tap(reps, in: app); reps.typeText("9")
         XCTAssertEqual(weight.value as? String, "81"); XCTAssertEqual(reps.value as? String, "9")
+        XCTAssertEqual(app.staticTexts["set-weight-label"].label, "Gewicht (kg)")
+        XCTAssertEqual(app.staticTexts["set-reps-label"].label, "Wiederholungen")
         capture("54-unsaved-set-with-keyboard")
         // No save button, no Back, no graceful sheet dismissal before termination.
         app.terminate(); app.launch()
@@ -322,14 +324,16 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(storedRow, in: app)
         XCTAssertTrue(app.staticTexts["restored-set-draft"].waitForExistence(timeout: 4))
         XCTAssertEqual(weight.value as? String, "81"); XCTAssertEqual(reps.value as? String, "9")
+        XCTAssertEqual(app.staticTexts["set-weight-label"].label, "Gewicht (kg)")
+        XCTAssertEqual(app.staticTexts["set-reps-label"].label, "Wiederholungen")
         capture("55-restored-set-draft")
         tap(app.buttons["Abbrechen"], in: app)
         tap(app.sheets.buttons["Eingaben verwerfen"], in: app)
         waitUntilDismissed(weight)
         tap(app.buttons["workout-set-0-1"], in: app)
         XCTAssertTrue(weight.waitForExistence(timeout: 4))
-        XCTAssertTrue(["", "Gewicht in kg (optional)"].contains(weight.value as? String ?? "unexpected"))
-        XCTAssertTrue(["", "Wdh. (optional)"].contains(reps.value as? String ?? "unexpected"))
+        XCTAssertTrue(["", "Optional"].contains(weight.value as? String ?? "unexpected"))
+        XCTAssertTrue(["", "Optional"].contains(reps.value as? String ?? "unexpected"))
         XCTAssertFalse(app.staticTexts["restored-set-draft"].exists)
     }
 }
