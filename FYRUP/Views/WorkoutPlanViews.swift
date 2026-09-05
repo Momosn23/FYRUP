@@ -13,6 +13,19 @@ struct WorkoutPlansView: View {
                     if let userID = store.profile?.id { newPlan = WorkoutPlan(ownerID: userID) }
                 } label: { Label("Neuen Trainingsplan erstellen", systemImage: "plus") }
                     .buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("create-workout-plan")
+                ForEach(store.workoutDrafts.drafts) { savedDraft in
+                    Button { newPlan = savedDraft.original } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "square.and.pencil").foregroundStyle(FYColor.lime)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(savedDraft.edited.name.isEmpty ? "Unbenannter Plan" : savedDraft.edited.name).font(.headline)
+                                Text("Lokalen Entwurf fortsetzen · noch nicht geteilt").font(.caption).foregroundStyle(FYColor.muted)
+                            }
+                            Spacer(); Image(systemName: "chevron.right").font(.caption)
+                        }.fyCard()
+                    }.buttonStyle(.plain).accessibilityIdentifier("resume-workout-draft")
+                }
+                if let error = store.workoutDrafts.errorMessage { Text(error).font(.caption).foregroundStyle(FYColor.coral) }
                 if store.workouts.isLoadingPlans && store.workouts.plans.isEmpty { ProgressView().frame(maxWidth: .infinity) }
                 if let error = store.workouts.errorMessage { WorkoutErrorBanner(message: error) { Task { await store.workouts.loadPlans() } } }
                 if store.workouts.plans.isEmpty && !store.workouts.isLoadingPlans && store.workouts.errorMessage == nil {
@@ -64,6 +77,7 @@ struct WorkoutPlanEditorView: View {
     @State private var showsLibrary = false
     @State private var editingEntry: WorkoutPlanExercise?
     @State private var confirmDiscard = false
+    @State private var restoredDraft = false
     private let original: WorkoutPlan
     var onSaved: (WorkoutPlan) -> Void = { _ in }
 
@@ -74,6 +88,9 @@ struct WorkoutPlanEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if restoredDraft {
+                    Section { Label("Dein ungespeicherter Entwurf wurde wiederhergestellt.", systemImage: "arrow.counterclockwise").font(.subheadline).foregroundStyle(FYColor.lime) }
+                }
                 Section {
                     TextField("z. B. Push Day", text: $draft.name).accessibilityLabel("Planname").accessibilityIdentifier("workout-plan-name")
                     Picker("Fokus (optional)", selection: category) {
@@ -112,6 +129,7 @@ struct WorkoutPlanEditorView: View {
                         .font(.caption).foregroundStyle(FYColor.muted)
                 } header: { Text("Unter deiner Kontrolle") }
                 if let error = store.workouts.errorMessage { Section { Text(error).foregroundStyle(FYColor.coral).accessibilityIdentifier("workout-error") } }
+                if let error = store.workoutDrafts.errorMessage { Section { Text(error).foregroundStyle(FYColor.coral) } }
             }
             .scrollContentBackground(.hidden).background(FYColor.background)
             .navigationTitle(original.name.isEmpty ? "Plan erstellen" : "Plan bearbeiten").navigationBarTitleDisplayMode(.inline)
@@ -124,7 +142,7 @@ struct WorkoutPlanEditorView: View {
                     if let validation = draft.validationMessage { Text(validation).font(.caption).foregroundStyle(FYColor.muted) }
                     Button(store.workouts.isBusy ? "Wird gespeichert …" : "Plan speichern") {
                         Task {
-                            if let saved = await store.workouts.savePlan(draft) { Haptics.success(); onSaved(saved); dismiss() }
+                            if let saved = await store.workouts.savePlan(draft) { store.workoutDrafts.remove(id: draft.id); Haptics.success(); onSaved(saved); dismiss() }
                         }
                     }.buttonStyle(PrimaryButtonStyle()).disabled(store.workouts.isBusy || draft.validationMessage != nil)
                         .accessibilityIdentifier("save-workout-plan")
@@ -144,10 +162,16 @@ struct WorkoutPlanEditorView: View {
                 }
             }
             .confirmationDialog("Ungespeicherte Änderungen verwerfen?", isPresented: $confirmDiscard) {
-                Button("Verwerfen", role: .destructive) { dismiss() }
+                Button("Verwerfen", role: .destructive) { store.workoutDrafts.remove(id: draft.id); dismiss() }
                 Button("Weiter bearbeiten", role: .cancel) {}
             }
             .interactiveDismissDisabled(draft != original)
+            .onAppear {
+                if !restoredDraft, let saved = store.workoutDrafts.draft(id: original.id) {
+                    draft = saved.edited; restoredDraft = true
+                }
+            }
+            .onChange(of: draft) { _, edited in store.workoutDrafts.save(edited: edited, original: original) }
         }.tint(FYColor.lime).preferredColorScheme(.light)
     }
 

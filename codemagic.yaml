@@ -50,6 +50,7 @@ workflows:
       - /tmp/fyrup-contact-sheet.png
       - /tmp/fyrup-screenshots/*.png
       - build/FYRUP.xcresult
+      - /Users/builder/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/FYRUP.app
 
   ios-testflight:
     name: FYRUP Signed TestFlight Build

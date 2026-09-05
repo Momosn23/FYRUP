@@ -315,7 +315,7 @@ private struct TrackingSetSelection: Identifiable {
     let exerciseName: String
     let unit: String
     let set: WorkoutSetLog
-    var id: UUID { set.id }
+    var id: UUID { self.set.id }
 }
 
 @MainActor

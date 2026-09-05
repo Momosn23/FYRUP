@@ -84,7 +84,7 @@ final class WorkoutStore {
     }
 
     func savePlan(_ draft: WorkoutPlan) async -> WorkoutPlan? {
-        if let message = draft.validationMessage { errorMessage = message; return nil }
+        if let message = draft.validationMessage { errorRevision += 1; errorMessage = message; return nil }
         return await mutate {
             let saved = try await self.repository.saveWorkoutPlan(draft)
             return saved
@@ -133,7 +133,7 @@ final class WorkoutStore {
     }
 
     func sharePlan(id: UUID, friendIDs: [UUID]) async -> Bool {
-        guard !friendIDs.isEmpty else { errorMessage = "Wähle mindestens einen Freund."; return false }
+        guard !friendIDs.isEmpty else { errorRevision += 1; errorMessage = "Wähle mindestens einen Freund."; return false }
         return await mutate { try await self.repository.shareWorkoutPlan(id: id, friendIDs: friendIDs); return true } update: { _ in } ?? false
     }
 

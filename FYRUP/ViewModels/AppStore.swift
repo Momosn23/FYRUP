@@ -31,13 +31,15 @@ final class AppStore {
     private(set) var session: AuthSession?
     let repository: any AppRepository
     let workouts: WorkoutStore
+    let workoutDrafts: WorkoutDraftStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics()) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository)
+        self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
     }
 
     static func make() -> AppStore {
@@ -48,7 +50,8 @@ final class AppStore {
             let testID = arguments.first(where: { $0.hasPrefix(testPrefix) }).map { String($0.dropFirst(testPrefix.count)) }
             let suite = testID.flatMap(UUID.init(uuidString:)).map { "app.fyrup.uitest.workouts.\($0.uuidString)" }
                 ?? (arguments.contains("--persistent-demo") ? "app.fyrup.demo.workouts" : nil)
-            return AppStore(repository: DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite)))
+            let drafts = WorkoutDraftStore(defaults: UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard)
+            return AppStore(repository: DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite)), workoutDrafts: drafts)
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -78,6 +81,7 @@ final class AppStore {
     func logout() async {
         if let id = session?.userID { FeedCache.clear(userID: id) }
         workouts.activate(userID: nil)
+        workoutDrafts.clearCurrentAccount()
         await repository.signOut()
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
@@ -173,6 +177,7 @@ final class AppStore {
 
     func finishOnboarding() async {
         workouts.activate(userID: session?.userID)
+        workoutDrafts.activate(userID: session?.userID)
         route = .main
         await analytics.track(.onboardingCompleted)
         await refresh()
@@ -249,7 +254,7 @@ final class AppStore {
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
     func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); await self.refresh() } }
     func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); await self.refresh() } }
-    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
+    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.workoutDrafts.clearCurrentAccount(); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
 
     func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID], workoutPlanID: UUID? = nil) async {
         guard let userID = session?.userID else { return }
@@ -293,6 +298,7 @@ final class AppStore {
     private func loadProfileAndRoute() async throws {
         guard let userID = session?.userID else { route = .signedOut; return }
         workouts.activate(userID: userID)
+        workoutDrafts.activate(userID: userID)
         profile = try await repository.profile(userID: userID)
         if profile == nil { route = .profileSetup }
         else if profile?.sports.isEmpty == true { route = .sportsSetup }

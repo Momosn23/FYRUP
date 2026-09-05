@@ -12,11 +12,47 @@ final class WorkoutFlowsUITests: XCTestCase {
         return app
     }
 
-    private func tap(_ element: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5))
-        for _ in 0..<8 where !element.isHittable { app.swipeUp() }
-        XCTAssertTrue(element.isHittable)
-        element.tap()
+    private func container(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func waitUntilReady(_ element: XCUIElement, timeout: TimeInterval = 3) -> Bool {
+        let predicate = NSPredicate(format: "exists == true AND hittable == true AND enabled == true")
+        return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+    }
+
+    private func waitUntilDismissed(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 3), .completed, file: file, line: line)
+    }
+
+    private func tap(_ element: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        // Give presentation/loading a short chance, but do not require an offscreen lazy
+        // row to exist before scrolling can bring it into the accessibility tree.
+        _ = element.waitForExistence(timeout: 2)
+        for _ in 0..<8 {
+            if element.exists && !element.isEnabled {
+                let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: element)
+                guard XCTWaiter.wait(for: [enabled], timeout: 3) == .completed else {
+                    XCTFail("The control remained disabled: \(element)", file: file, line: line)
+                    return
+                }
+            }
+            if element.exists && element.isHittable {
+                guard waitUntilReady(element) else {
+                    XCTFail("The control did not become enabled and hittable: \(element)", file: file, line: line)
+                    return
+                }
+                element.tap()
+                return
+            }
+            if element.exists && !element.frame.isEmpty && element.frame.midY < app.frame.midY {
+                app.swipeDown()
+            } else {
+                app.swipeUp()
+            }
+        }
+        XCTFail("The control was not reachable after bounded scrolling: \(element)", file: file, line: line)
     }
 
     private func capture(_ name: String) {
@@ -29,7 +65,7 @@ final class WorkoutFlowsUITests: XCTestCase {
     }
 
     private func openPlans(_ app: XCUIApplication) {
-        app.tabBars.buttons["Profil"].tap()
+        tap(app.tabBars.buttons["Profil"], in: app)
         tap(app.buttons["profile-workout-plans"], in: app)
         XCTAssertTrue(app.navigationBars["Meine Pläne"].waitForExistence(timeout: 5))
     }
@@ -38,22 +74,28 @@ final class WorkoutFlowsUITests: XCTestCase {
         openPlans(app)
         tap(app.buttons["create-workout-plan"], in: app)
         let field = app.textFields["workout-plan-name"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap(); field.typeText(name)
+        tap(field, in: app); field.typeText(name + "\n")
         tap(app.buttons["add-plan-exercise"], in: app)
         XCTAssertTrue(app.textFields["exercise-search"].waitForExistence(timeout: 5))
         capture("26-exercise-library")
         if custom {
             tap(app.buttons["create-custom-exercise"], in: app)
             let customName = app.textFields["custom-exercise-name"]
-            XCTAssertTrue(customName.waitForExistence(timeout: 5)); customName.tap(); customName.typeText("Prime Chest Press")
+            tap(customName, in: app); customName.typeText("Prime Chest Press\n")
             capture("27-custom-exercise")
             tap(app.buttons["save-custom-exercise"], in: app)
         } else {
+            let search = app.textFields["exercise-search"]
+            tap(search, in: app)
+            // Filter before selecting: the 122-row library deliberately uses lazy layout.
+            // Return dismisses the standard text-field keyboard without locale-specific keys.
+            search.typeText("Bankdrücken Langhantel\n")
             tap(app.buttons["exercise-10000000-0000-0000-0000-000000000001"], in: app)
         }
-        XCTAssertTrue(app.buttons["plan-exercise-0"].waitForExistence(timeout: 5))
+        XCTAssertTrue(waitUntilReady(app.buttons["plan-exercise-0"]))
         capture("25-workout-plan-editor")
         tap(app.buttons["save-workout-plan"], in: app)
+        waitUntilDismissed(field)
         XCTAssertTrue(app.navigationBars["Meine Pläne"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons[name].exists)
     }
@@ -68,14 +110,15 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Bankdrücken Langhantel"].waitForExistence(timeout: 5))
         capture("28-workout-plan-detail")
         tap(app.buttons["start-workout-plan"], in: app)
-        XCTAssertTrue(app.otherElements["workout-tracking-screen"].waitForExistence(timeout: 6))
+        XCTAssertTrue(container("workout-tracking-screen", in: app).waitForExistence(timeout: 6))
         tap(app.buttons["complete-workout-exercise-0"], in: app)
         XCTAssertTrue(app.staticTexts["1 / 1 Übungen"].waitForExistence(timeout: 5))
         capture("29-workout-easy-live")
         tap(app.buttons["finish-plan-workout"], in: app)
         let confirm = app.sheets.buttons["Training beenden"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 3)); confirm.tap()
-        XCTAssertTrue(app.otherElements["workout-completed-summary"].waitForExistence(timeout: 6))
+        tap(confirm, in: app)
+        XCTAssertTrue(container("workout-completed-summary", in: app).waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Workout geschafft!"].exists)
         capture("31-workout-plan-done")
     }
 
@@ -96,12 +139,14 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["Tracked Push"], in: app)
         tap(app.buttons["start-workout-plan"], in: app)
         XCTAssertTrue(app.segmentedControls["tracking-mode"].waitForExistence(timeout: 6))
-        app.segmentedControls["tracking-mode"].buttons["Tracken"].tap()
+        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
         tap(app.buttons["workout-set-0-1"], in: app)
         let weight = app.textFields["set-weight"]
-        XCTAssertTrue(weight.waitForExistence(timeout: 4)); weight.tap(); weight.typeText("80")
-        let reps = app.textFields["set-reps"]; reps.tap(); reps.typeText("8")
+        tap(weight, in: app); weight.typeText("80")
+        let reps = app.textFields["set-reps"]; tap(reps, in: app); reps.typeText("8")
+        tap(app.buttons["Tastatur schließen"], in: app)
         tap(app.buttons["save-workout-set"], in: app)
+        waitUntilDismissed(weight)
         XCTAssertTrue(app.buttons["workout-set-0-1"].waitForExistence(timeout: 5))
         capture("30-workout-set-tracking")
         tap(app.buttons["pause-plan-workout"], in: app)

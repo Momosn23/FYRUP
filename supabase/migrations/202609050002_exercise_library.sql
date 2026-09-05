@@ -131,4 +131,3 @@ insert into public.exercise_secondary_muscles(exercise_id,muscle_group)
 select c.id,s.muscle from fyrup_catalog_seed c cross join lateral unnest(string_to_array(c.secondary_muscles,',')) s(muscle)
 where s.muscle<>'';
 commit;
-
