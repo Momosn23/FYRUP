@@ -172,19 +172,11 @@ struct ActivityComposerView: View {
             }
 
             Text("KÖRPERGRUPPEN AUSWÄHLEN").composerSectionTitle()
-            Text("Du kannst den Vorschlag anpassen oder frei kombinieren.").font(.caption).foregroundStyle(FYColor.muted)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                ForEach(GymBodyArea.allCases) { area in
-                    Button { gymAreas.formSymmetricDifference([area]); if !gymAreas.isEmpty && subtype == nil { subtype = "Individuell" } } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: area.symbol).foregroundStyle(gymAreas.contains(area) ? .white : FYColor.lime)
-                            Text(area.title).font(.caption.bold()).lineLimit(1)
-                            Spacer(minLength: 0)
-                            if gymAreas.contains(area) { Image(systemName: "checkmark").font(.caption.bold()) }
-                        }.padding(.horizontal, 11).frame(minHeight: 44).foregroundStyle(gymAreas.contains(area) ? .white : FYColor.ink).background(gymAreas.contains(area) ? FYColor.lime : FYColor.surface, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(gymAreas.contains(area) ? FYColor.lime : FYColor.line))
-                    }.buttonStyle(.plain).accessibilityIdentifier("gym-area-\(area.rawValue)")
-                }
-            }
+            MuscleBodyPicker(selection: Binding(get: { MuscleSelection.groups(for: gymAreas) }, set: { groups in
+                gymAreas = MuscleSelection.areas(for: groups)
+                // A changed focus must not keep claiming that the original Push/Pull preset is selected.
+                subtype = GymProgram.allCases.first { Set($0.areas) == gymAreas }?.rawValue ?? (gymAreas.isEmpty ? nil : "Individuell")
+            }), available: MuscleSelection.gymGroups, identifierPrefix: "gym-area")
         }
     }
 

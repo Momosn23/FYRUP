@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles } from '../../scripts/deployment-bundle.mjs';
+import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles, assemblePersonalTraining, personalTrainingFile } from '../../scripts/deployment-bundle.mjs';
 const require = createRequire(resolve('.qa/workout-db/package.json'));
 const { PGlite } = require('@electric-sql/pglite');
 const { citext } = require('@electric-sql/pglite/contrib/citext');
@@ -49,5 +49,17 @@ try {
   await assert.rejects(db.exec(assembleFollowup(followups)));
   await db.exec('rollback;');
   assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 11);
-  console.log('PASS: atomic base and followup deployments, deliberate-error rollbacks, eleven truthful history entries, private schema-only recovery snapshot, protected receipts/CAS, 122 catalog entries, duplicate-deployment refusal. No hosted database contacted.');
+  const personal = await readFile(resolve('supabase/migrations', personalTrainingFile), 'utf8');
+  await assert.rejects(db.exec(assemblePersonalTraining(personal.replace(/commit;\s*$/, 'select missing_deliberate_validation_failure();\ncommit;'))));
+  await db.exec('rollback;');
+  assert.equal((await db.query("select to_regclass('public.personal_training_routines') as value")).rows[0].value, null);
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 11);
+  await db.exec(assemblePersonalTraining(personal));
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 12);
+  assert.equal((await db.query("select count(*)::integer as count from pg_class where oid in ('public.personal_training_routines'::regclass,'public.personal_workout_feedback'::regclass) and relrowsecurity")).rows[0].count, 2);
+  assert.equal((await db.query("select has_table_privilege('authenticated','public.personal_workout_feedback','UPDATE') as value")).rows[0].value, false);
+  await assert.rejects(db.exec(assemblePersonalTraining(personal)));
+  await db.exec('rollback;');
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 12);
+  console.log('PASS: atomic base, followup and personal-training deployments, deliberate-error rollbacks, twelve truthful history entries, private schema-only recovery snapshot, protected receipts/CAS/feedback, 122 catalog entries, duplicate-deployment refusal. No hosted database contacted.');
 } finally { await db.close(); }

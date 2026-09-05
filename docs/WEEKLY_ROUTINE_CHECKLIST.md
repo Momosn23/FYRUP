@@ -2,7 +2,7 @@
 
 Nutzerauftrag vom 05.09.2026: Anfangs Ziele wie Laufen/Gym mit Häufigkeit und Dauer eingeben können; optional beliebige Wochentage wählen. Auf Heute oben die Woche mit erledigten und noch anstehenden Einheiten zeigen.
 
-Arbeitsstand: [Implementierung und getrennte Prüfnachweise](PERSONAL_TRAINING_IMPLEMENTATION_STATUS.md). 66 neue lokale Datenbankprüfungen bestanden; native/visuelle/produktive/iPhone-Abnahme des neuen Blocks noch offen. Deshalb noch keine vollständige Anforderung als ausgeliefert abgehakt.
+Arbeitsstand: [Implementierung und getrennte Prüfnachweise](PERSONAL_TRAINING_IMPLEMENTATION_STATUS.md). 66 neue lokale Datenbankprüfungen,360 native Unit-Tests und25 Bedienabläufe bestanden. Produktive Speicherung012 installiert; sechs Originalbilder kontrolliert. Vollständige visuelle/Geräte-Abnahme und TestFlight-Auslieferung stehen noch aus, deshalb keine Anforderung pauschal als ausgeliefert abgehakt.
 
 - [ ] ROUTINE-01 Freiwillige Eingabe während der Einrichtung; Überspringen blockiert weder Anmeldung noch Training.
 - [ ] ROUTINE-02 Pro Sportart Häufigkeit und optionale Dauer anlegen, ändern und entfernen; Tage frei wählen oder offenlassen.

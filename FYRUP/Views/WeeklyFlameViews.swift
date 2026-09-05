@@ -88,7 +88,7 @@ struct OwnWeeklyCard: View {
         NavigationLink { WeeklyFlameDetailView() } label: {
             TimelineView(.periodic(from: .now, by: 30)) { _ in
                 VStack(alignment: .leading, spacing: 13) {
-                    HStack { Text("Deine Woche").font(.headline); Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted) }
+                    HStack { Text("Deine Streak").font(.headline); Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted) }
                     if let week = store.weekly.currentWeek {
                         if compact {
                             HStack(spacing: 10) {

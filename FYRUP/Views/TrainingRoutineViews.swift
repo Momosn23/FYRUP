@@ -146,6 +146,7 @@ struct TrainingWeekCard: View {
                                 Text(day.formatted(.dateTime.day())).font(.subheadline.bold())
                                 Image(systemName: store.personal.week == nil ? "ellipsis" : done > 0 ? "checkmark.circle.fill" : planned > 0 ? "circle.dashed" : "minus")
                                     .font(.caption).foregroundStyle(done > 0 ? FYColor.lime : planned > 0 ? FYColor.cyan : FYColor.line)
+                                    .frame(height: 16)
                             }.frame(maxWidth: .infinity).padding(.vertical, 8)
                                 .background(today ? FYColor.limeSoft : FYColor.elevated.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(today ? FYColor.lime : .clear))

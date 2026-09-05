@@ -1,6 +1,6 @@
 # Wochenrhythmus, privates Trainingsfeedback und Abschlussanimation
 
-Stand 05.09.2026. Neue Implementierung vorbereitet; native Kompilierung/Tests, visuelle Abnahme und produktive Migration012 noch offen. Kein TestFlight-Update dieses Funktionsblocks bestätigt.
+Stand 05.09.2026. Native Kompilierung und alle Tests in Build28 erfolgreich; Migration012 produktiv eingerichtet und separat geprüft. Erste Originalbilder kontrolliert; zusätzliche Geräte-/Animationsabnahme noch offen. Kein TestFlight-Update dieses Funktionsblocks bestätigt.
 
 ## Integrierter Code
 
@@ -16,12 +16,14 @@ Lokaler Wegwerf-PostgreSQL-Lauf `node supabase/tests/run_personal_training_tests
 
 Geprüft: Werte/Typen/Grenzen, fixed/flexible Wochentage, Revisionen, fehlende Anmeldung, Tabellen-RLS und gesperrte direkte Mutationen, nur eigene Aktivitäten, Zeitintervallgrenzen, akzeptierte aktuelle Freundestermine, Entfernung bei Blockierung, keine Doppelanzeige erledigter Termine, private Abschlussbewertung, verborgene Blind-Übungen sowie fremde Bewertungen nicht zugänglich.
 
-Native Tests neu hinzugefügt, aber noch nicht ausgeführt: Modell-/Datums-/DST-Fälle, Demo-Persistenz, Fehler-/Logout-/Held-Response-Fälle, Onboarding-Wiederaufnahme; UI-Speichern/Neustart des Wochenplans, optionale Bewertung und Abwahl der Anstrengung. CI führt zusätzlich alle bisherigen Regressionen aus.
+Cloud-Build28, Commit `f10d61a`: **360 native Unit-Tests und25/25 Bildschirmabläufe bestanden**, `TEST SUCCEEDED` um10:49 CEST. Darunter14 neue persönliche Trainingsprüfungen sowie UI-Speichern/Neustart des Wochenplans, optionale Bewertung und Abwahl der Anstrengung. Simulatornachweis, keine Behauptung eines echten iPhone-Tests.
+
+Produktive Migration012: vorab11 Versionen und keine der beiden neuen Tabellen; danach12 Versionen, beide neuen Tabellen mit RLS, fünf RPCs nur für angemeldete Nutzer aufrufbar, direkte Schreibrechte auf beide Tabellen gesperrt. Profilanzahl unverändert0, Standardbibliothek unverändert122. Das eingefügte Paket wurde vor Run vollständig mit der getesteten lokalen Quelle verglichen.
+
+Sechs Original-Simulatorbilder geprüft: [visueller Nachweis](VISUAL_QA_BUILD28.md). Wochenleiste steht oben, Speicher-/Bewertungsaktionen sind sichtbar und erreichbar. Neue Korrektur im Folgestand: gleiche Symbolhöhe in den Tagesfeldern und eindeutig „Deine Streak“ als zweite Kartenüberschrift.
 
 ## Offene Abnahme
 
-- Cloud-Build für diesen Commit kompilieren, alle Tests lesen und Abweichungen beheben.
 - Screenshots, kleine Displays, Tastatur, leere/offline Zustände und tatsächliche Animationen prüfen.
-- Migration012 erst nach geprüftem Deploymentpaket produktiv ausrollen und separat nachweisen.
 - Signierte TestFlight-Auslieferung und echte iPhone-/Mehrkonto-Prüfung.
 - Standort/Widget, Kontakte-Einladungen, Supplement-Erinnerungen, Kalorienschätzung/KI und interaktive Muskelgrafik sind neue getrennte Aufträge in der zentralen Checkliste, nicht durch diesen Funktionsblock umgesetzt.

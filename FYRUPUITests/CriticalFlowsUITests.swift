@@ -113,13 +113,14 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["Push"].tap()
         // Saved plans and split choices precede the lazy body-area grid. Reveal
         // the actual controls before checking them, as a person would scroll.
-        let chest = app.buttons["gym-area-chest"]
+        let chest = app.buttons["gym-area-list-chest"]
         for _ in 0..<6 where !chest.isHittable { app.swipeUp() }
         XCTAssertTrue(chest.isHittable)
-        XCTAssertTrue(app.buttons["gym-area-chest"].exists)
-        XCTAssertTrue(app.buttons["gym-area-shoulders"].exists)
-        XCTAssertTrue(app.buttons["gym-area-triceps"].exists)
-        revealAndTap(app.buttons["gym-area-core"], in: app)
+        XCTAssertTrue(chest.isSelected)
+        XCTAssertTrue(app.buttons["gym-area-list-shoulders"].exists)
+        XCTAssertTrue(app.buttons["gym-area-list-triceps"].exists)
+        revealAndTap(app.buttons["gym-area-list-core"], in: app)
+        XCTAssertTrue(app.buttons["gym-area-list-core"].isSelected)
         capture("04-gym-body-areas")
     }
 

@@ -5,7 +5,8 @@ struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var segment = "Alle"
-    @State private var muscle: MuscleGroup?
+    @State private var muscles: Set<MuscleGroup> = []
+    @State private var showsMuscles = false
     @State private var showsNewExercise = false
     @State private var editingExercise: GymExercise?
     @State private var archivingExercise: GymExercise?
@@ -21,10 +22,25 @@ struct ExerciseLibraryView: View {
                         if !query.isEmpty { Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel("Suche löschen") }
                     }.padding(14).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 13))
                     Picker("Bibliothek", selection: $segment) { ForEach(["Alle", "Favoriten", "Eigene"], id: \.self) { Text($0).tag($0) } }.pickerStyle(.segmented)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            muscleButton(nil)
-                            ForEach(MuscleGroup.allCases) { muscleButton($0) }
+                    Button { showsMuscles = true } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "figure.stand").font(.title2).foregroundStyle(FYColor.lime)
+                                .frame(width: 44, height: 48).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 13))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Muskeln auswählen").font(.subheadline.bold())
+                                Text(muscles.isEmpty ? "Entdecke deinen Fokus an der Körperfigur" : MuscleSelection.ordered(muscles).map(\.title).joined(separator: ", "))
+                                    .font(.caption).foregroundStyle(FYColor.muted)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted)
+                        }.foregroundStyle(FYColor.ink).fyCard()
+                    }.buttonStyle(.plain).accessibilityIdentifier("open-library-muscles")
+                    if !muscles.isEmpty {
+                        HStack {
+                            Text("\(filteredExercises.count) passende Übungen").font(.caption).foregroundStyle(FYColor.muted)
+                            Spacer()
+                            Button("Alle Muskeln") { muscles = [] }.font(.caption.bold()).frame(minHeight: 44)
+                                .accessibilityIdentifier("clear-library-muscles")
                         }
                     }
                     Button { showsNewExercise = true } label: { Label("Eigene Übung erstellen", systemImage: "plus.circle.fill") }
@@ -41,7 +57,7 @@ struct ExerciseLibraryView: View {
                 .task { await store.workouts.loadLibrary() }
                 .sheet(isPresented: $showsNewExercise) {
                     if let userID = store.profile?.id {
-                        CustomExerciseEditorView(exercise: GymExercise(name: query, primaryMuscle: muscle ?? .chest, createdBy: userID), isNew: true) { saved in
+                        CustomExerciseEditorView(exercise: GymExercise(name: query, primaryMuscle: MuscleSelection.ordered(muscles).first ?? .chest, createdBy: userID), isNew: true) { saved in
                             showsNewExercise = false
                             onSelect(saved)
                         }
@@ -49,6 +65,19 @@ struct ExerciseLibraryView: View {
                 }
                 .sheet(item: $editingExercise) { exercise in
                     CustomExerciseEditorView(exercise: exercise, isNew: false) { _ in editingExercise = nil }
+                }
+                .sheet(isPresented: $showsMuscles) {
+                    NavigationStack {
+                        ScrollView {
+                            MuscleBodyPicker(selection: $muscles, identifierPrefix: "library-muscle").padding(20)
+                        }.background(FYColor.background).navigationTitle("Muskelgruppen").navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { showsMuscles = false }.accessibilityIdentifier("apply-library-muscles") } }
+                            .safeAreaInset(edge: .bottom) {
+                                Button("\(filteredExercises.count) Übungen ansehen") { showsMuscles = false }
+                                    .buttonStyle(PrimaryButtonStyle()).padding(16).background(.ultraThinMaterial)
+                                    .accessibilityIdentifier("show-muscle-exercises")
+                            }
+                    }.tint(FYColor.lime)
                 }
                 .confirmationDialog("Übung archivieren?", isPresented: Binding(get: { archivingExercise != nil }, set: { if !$0 { archivingExercise = nil } })) {
                     Button("Archivieren", role: .destructive) {
@@ -64,18 +93,9 @@ struct ExerciseLibraryView: View {
             !exercise.isArchived
                 && (segment != "Eigene" || (exercise.isCustom && exercise.createdBy == store.profile?.id))
                 && (segment != "Favoriten" || store.workouts.favorites.contains(exercise.id))
-                && (muscle == nil || exercise.primaryMuscle == muscle || exercise.secondaryMuscles.contains(where: { $0 == muscle }))
+                && MuscleSelection.matches(exercise, selected: muscles)
                 && exercise.matches(query: query)
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-    }
-
-    private func muscleButton(_ value: MuscleGroup?) -> some View {
-        Button { muscle = value } label: {
-            Text(value?.title ?? "Alle Muskeln").font(.caption.bold()).padding(.horizontal, 13).padding(.vertical, 10)
-                .foregroundStyle(muscle == value ? .white : FYColor.ink)
-                .background(muscle == value ? FYColor.lime : FYColor.surface, in: Capsule())
-                .overlay(Capsule().stroke(muscle == value ? FYColor.lime : FYColor.line))
-        }.buttonStyle(.plain).accessibilityAddTraits(muscle == value ? .isSelected : [])
     }
 
     private func exerciseRow(_ exercise: GymExercise) -> some View {
@@ -86,6 +106,10 @@ struct ExerciseLibraryView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(exercise.name).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
                         Text("\(exercise.primaryMuscle.title) · \(exercise.equipment.title)").font(.caption).foregroundStyle(FYColor.muted)
+                        if !muscles.isEmpty && !exercise.secondaryMuscles.isEmpty {
+                            Text("Zusätzlich: \(exercise.secondaryMuscles.map(\.title).joined(separator: ", "))")
+                                .font(.caption2).foregroundStyle(FYColor.muted)
+                        }
                         if exercise.isCustom { Text("Eigene Übung").font(.caption2.bold()).foregroundStyle(FYColor.lime) }
                     }
                     Spacer(minLength: 0)

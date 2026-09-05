@@ -26,3 +26,17 @@ Der zusätzliche Dashboard-Befehl „Run and enable RLS“ meldete nach dem Comm
 - `dispatch-notifications` wurde aktualisiert. Der anschließend vom Server heruntergeladene ZIP-Inhalt enthält exakt die beiden getesteten Quelldateien. Automatische Aufrufe nach Deployment liefern HTTP 200, u. a. 09:18, 09:22 und 09:33–09:35 CEST. Das belegt Laufzeit/Import, noch keinen Empfang einer echten Push-Nachricht auf dem iPhone.
 - HealthKit ist für `app.fyrup.ios` bei Apple aktiviert. Nach ausdrücklicher Bestätigung wurde das bestehende App-Store-Profil mit dem bestehenden Zertifikat erneuert; Apple bietet das neue Profil zum Download an. Übernahme in den Build-Dienst und signierter IPA-Nachweis sind noch zu prüfen.
 - Neue signierte TestFlight-Version und echte HealthKit-/APNs-Abnahme sind weiterhin offen.
+
+## Nachtrag ab10:30 CEST
+
+- Build27 (`63047cb`) erfolgreich, alle24 Bedienabläufe bestanden. Vier Original-Simulatorbilder separat kontrolliert: [visueller Nachweis](VISUAL_QA_BUILD27.md).
+- Das bei Apple erneuerte App-Store-Profil wurde über die bestehende Integration abgerufen und in Codemagic unter `fyrup_app_store_healthkit` gespeichert. Die Oberfläche bestätigt `app.fyrup.ios`, passenden Teamnamen und Übereinstimmung mit dem vorhandenen Zertifikat `FYRUP Apple Distribution`. Das bisherige Profil wurde nicht gelöscht.
+- Der vorbereitete signierte Workflow referenziert ausschließlich das neue Profil und das bestehende Zertifikat. Vor dem eigentlichen Build prüft er dessen App-ID, HealthKit, Apple-Anmeldung und Produktions-Push-Entitlements. Diese Prüfung ist noch nicht ausgeführt und ersetzt nicht den IPA-/Gerätenachweis.
+- Die Referenzsyntax wurde anhand der [offiziellen Codemagic-Signierungsdokumentation](https://docs.codemagic.io/yaml-code-signing/signing-ios/) geprüft; nicht mit der automatischen Bundle-ID-/Distribution-Auswahl vermischt.
+- Persönlicher Wochenplan/Bewertung: Code `f10d61a`, Cloud-Build28 angelaufen;66 zusätzliche lokale DB-Prüfungen. Migration012 noch nicht produktiv. Eigenes transaktionales Paket mit11-Versions-Vorabprüfung, atomarem Fehler-Rollback und wahrheitsgemäßem12. Historieneintrag lokal erfolgreich geprüft.
+
+## Nachtrag ab10:49 CEST
+
+- Build28 erfolgreich:360 Unit-Tests,25/25 UI-Abläufe, `TEST SUCCEEDED`. [Sechs Originalbilder geprüft](VISUAL_QA_BUILD28.md).
+- Migration012 mit exakt geprüftem Transaktionspaket über das angemeldete Projektdashboard installiert. „Success. No rows returned“; anschließende unabhängige Abfrage bestätigt12 Versionen bis202609050012, zwei neue RLS-Tabellen und fünf nur für angemeldete Nutzer erreichbare Funktionen. Direkte Tabellen-Schreibrechte jeweilsfalse; weiterhin122 Standardübungen und0 Profile. Keine Bestandsdaten gelöscht und keine Testkonten erzeugt.
+- Interaktive Muskelgrafik im Folgestand vorbereitet; deren native/visuelle Tests sind noch offen. Neue signierte TestFlight-Version bleibt offen.

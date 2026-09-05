@@ -83,3 +83,28 @@ export function assembleFollowup(sources) {
   }
   return sql + "notify pgrst, 'reload schema';\ncommit;\n";
 }
+
+export const personalTrainingFile = '202609050012_personal_training.sql';
+export function assemblePersonalTraining(source) {
+  source = source?.replace(/\r\n/g, '\n').trimEnd();
+  if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid personal-training transaction wrapper');
+  const body = source.replace(/^begin;\n/m, '').replace(/\ncommit;$/, '');
+  if (body.includes('$migration_source$')) throw Error('SQL quote delimiter collision');
+  return `begin;
+set local lock_timeout = '4s';
+set local statement_timeout = '60s';
+do $preflight$ begin
+  if not exists(select 1 from supabase_migrations.schema_migrations where version='202609050011')
+    or exists(select 1 from supabase_migrations.schema_migrations where version='202609050012')
+    or to_regclass('public.personal_training_routines') is not null
+    or to_regclass('public.personal_workout_feedback') is not null then
+    raise exception 'unexpected personal-training baseline; inspect before retrying';
+  end if;
+end $preflight$;
+${body}
+insert into supabase_migrations.schema_migrations(version,name,statements)
+values ('202609050012','personal_training',array[$migration_source$${body}$migration_source$]);
+notify pgrst, 'reload schema';
+commit;
+`;
+}

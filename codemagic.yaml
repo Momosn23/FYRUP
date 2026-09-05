@@ -65,8 +65,11 @@ workflows:
       groups:
         - fyrup_backend
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: app.fyrup.ios
+        provisioning_profiles:
+          - profile: fyrup_app_store_healthkit
+            environment_variable: FYRUP_SIGNING_PROFILE
+        certificates:
+          - FYRUP Apple Distribution
       vars:
         BUNDLE_ID: app.fyrup.ios
         XCODE_PROJECT: FYRUP.xcodeproj
@@ -94,6 +97,9 @@ workflows:
           plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
       - name: Generate Xcode project
         script: xcodegen generate
+      - name: Verify renewed HealthKit signing profile
+        script: |
+          security cms -D -i "$FYRUP_SIGNING_PROFILE" | python3 -c 'import plistlib,sys; p=plistlib.load(sys.stdin.buffer); e=p.get("Entitlements",{}); assert e.get("application-identifier")=="6379AH75GK.app.fyrup.ios", "Unexpected signing target"; assert e.get("com.apple.developer.healthkit") is True, "HealthKit missing from profile"; assert e.get("aps-environment")=="production", "Production push missing"; assert "Default" in e.get("com.apple.developer.applesignin",[]), "Apple sign-in missing"; print("Verified FYRUP profile: HealthKit, Apple sign-in and production push")'
       - name: Run unit and UI tests
         script: |
           set -o pipefail

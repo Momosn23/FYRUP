@@ -30,7 +30,7 @@ enum TodayStatus: Int, Codable, Comparable, Sendable {
 }
 
 enum GymBodyArea: String, CaseIterable, Identifiable, Sendable {
-    case chest, back, shoulders, biceps, triceps, core, glutes, quads, hamstrings, calves
+    case chest, back, shoulders, biceps, triceps, core, glutes, quads, hamstrings, calves, adductors, traps, forearms
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -44,6 +44,9 @@ enum GymBodyArea: String, CaseIterable, Identifiable, Sendable {
         case .quads: "Quadrizeps"
         case .hamstrings: "Beinbeuger"
         case .calves: "Waden"
+        case .adductors: "Adduktoren"
+        case .traps: "Trapez"
+        case .forearms: "Unterarme"
         }
     }
     var symbol: String {
@@ -56,6 +59,9 @@ enum GymBodyArea: String, CaseIterable, Identifiable, Sendable {
         case .glutes: "figure.stairs"
         case .quads, .hamstrings: "figure.step.training"
         case .calves: "figure.walk.motion"
+        case .adductors: "figure.strengthtraining.traditional"
+        case .traps: "figure.arms.open"
+        case .forearms: "dumbbell.fill"
         }
     }
 }

@@ -178,6 +178,44 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
 
+    func testBodyAndLabelSelectionStayInSyncAndFilterRealExercises() {
+        let app = launch()
+        openPlans(app)
+        tap(app.buttons["create-workout-plan"], in: app)
+        tap(app.buttons["add-plan-exercise"], in: app)
+        tap(app.buttons["open-library-muscles"], in: app)
+        let chest = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'library-muscle-body-front-chest-'")).firstMatch
+        let core = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'library-muscle-body-front-core-'")).firstMatch
+        tap(chest, in: app)
+        XCTAssertTrue(chest.isSelected)
+        tap(core, in: app)
+        XCTAssertTrue(core.isSelected)
+        XCTAssertTrue(chest.isSelected)
+        capture("62-interactive-body-front-back")
+        let chestLabel = app.buttons["library-muscle-list-chest"]
+        tap(chestLabel, in: app)
+        XCTAssertFalse(chestLabel.isSelected)
+        XCTAssertFalse(chest.isSelected, "Removing the labelled choice must also turn off its body patch.")
+        XCTAssertTrue(app.buttons["library-muscle-list-core"].isSelected)
+        tap(app.buttons["show-muscle-exercises"], in: app)
+        waitUntilDismissed(app.navigationBars["Muskelgruppen"])
+        let search = app.textFields["exercise-search"]
+        tap(search, in: app); search.typeText("Bankdrücken Langhantel\n")
+        XCTAssertTrue(app.staticTexts["Keine passende Übung"].waitForExistence(timeout: 4))
+        XCTAssertFalse(app.buttons["exercise-10000000-0000-0000-0000-000000000001"].exists)
+        capture("63-muscle-filter-excludes-unrelated")
+        tap(app.buttons["Suche löschen"], in: app)
+        tap(search, in: app); search.typeText("Pallof Press\n")
+        let pallof = app.buttons["exercise-10000000-0000-0000-0000-000000000112"]
+        XCTAssertTrue(pallof.waitForExistence(timeout: 4))
+        capture("64-muscle-filter-matching-exercise")
+        tap(app.buttons["clear-library-muscles"], in: app)
+        tap(app.buttons["Suche löschen"], in: app)
+        tap(search, in: app); search.typeText("Bankdrücken Langhantel\n")
+        tap(app.buttons["exercise-10000000-0000-0000-0000-000000000001"], in: app)
+        XCTAssertTrue(app.buttons["plan-exercise-0"].waitForExistence(timeout: 4))
+    }
+
     func testWeeklyRoutineSavesDaysAndSurvivesRelaunch() {
         let app = launch()
         tap(app.tabBars.buttons["Profil"], in: app)
