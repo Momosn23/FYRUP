@@ -161,6 +161,12 @@ struct ActivityComposerView: View {
                     placeDraft.edit(value)
                     if value != arrivalPlace?.name { arrivalPlace = nil }
                 })).accessibilityIdentifier("activity-place")
+                if !placeDraft.value.isEmpty {
+                    Button {
+                        placeDraft.edit(""); arrivalPlace = nil
+                    } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(FYColor.muted) }
+                        .accessibilityLabel("Ort leeren").accessibilityIdentifier("clear-activity-place")
+                }
             }
             if placeDraft.usesFavorite {
                 Label("Aus deinem Stammgym vorausgefüllt", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(FYColor.lime)
@@ -245,6 +251,12 @@ struct ActivityComposerView: View {
                     placeDraft.edit(value)
                     if value != arrivalPlace?.name { arrivalPlace = nil; arrivalReminderEnabled = false }
                 })).multilineTextAlignment(.trailing).accessibilityIdentifier("session-place")
+                if !placeDraft.value.isEmpty {
+                    Button {
+                        placeDraft.edit(""); arrivalPlace = nil; arrivalReminderEnabled = false
+                    } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(FYColor.muted) }
+                        .accessibilityLabel("Ort leeren").accessibilityIdentifier("clear-session-place")
+                }
             }.padding(14)
             VStack(alignment: .leading, spacing: 8) {
                 if placeDraft.usesFavorite { Label("Aus deinem Stammgym vorausgefüllt", systemImage: "checkmark.circle").font(.caption).foregroundStyle(FYColor.lime) }

@@ -51,8 +51,7 @@ struct SessionIntervalView: View {
                     }
                 }
             }.fyCard().animation(reduceMotion ? nil : .linear(duration: 0.4), value: position?.remaining)
-        }.accessibilityIdentifier("interval-timer-panel")
-            .sheet(isPresented: $showsConfiguration) { SessionIntervalSettings(activityID: activity.id) }
+        }.sheet(isPresented: $showsConfiguration) { SessionIntervalSettings(activityID: activity.id) }
     }
     private func title(_ position: SessionIntervalPosition?) -> String {
         switch position?.phase {

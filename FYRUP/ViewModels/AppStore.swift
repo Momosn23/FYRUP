@@ -7,7 +7,7 @@ import UserNotifications
 @MainActor
 @Observable
 final class AppStore {
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, onboardingComplete, main }
+    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, personalSetup, onboardingComplete, main }
     var route: Route = .loading {
         didSet { notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID) }
     }
@@ -272,7 +272,7 @@ final class AppStore {
             guard let confirmed = try await self.repository.profile(userID: userID), confirmed.id == userID else { throw AppError.server }
             guard self.session?.userID == userID, self.accountGeneration == generation else { return }
             self.profile = confirmed
-            self.route = confirmed.sports.isEmpty ? .sportsSetup : .onboardingComplete
+            self.route = confirmed.sports.isEmpty ? .sportsSetup : .personalSetup
         }
     }
 
@@ -308,7 +308,7 @@ final class AppStore {
         case "gym": .gymSetup
         case "weekly_goal": weekly.state?.goalConfirmed == true ? .routineSetup : .weeklyGoalSetup
         case "friends": .friendsSetup
-        case "complete": .onboardingComplete
+        case "complete": setup.value?.completed == true ? .onboardingComplete : .personalSetup
         default: .main
         }
     }

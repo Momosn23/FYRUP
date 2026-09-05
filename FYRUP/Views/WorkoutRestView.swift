@@ -52,8 +52,7 @@ struct WorkoutRestView: View {
                 if let message = store.rest.reminderMessage { Text(message).font(.caption).foregroundStyle(FYColor.coral) }
             }.fyCard()
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: clock == nil)
-        }.accessibilityIdentifier("rest-timer-panel")
-            .sheet(isPresented: $showsOptions) { NavigationStack { WorkoutRestSettingsView() } }
+        }.sheet(isPresented: $showsOptions) { NavigationStack { WorkoutRestSettingsView() } }
     }
 
     private var durationButtons: some View {

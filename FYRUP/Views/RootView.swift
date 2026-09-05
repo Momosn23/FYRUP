@@ -14,9 +14,8 @@ struct RootView: View {
             case .weeklyGoalSetup: WeeklyGoalSelectionView(isOnboarding: true)
             case .routineSetup: TrainingRoutineEditor(isOnboarding: true)
             case .friendsSetup: FriendsSetupView()
-            case .onboardingComplete:
-                if store.setup.value?.completed == true { OnboardingCompleteView() }
-                else { NavigationStack { PersonalSetupView(isOnboarding: true) } }
+            case .personalSetup: NavigationStack { PersonalSetupView(isOnboarding: true) }
+            case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()
             }
         }

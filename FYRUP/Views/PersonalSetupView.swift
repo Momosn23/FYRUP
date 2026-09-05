@@ -57,7 +57,8 @@ struct PersonalSetupView: View {
                         if page < 3 { changePage(page + 1, proxy: proxy) }
                         else if store.setup.finishSetup() {
                             Haptics.success()
-                            if !isOnboarding { dismiss() }
+                            if isOnboarding { store.route = .onboardingComplete }
+                            else { dismiss() }
                         }
                     }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges) || requiredBodyDataMissing)
                         .accessibilityIdentifier("personal-setup-next")

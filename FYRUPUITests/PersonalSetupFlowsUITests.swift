@@ -105,9 +105,10 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
         let place = app.textFields["session-place"]
         tap(place, in: app); XCTAssertEqual(place.value as? String, "Mein Gym Köln")
-        place.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Mein Gym Köln".count) + "Anderes Gym")
+        tap(app.buttons["clear-session-place"], in: app)
+        tap(place, in: app); place.typeText("Anderes Gym")
         XCTAssertEqual(place.value as? String, "Anderes Gym")
-        place.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Anderes Gym".count))
+        tap(app.buttons["clear-session-place"], in: app)
         XCTAssertEqual(place.value as? String, "Ort (optional)", "An empty field uses its placeholder, not the favorite")
         tap(app.buttons["Schließen"], in: app)
         tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
