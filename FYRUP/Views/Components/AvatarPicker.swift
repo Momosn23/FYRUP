@@ -6,9 +6,13 @@ struct AvatarPicker: View {
     let profile: Profile?
     @Binding var jpegData: Data?
     @State private var selection: PhotosPickerItem?
+    @State private var showsPhotoPicker = false
 
     var body: some View {
-        PhotosPicker(selection: $selection, matching: .images) {
+        // Build the avatar in SwiftUI's UI isolation. Older PhotosUI SDKs make
+        // PhotosPicker's label closure nonisolated; the native sheet modifier
+        // keeps the same system picker without moving UI state across actors.
+        Button { showsPhotoPicker = true } label: {
             ZStack(alignment: .bottomTrailing) {
                 avatar
                     .frame(width: 92, height: 92)
@@ -23,6 +27,8 @@ struct AvatarPicker: View {
                     .overlay(Circle().stroke(.white, lineWidth: 2))
             }
         }
+        .buttonStyle(.plain)
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selection, matching: .images)
         .accessibilityLabel("Profilbild auswählen")
         .onChange(of: selection) { _, item in
             Task {
