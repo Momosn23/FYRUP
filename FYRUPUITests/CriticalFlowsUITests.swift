@@ -62,6 +62,14 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["ABSCHLIESSEN"].tap()
         XCTAssertTrue(app.staticTexts["Heute geschafft 🔥"].waitForExistence(timeout: 3))
         capture("08-workout-complete")
+        let finish = app.buttons["finish-free-activity"]
+        for _ in 0..<5 {
+            if finish.isHittable && finish.frame.maxY < app.tabBars.firstMatch.frame.minY { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(finish.isHittable)
+        XCTAssertLessThan(finish.frame.maxY, app.tabBars.firstMatch.frame.minY, "The complete action must be fully above the tab bar")
+        capture("68-workout-complete-actions")
         app.buttons["Im Feed ansehen"].tap()
         XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
     }

@@ -44,7 +44,10 @@ struct SupplementsView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Label("Nur für dich", systemImage: "lock.fill").font(.caption.bold()).foregroundStyle(FYColor.lime)
                     Text("Deine Auswahl. Deine Zeiten.").font(.title2.bold())
-                    Text("Eine freiwillige Erinnerungsliste. Keine Produktempfehlung und kein Einfluss auf deine Streak.").font(.subheadline).foregroundStyle(FYColor.muted)
+                    Text("Eine freiwillige Erinnerungsliste. Keine Produktempfehlung und kein Einfluss auf deine Streak.")
+                        .font(.subheadline).foregroundStyle(FYColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("supplement-purpose")
                     SupplementStatusMessages()
                     if store.supplements.isLoading && store.supplements.snapshot == nil { ProgressView("Liste wird geladen …") }
                     if let snapshot = store.supplements.snapshot {
@@ -92,6 +95,7 @@ struct SupplementsView: View {
                         Button("Ruhezeiten") { showsQuietHours = true }.buttonStyle(OutlineButtonStyle())
                         Text("Erinnerungen enden nach der gewählten Anzahl. Ausgelassene Einträge werden nicht auf den nächsten Tag übertragen. Eine Erinnerung ist keine Aufforderung, zusätzlich etwas einzunehmen.")
                             .font(.footnote).foregroundStyle(FYColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else if !store.supplements.isLoading {
                         Button("Liste laden") { Task { await store.supplements.refresh() } }.buttonStyle(PrimaryButtonStyle())
                     }

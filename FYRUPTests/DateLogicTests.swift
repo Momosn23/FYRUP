@@ -45,5 +45,7 @@ final class DateLogicTests: XCTestCase {
     func testTimerFormatting() {
         XCTAssertEqual(LiveTimer.format(1938), "00:32:18")
         XCTAssertEqual(LiveTimer.format(-5), "00:00:00")
+        XCTAssertEqual(LiveTimer.format(59), "00:00:59")
+        XCTAssertEqual(LiveTimer.format(3600), "01:00:00")
     }
 }

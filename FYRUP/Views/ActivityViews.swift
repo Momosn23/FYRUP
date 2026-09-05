@@ -184,9 +184,13 @@ struct ActivityComposerView: View {
 
     private var planningDetails: some View {
         VStack(spacing: 0) {
-            ComposerRow(symbol: "calendar", title: "Datum") { DatePicker("Datum", selection: $startsAt, in: Date()..., displayedComponents: .date).labelsHidden().fixedSize(horizontal: true, vertical: false) }
+            DatePicker(selection: $startsAt, in: Date()..., displayedComponents: .date) {
+                HStack(spacing: 12) { Image(systemName: "calendar").frame(width: 22).foregroundStyle(FYColor.muted); Text("Datum") }
+            }.datePickerStyle(.compact).padding(14).accessibilityIdentifier("session-date")
             Divider().overlay(FYColor.line).padding(.leading, 44)
-            ComposerRow(symbol: "clock", title: "Uhrzeit") { DatePicker("Uhrzeit", selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute).labelsHidden().fixedSize(horizontal: true, vertical: false) }
+            DatePicker(selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute) {
+                HStack(spacing: 12) { Image(systemName: "clock").frame(width: 22).foregroundStyle(FYColor.muted); Text("Uhrzeit") }
+            }.datePickerStyle(.compact).padding(14).accessibilityIdentifier("session-time")
             Divider().overlay(FYColor.line).padding(.leading, 44)
             ComposerRow(symbol: "timer", title: "Dauer") { Stepper("\(duration) Minuten", value: $duration, in: 15...240, step: 15).fixedSize() }
             Divider().overlay(FYColor.line).padding(.leading, 44)
@@ -362,7 +366,7 @@ private struct FreeActivityView: View {
                 if let activity = completedActivity { WorkoutFeedbackButton(activityID: activity.id) }
                 Text("Deine Aktivität erscheint entsprechend deiner Privatsphäre-Einstellung im Feed.").font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
                 Button("Im Feed ansehen") { store.selectedTab = 0; dismiss() }.buttonStyle(OutlineButtonStyle())
-                Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle())
+                Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle()).accessibilityIdentifier("finish-free-activity")
             }
             else {
                 HStack(spacing: 38) {
@@ -383,6 +387,8 @@ private struct FreeActivityView: View {
                 Button("Aktivität abbrechen") { confirmCancel = true }.font(.caption).foregroundStyle(FYColor.coral)
             }
         }.frame(minHeight: max(0, geometry.size.height - 48)).padding(24)
+            // Leave scrollable clearance for the system's floating tab bar.
+            .padding(.bottom, didComplete ? 76 : 24)
         }.background(FYColor.background).navigationBarBackButtonHidden()
             .overlay { TrainingConfetti(trigger: completedActivity?.id) }
             .confirmationDialog("Aktivität wirklich abbrechen?", isPresented: $confirmCancel) { Button("Aktivität abbrechen", role: .destructive) { Task { await store.cancelCurrent(); if store.errorMessage == nil { dismiss() } } }; Button("Weitermachen", role: .cancel) {} }
