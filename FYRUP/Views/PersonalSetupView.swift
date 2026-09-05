@@ -9,6 +9,8 @@ struct PersonalSetupView: View {
     @State private var stepGoal = ""
     @State private var fieldError: String?
     @State private var hasUnsavedBodyChanges = false
+    @State private var restoredPage = false
+    @State private var restoredOwnerID: UUID?
     private let titles = ["Jeder Schritt zählt.", "Dein Körper.\nDeine Daten.", "Bleib im Moment.", "Alles an einem Ort."]
     private var ready: Bool { store.setup.value != nil && store.steps.userID == store.session?.userID }
 
@@ -49,7 +51,7 @@ struct PersonalSetupView: View {
                             store.steps.setGoal(Int(raw))
                         }
                         if page < 3 { changePage(page + 1, proxy: proxy) }
-                        else if store.setup.update({ $0.completed = true }) {
+                        else if store.setup.finishSetup() {
                             Haptics.success()
                             if !isOnboarding { dismiss() }
                         }
@@ -62,16 +64,24 @@ struct PersonalSetupView: View {
         }.background(FYColor.background).navigationTitle("FYRUP einrichten").navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(hasUnsavedBodyChanges || store.energy.isBusy)
             .interactiveDismissDisabled(hasUnsavedBodyChanges || store.energy.isBusy)
-            .task {
+            .task(id: store.session?.userID) {
                 guard let owner = store.session?.userID else { return }
+                restorePageIfNeeded()
                 await store.steps.activate(userID: owner)
                 guard store.session?.userID == owner else { return }
                 stepGoal = store.steps.goal.map(String.init) ?? ""
             }
+            .onChange(of: store.setup.value == nil) { _, isMissing in if !isMissing { restorePageIfNeeded() } }
     }
 
     private func changePage(_ target: Int, proxy: ScrollViewProxy) {
+        guard store.setup.move(to: target) else { return }
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { page = target; proxy.scrollTo("setup-top", anchor: .top) }
+    }
+    private func restorePageIfNeeded() {
+        guard (!restoredPage || restoredOwnerID != store.setup.userID), store.setup.value != nil else { return }
+        page = store.setup.resumePage; restoredPage = true; restoredOwnerID = store.setup.userID
+        fieldError = nil; hasUnsavedBodyChanges = false
     }
     private var stepsPage: some View {
         VStack(alignment: .leading, spacing: 18) {

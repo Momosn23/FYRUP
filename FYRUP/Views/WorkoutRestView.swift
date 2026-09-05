@@ -43,7 +43,7 @@ struct WorkoutRestView: View {
                 HStack(spacing: 10) {
                     Button(clock == nil ? "Satzpause starten" : "Neue Satzpause") {
                         store.rest.start(activityID: activityID); Haptics.impact(.light)
-                    }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("start-rest-timer")
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(!store.isActivityCurrent).accessibilityIdentifier("start-rest-timer")
                     if clock != nil {
                         Button("Beenden") { store.rest.stop(activityID: activityID) }
                             .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("stop-rest-timer")

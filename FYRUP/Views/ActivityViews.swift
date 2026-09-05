@@ -393,7 +393,7 @@ private struct FreeActivityView: View {
         GeometryReader { geometry in
         ScrollView {
         VStack(spacing: 24) {
-            HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
+            HStack { Button { dismiss() } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }.accessibilityLabel("Zurück").accessibilityIdentifier("close-free-activity"); Spacer() }.foregroundStyle(FYColor.ink)
             Spacer(minLength: 0)
             if let activity = completedActivity ?? store.myActivity {
                 if didComplete {
@@ -405,6 +405,7 @@ private struct FreeActivityView: View {
                 } else {
                     LiveSessionVisual(activity: activity)
                     if activity.sport == .gym { WorkoutRestView(activityID: activity.id) }
+                    if SessionIntervalConfiguration.supports(activity.sport) { SessionIntervalView(activity: activity) }
                     if activity.pausedAt != nil { Text("Pausiert").font(.subheadline.bold()).foregroundStyle(FYColor.muted) }
                     if let liveFriend = store.crew.first(where: { $0.todayStatus == .live }) {
                         Label("\(liveFriend.profile.displayName) ist ebenfalls LIVE.", systemImage: "person.2.fill").font(.subheadline).foregroundStyle(FYColor.live)

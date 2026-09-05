@@ -262,7 +262,7 @@ struct BlindWorkoutDetailView: View {
             .confirmationDialog("Workout abbrechen?", isPresented: $confirmsCancel, titleVisibility: .visible) {
                 Button("Workout abbrechen", role: .destructive) {
                     let activityID = state?.activity?.id
-                    Task { if await store.blind.cancel(id: id) { if let activityID { store.trackingDrafts.clearActivity(activityID) }; await store.refresh() } }
+                    Task { if await store.blind.cancel(id: id) { store.acceptConfirmedBlindActivity(state); if let activityID { store.trackingDrafts.clearActivity(activityID) }; await store.refresh() } }
                 }
                 Button("Weitermachen", role: .cancel) {}
             } message: { Text("Du kannst jederzeit aufhören. Lokale, noch nicht gespeicherte Satzentwürfe werden dabei verworfen. Es gibt keine negative Bewertung und keinen Wochen-Credit für einen Abbruch.") }
@@ -289,7 +289,7 @@ struct BlindWorkoutDetailView: View {
                     .buttonStyle(OutlineButtonStyle()).disabled(store.blind.isBusy)
             } else {
                 Button("BLIND WORKOUT STARTEN") {
-                    Task { if await store.blind.start(id: id) { store.myActivity = state?.activity; await store.refresh() } }
+                    Task { if await store.blind.start(id: id) { store.acceptConfirmedBlindActivity(state); await store.refresh() } }
                 }.buttonStyle(PrimaryButtonStyle()).disabled(store.blind.isBusy).accessibilityIdentifier("start-blind-workout")
                 Button("Später planen") { plansLater = true }.buttonStyle(OutlineButtonStyle())
             }
@@ -298,6 +298,7 @@ struct BlindWorkoutDetailView: View {
                 LiveActivityTimer(activity: activity).font(.system(size: 38, weight: .bold, design: .monospaced))
                 HStack { Text("\(value.summary.completedExercises) / \(value.summary.exerciseCount) Übungen").bold(); Spacer(); if activity.pausedAt != nil { Text("Pausiert").foregroundStyle(FYColor.muted) } }
                 ProgressView(value: value.summary.progress).tint(FYColor.lime)
+                WorkoutRestView(activityID: activity.id)
                 Picker("Workout-Modus", selection: $mode) { ForEach(TrackingMode.allCases) { Text($0.title).tag($0) } }.pickerStyle(.segmented)
                     .accessibilityIdentifier("blind-tracking-mode")
                 Text(mode == .easy ? "Übung ansehen, im eigenen Tempo loslegen und abhaken." : "Tatsächliche Satzwerte sind freiwillig und bleiben privat.")
@@ -329,6 +330,7 @@ struct BlindWorkoutDetailView: View {
                     Button("BLIND WORKOUT BEENDEN") {
                         Task {
                             if await store.blind.finish(id: id) {
+                                store.acceptConfirmedBlindActivity(state)
                                 completionCelebration = UUID()
                                 await store.refresh(); await store.weekly.refresh(force: true); await store.weekly.prepareCelebration()
                             }

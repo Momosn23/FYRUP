@@ -13,6 +13,7 @@ final class AppStore {
     }
     var profile: Profile?
     var myActivity: Activity?
+    private(set) var isActivityCurrent = false
     var crew: [CrewMember] = []
     private(set) var revokedFriendIDs = Set<UUID>()
     private(set) var friendAccessRevision = 0
@@ -40,11 +41,13 @@ final class AppStore {
     private(set) var session: AuthSession? {
         didSet {
             accountGeneration = UUID(); isRefreshing = false
+            isActivityCurrent = false
             currentDeviceToken = nil
             notificationSettings.activate(userID: session?.userID)
             activityPrivacy.activate(userID: session?.userID)
             trackingDrafts.activate(userID: session?.userID)
             rest.activate(userID: session?.userID)
+            intervals.activate(userID: session?.userID)
             setup.activate(userID: session?.userID)
             energy.accountChanged(to: session?.userID)
             personal.activate(userID: session?.userID)
@@ -59,6 +62,7 @@ final class AppStore {
     let workoutDrafts: WorkoutDraftStore
     let trackingDrafts: WorkoutTrackingDraftStore
     let rest: WorkoutRestStore
+    let intervals: SessionIntervalStore
     let setup: PersonalSetupStore
     let energy: ActiveEnergyStore
     let liveSurface: SessionLiveActivityStore
@@ -82,6 +86,7 @@ final class AppStore {
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
         self.rest = WorkoutRestStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest.\(UUID().uuidString)") ?? .standard : .standard),
             notifications: repository is DemoRepository ? SilentWorkoutRestNotifications() : SystemWorkoutRestNotifications())
+        self.intervals = SessionIntervalStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.intervals.\(UUID().uuidString)") ?? .standard : .standard))
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
         self.energy = ActiveEnergyStore(setup: setup)
@@ -382,7 +387,9 @@ final class AppStore {
                 friendAccessRevision += 1
             }
             myActivity = result.0; crew = result.1
+            isActivityCurrent = true
             rest.confirmActivity(result.0)
+            intervals.confirmActivity(result.0)
             if let clock = rest.clock, result.0?.id != clock.activityID || result.0?.status != .live { rest.stop(activityID: clock.activityID) }
             synchronizeLiveSurface(confirmedEmpty: true)
             friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) }
@@ -397,7 +404,7 @@ final class AppStore {
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
-            if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1.filter { !revokedFriendIDs.contains($0.id) }; goals = cached.2 }
+            if !isActivityCurrent, let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1.filter { !revokedFriendIDs.contains($0.id) }; goals = cached.2 }
             present(error)
         }
     }
@@ -417,6 +424,9 @@ final class AppStore {
             }
             guard self.session?.userID == userID else { return }
             self.myActivity = started
+            self.isActivityCurrent = true
+            self.rest.confirmActivity(started); self.intervals.confirmActivity(started)
+            FeedCache.save(userID: userID, activity: started, crew: self.crew, goals: self.goals)
             Haptics.impact(.heavy)
             await self.analytics.track(linked == nil ? .activityStarted : .joinLiveFriend)
             self.showsActivityComposer = false
@@ -434,7 +444,10 @@ final class AppStore {
             guard self.session?.userID == userID, result.id == id, result.status == .completed else { return }
             completed = result
             self.myActivity = result
+            self.isActivityCurrent = true
             self.rest.stop(activityID: result.id)
+            self.intervals.stop(activityID: result.id)
+            FeedCache.save(userID: userID, activity: result, crew: self.crew, goals: self.goals)
             self.synchronizeLiveSurface(confirmedEmpty: true)
             Haptics.success()
             await self.analytics.track(.activityCompleted)
@@ -450,6 +463,8 @@ final class AppStore {
             let updated = try await self.repository.setActivityPaused(id: activity.id, paused: paused)
             guard self.session?.userID == userID && self.myActivity?.id == activity.id else { return }
             self.myActivity = updated
+            self.isActivityCurrent = true
+            FeedCache.save(userID: userID, activity: updated, crew: self.crew, goals: self.goals)
             self.synchronizeLiveSurface()
             Haptics.impact(.light)
         }
@@ -460,9 +475,27 @@ final class AppStore {
             try await self.repository.cancelActivity(id: id)
             guard self.session?.userID == owner else { return }
             self.rest.stop(activityID: id); self.myActivity = nil
+            self.intervals.stop(activityID: id); self.isActivityCurrent = true
+            FeedCache.save(userID: owner, activity: nil, crew: self.crew, goals: self.goals)
             self.synchronizeLiveSurface(confirmedEmpty: true)
             await self.refresh()
         }
+    }
+
+    /// Accept only the recipient's own activity from an acknowledged Blind
+    /// mutation. The subsequent feed refresh may fail without undoing its result.
+    func acceptConfirmedBlindActivity(_ state: BlindWorkoutState?) {
+        guard let state, let owner = session?.userID, state.summary.recipientID == owner,
+              let activity = state.activity, activity.userID == owner, activity.blindWorkoutID == state.summary.id,
+              (state.summary.status == .live && activity.status == .live)
+                || (state.summary.status == .completed && activity.status == .completed)
+                || (state.summary.status == .cancelled && activity.status == .cancelled) else { return }
+        if activity.status != .live, myActivity?.status == .live, myActivity?.id != activity.id { return }
+        myActivity = activity; isActivityCurrent = true
+        rest.confirmActivity(activity); intervals.confirmActivity(activity)
+        if activity.status != .live { rest.stop(activityID: activity.id) }
+        FeedCache.save(userID: owner, activity: activity, crew: crew, goals: goals)
+        synchronizeLiveSurface(confirmedEmpty: true)
     }
 
     func synchronizeLiveSurface(retry: Bool = false, confirmedEmpty: Bool = false) {
@@ -470,6 +503,9 @@ final class AppStore {
         // An offline cold start with no feed is not evidence that a session ended.
         if myActivity == nil, !confirmedEmpty, setup.value?.liveActivityEnabled == true { return }
         guard let settings = setup.value else { return }
+        // A cached LIVE item is not proof that the session still exists. An
+        // explicit opt-out may still end the surface before the network returns.
+        guard isActivityCurrent || !settings.liveActivityEnabled else { return }
         liveSurface.synchronize(activity: myActivity, ownerID: session?.userID, enabled: settings.liveActivityEnabled, rest: rest.clock, retry: retry)
     }
 
@@ -482,6 +518,7 @@ final class AppStore {
     func deliverPendingLiveLink() {
         guard route == .main, let link = pendingLiveLink, let owner = session?.userID else { return }
         pendingLiveLink = nil
+        guard isActivityCurrent else { errorMessage = "Der aktuelle Session-Stand ist noch nicht bestätigt. Prüfe deine Verbindung und aktualisiere Heute."; return }
         guard let activity = myActivity, activity.id == link.sessionID, activity.userID == owner, activity.status == .live else {
             errorMessage = "Diese Session ist nicht mehr LIVE oder gehört nicht zu deinem Konto."; return
         }
@@ -545,6 +582,7 @@ final class AppStore {
             self.workoutDrafts.clearCurrentAccount()
             self.trackingDrafts.clearCurrentAccount()
             self.rest.clearDeletedAccount()
+            self.intervals.clearDeletedAccount()
             do { try self.setup.clearDeletedAccount() }
             catch { self.errorMessage = "Dein Konto ist gelöscht. Private Körperdaten konnten auf diesem gesperrten iPhone noch nicht entfernt werden." }
             self.supplements.clearDeletedAccount()

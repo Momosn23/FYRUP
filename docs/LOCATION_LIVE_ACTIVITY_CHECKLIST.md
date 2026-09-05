@@ -34,6 +34,8 @@ Nachtrag: [Lokale Umsetzung und getrennte Nachweise](LOCAL_CONTINUATION_2026-09-
 
 ## Satzpausen und weitere Trainings-Timer
 
+Lokaler Nachtrag: Für Laufen/Fahrrad/Schwimmen/Kampfsport/Andere ist ein frei konfigurierbarer Intervalltimer in Heute und LIVE vorbereitet. Er folgt der aktiven Session-Zeit einschließlich Pause/Fortsetzen und behält seinen Zustand kontogetrennt bei. Keine Hintergrundtöne/-hinweise für Intervalle und keine vorgetäuschte Widget-Integration. Satzpause jetzt auch im Blind Workout. Acht Timer-Einzeltests und ergänzte Bedienabläufe vorbereitet, native Abnahme noch ausstehend; siehe [gebündelten Arbeitsstand](LOCAL_CONTINUATION_2026-09-05.md).
+
 - [ ] TIMER-01 Pausendauer vorab wählbar, während des Trainings änderbar; schnell erreichbare Aktion „Satzpause“.
 - [ ] TIMER-02 Pause direkt über die zulässigen interaktiven Live-Aktivitäts-/Widget-Aktionen starten, fortsetzen, zurücksetzen oder beenden.
 - [ ] TIMER-03 Ablauf der Satzpause mit optionalem Ton/Haptik/Mitteilung melden; keine Werbung und keine mehrfachen Alarme.

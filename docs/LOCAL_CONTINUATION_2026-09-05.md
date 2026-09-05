@@ -1,5 +1,11 @@
 # Weiterarbeit ohne Cloud-Guthaben – 05.09.2026
 
+## Aktueller Nachtrag: Codemagic wieder freigegeben
+
+Der Nutzer hat die kostenpflichtige Codemagic-Nutzung selbst aktiviert und anschließend ausdrücklich angewiesen, entsprechend weiterzuarbeiten. Frisch verifiziert: „Manage subscription“, aktueller Betrag $0, nächste Rechnung 01.10.2026. Die 500/500 Freiminuten bleiben als verbrauchtes Freikontingent stehen. GitHub Actions hat weiterhin ein $0-Budget mit Nutzungsstopp. Die frühere Upload-/Cloud-Pause unten ist damit für die jetzt beauftragte Codemagic-Prüfung aufgehoben.
+
+**Neuere Kostenanweisung:** Anschließend verlangte der Nutzer, Änderungen zuerst fertig zu bündeln und nicht alle paar Minuten hochzuladen. Deshalb wurde der vorbereitete Prüfzweig noch nicht hochgeladen und kein neuer Build gestartet. Zunächst lokal an den offenen Punkten weiterarbeiten, anschließend eine gemeinsame Prüfung; zusätzliche Läufe nur für konkret gefundene Fehler. Keine bestehenden Workflows verändern. Native Endergebnisse und Bildschirmkontrolle bleiben bis zum tatsächlichen Nachweis offen.
+
 Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben lokal weiterzuarbeiten; er füllt später auf. Keine kostenpflichtige Abrechnung aktivieren, keine weiteren Pushes/Cloud-Teststarts bis zur Klärung. Bereits vorhandene Workflows bleiben unverändert aktiviert. Keine neue Automatisierung eingerichtet.
 
 ## Verifizierter Ausgangspunkt
@@ -38,8 +44,19 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 - Grenzen: noch kein Ort bei sofort gestarteten Aktivitäten, keine Koordinaten/Ortssuche und keine Ankunftserinnerung. Diese Punkte bleiben in der Standortliste offen.
 - Nach dieser Ergänzung: Sprachprüfung für 100 App-Textdateien bestanden, alle 10 lokalen Tests des IPA-Prüfskripts bestanden, keine Whitespace-Fehler in der Änderungsprüfung. Keine dieser Prüfungen ersetzt einen Swift-Build oder eine iPhone-Abnahme.
 
+## Gebündelte lokale Ergänzung nach der Kostenanweisung
+
+- Intervalltimer auf Heute und in der LIVE-Ansicht für Laufen, Fahrrad, Schwimmen, Kampfsport und Andere. Eigene Belastungs-/Erholungszeiten und Rundenzahl; keine unbestätigten Belastungsvorgaben. Letzte Runde ohne zusätzliche Erholung. Technische Grenzen 5–3.600 s Belastung, 0–3.600 s Erholung, 1–99 Runden, höchstens sechs Stunden insgesamt.
+- Timer verwendet aktive Session-Zeit: Pause/Fortsetzen bleiben synchron, ein Hintergrundprozess ist nicht erforderlich. Kontoabhängig gespeichert; nach Neustart wird der Stand aus der aktiven Zeit berechnet. Ende/Abbruch und Kontowechsel räumen den passenden Zustand auf, ein Netzfehler allein löscht ihn nicht. Abschluss der Intervalle beendet keine Aktivität und erzeugt keine Wochen-Credits.
+- Grenzen ausdrücklich in der Oberfläche: keine Intervall-Töne oder Hintergrundhinweise, keine Intervall-Phasen im Sperrbildschirm-Widget. Die bereits vorhandene freiwillige Satzpausen-Mitteilung ist davon getrennt.
+- Satzpause auch im Blind Workout eingebaut; der bestehende Blind-Bedientest prüft dabei weiter, dass die nächste Übung verborgen bleibt. Bestätigte Start-/End-/Abbruchantworten halten App, Cache und Satzpause konsistent, auch wenn das anschließende Laden des Feeds scheitert.
+- Bestätigter Abschluss oder Abbruch kann nicht mehr durch einen älteren LIVE-Cache zurückgesetzt werden. Offline-Kaltstart wird als gespeicherter Stand gekennzeichnet; daraus wird keine neue native Live-Anzeige und kein neuer Pausentimer gestartet. Erfolgreiche Statusänderungen aktualisieren unmittelbar den eigenen Cache.
+- Unvollständige private Einrichtung setzt am gespeicherten Schritt fort. Abschluss löscht den Fortsetzungsmarker; erneutes Öffnen einer bereits abgeschlossenen Einrichtung startet ihre Übersicht regulär bei Schritt 1. Keine automatische Health-/Mitteilungsfreigabe.
+- 13 zusätzliche native Einzeltests vorbereitet: acht Intervall-/Speicherprüfungen, drei Cache-/Netzfehlerprüfungen und zwei Einrichtungsprüfungen. Ein neuer Intervall-Bedientest plus erweiterter Blind-Test, drei neue geplante Bildschirmnachweise. **Noch nicht ausgeführt.**
+- Lokale Sprachprüfung: 103 App-Textdateien bestanden. Lokales Release-Prüfskript: 10/10 Tests bestanden. Kein neuer iOS-Build, kein Upload und keine neuen kostenpflichtigen Läufe durch diese Arbeitsrunde.
+
 ## Nächste Schritte
 
-Nach Guthabenfreigabe zuerst aktuellen lokalen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests ausführen, echte neue Screenshots prüfen und signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene vollständige Standort-/Stammgym-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorienformel-/KI- und Design-/Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
+Nach der verlangten lokalen Bündelung den aktuellen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests gemeinsam ausführen, echte neue Screenshots prüfen und anschließend den signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene vollständige Standort-/Stammgym-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorienformel-/KI- und Design-/Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
 
 Primärquellen für lokale Timer-Hinweise: [Apple: lokale Mitteilungen](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app), [Apple: Zeitintervall-Trigger](https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger).

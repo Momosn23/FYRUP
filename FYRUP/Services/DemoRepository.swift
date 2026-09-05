@@ -21,6 +21,10 @@ actor DemoRepository: AppRepository {
     private var groups: [TrainingGroup] = []
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
+    private var simulatedFeedFailure = false
+
+    // Explicit fault injection for offline demo regression tests only.
+    func simulateUnavailableFeed(_ unavailable: Bool) { simulatedFeedFailure = unavailable }
 
     init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), blindStorage: DemoBlindWorkoutStorage = DemoBlindWorkoutStorage(), supplementStorage: DemoSupplementStorage = DemoSupplementStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
         meID = userID
@@ -113,6 +117,7 @@ actor DemoRepository: AppRepository {
     func avatarData(path: String) async throws -> Data { guard let data = avatarObjects[path] else { throw AppError.server }; return data }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {
         guard userID == meID else { throw AppError.authentication }
+        if simulatedFeedFailure { throw AppError.network }
         try await restoreCrewAccess()
         try await restoreWorkoutActivities()
         let mine = DateLogic.status(for: activities.filter { $0.userID == meID })

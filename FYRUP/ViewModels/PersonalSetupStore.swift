@@ -8,6 +8,15 @@ final class PersonalSetupStore {
     private(set) var value: PersonalSetupPreferences?
     private(set) var errorMessage: String?
     init(persistence: any PersonalSetupPersisting = SecurePersonalSetupPersistence()) { self.persistence = persistence }
+    var resumePage: Int { value?.completed == true ? 0 : value?.setupPage ?? 0 }
+    @discardableResult
+    func move(to page: Int) -> Bool {
+        guard value != nil, (0...3).contains(page) else { return false }
+        if value?.completed == true { return true }
+        return update { $0.setupPage = page }
+    }
+    @discardableResult
+    func finishSetup() -> Bool { update { $0.completed = true; $0.setupPage = nil } }
     func activate(userID: UUID?) {
         self.userID = userID; value = nil; errorMessage = nil
         guard let userID else { return }

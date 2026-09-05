@@ -119,4 +119,33 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["remove-favorite-gym"], in: app)
         XCTAssertFalse(app.buttons["remove-favorite-gym"].exists)
     }
+
+    func testRunningIntervalsFollowSessionPauseAndRemainOnHome() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
+        tap(app.buttons["JETZT LOS"].firstMatch, in: app); tap(app.buttons["Laufen"], in: app)
+        tap(app.buttons["confirm-activity"], in: app); tap(app.buttons["open-live-activity"], in: app)
+        tap(app.buttons["configure-intervals"], in: app)
+        for (id, input) in [("interval-work", "60"), ("interval-recovery", "30"), ("interval-rounds", "3")] {
+            let field = app.textFields[id]; tap(field, in: app); field.typeText(input)
+            tap(app.toolbars.buttons["Fertig"], in: app)
+        }
+        tap(app.buttons["start-intervals"], in: app)
+        XCTAssertTrue(app.staticTexts["interval-countdown"].waitForExistence(timeout: 4))
+        capture("86-live-running-intervals")
+        tap(app.buttons["PAUSIEREN"], in: app)
+        XCTAssertTrue(app.buttons["FORTSETZEN"].waitForExistence(timeout: 4))
+        Thread.sleep(forTimeInterval: 1.2)
+        let paused = app.staticTexts["interval-countdown"].label
+        Thread.sleep(forTimeInterval: 2)
+        XCTAssertEqual(app.staticTexts["interval-countdown"].label, paused, "A session pause must hold the interval countdown")
+        tap(app.buttons["FORTSETZEN"], in: app)
+        tap(app.buttons["close-free-activity"], in: app)
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["interval-countdown"].exists)
+        capture("88-home-running-intervals")
+        tap(app.buttons["open-live-activity"], in: app)
+        tap(app.buttons["stop-intervals"], in: app)
+        XCTAssertFalse(app.staticTexts["interval-countdown"].exists)
+        XCTAssertTrue(app.buttons["configure-intervals"].exists)
+    }
 }

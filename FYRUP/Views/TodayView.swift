@@ -9,6 +9,10 @@ struct TodayView: View {
             LazyVStack(alignment: .leading, spacing: 14) {
                 header
                 crewStrip.fyEntrance(delay: 0.06)
+                if !store.isActivityCurrent && !store.isRefreshing {
+                    Label("Gespeicherter Stand. Ziehe zum Aktualisieren nach unten.", systemImage: "wifi.slash")
+                        .font(.caption).foregroundStyle(FYColor.muted).accessibilityIdentifier("home-cached-status")
+                }
                 if let live = store.myActivity, live.status == .live {
                     NavigationLink { LiveActivityView() } label: {
                         LiveSessionVisual(activity: live, compact: true)
@@ -17,6 +21,7 @@ struct TodayView: View {
                             }
                     }.buttonStyle(FYPressStyle()).accessibilityLabel("ÖFFNEN").accessibilityIdentifier("open-live-activity")
                     if live.sport == .gym { WorkoutRestView(activityID: live.id, compact: true) }
+                    if SessionIntervalConfiguration.supports(live.sport) { SessionIntervalView(activity: live, compact: true) }
                 } else { startHero }
                 if store.setup.value?.completed != true { PersonalSetupHomeCard() }
                 TrainingWeekCard()

@@ -3,6 +3,23 @@ import XCTest
 
 @MainActor
 final class PersonalSetupTests: XCTestCase {
+    func testIncompleteSetupResumesItsSavedStepWithoutGrantingPermissions() {
+        let persistence = MemoryPersonalSetupPersistence(), owner = UUID()
+        let first = PersonalSetupStore(persistence: persistence); first.activate(userID: owner)
+        XCTAssertTrue(first.move(to: 2)); XCTAssertFalse(first.move(to: 4)); XCTAssertFalse(first.move(to: -1))
+        let restored = PersonalSetupStore(persistence: persistence); restored.activate(userID: owner)
+        XCTAssertEqual(restored.resumePage, 2); XCTAssertEqual(restored.value?.completed, false)
+        XCTAssertEqual(restored.value?.energyRequested, false); XCTAssertEqual(restored.value?.liveActivityEnabled, false)
+        XCTAssertTrue(restored.finishSetup()); XCTAssertEqual(restored.resumePage, 0); XCTAssertNil(restored.value?.setupPage)
+        XCTAssertTrue(restored.move(to: 3)); XCTAssertNil(restored.value?.setupPage, "Reviewing completed setup does not re-open onboarding")
+    }
+    func testSavedSetupPageNeverLeaksToAnotherAccount() {
+        let store = PersonalSetupStore(persistence: MemoryPersonalSetupPersistence()), owner = UUID()
+        store.activate(userID: owner); XCTAssertTrue(store.move(to: 3))
+        store.activate(userID: UUID()); XCTAssertEqual(store.resumePage, 0)
+        store.activate(userID: owner); XCTAssertEqual(store.resumePage, 3)
+    }
+
     func testSetupNeverEnablesSensitiveFeaturesByDefault() {
         let store = PersonalSetupStore(persistence: MemoryPersonalSetupPersistence())
         store.activate(userID: UUID())
