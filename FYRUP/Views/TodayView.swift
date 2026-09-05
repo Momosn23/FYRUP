@@ -21,7 +21,7 @@ struct TodayView: View {
                         EmptyCrewCard { store.selectedTab = 1 }
                     }
                     MotivationCard()
-                    if !store.crew.isEmpty { NavigationLink { CrewGoalView() } label: { CrewGoalCard(summary: store.goals) }.buttonStyle(.plain) }
+                    if !store.crew.isEmpty { NavigationLink { CrewGoalView() } label: { CrewGoalCard(summary: store.goals) }.buttonStyle(.plain).accessibilityIdentifier("crew-goal") }
                 }
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
@@ -185,7 +185,7 @@ private struct InvitationCard: View {
                 HStack { Image(systemName: invitation.session.sport.symbol).foregroundStyle(invitation.session.sport.accentColor); Text(invitation.session.sport.title).bold(); if let subtype = invitation.session.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
                 Text(invitation.session.startsAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(FYColor.muted)
             }.fyCard().foregroundStyle(FYColor.ink)
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("session-invitation")
     }
 }
 

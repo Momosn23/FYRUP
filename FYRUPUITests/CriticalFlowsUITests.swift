@@ -61,6 +61,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         app.buttons["Planen"].tap()
         XCTAssertTrue(app.staticTexts["Was möchtest du machen?"].waitForExistence(timeout: 2))
+        capture("12-plus-menu")
         app.buttons["Laufen"].tap()
         app.buttons["PLANEN"].tap()
         capture("05-plan-workout")
@@ -121,6 +122,10 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(app.staticTexts["Sarah"].exists)
+        capture("18-friends")
+        app.buttons["friend-sarah"].tap()
+        XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
+        capture("19-friend-profile")
         app.tabBars.buttons["Heute"].tap()
         app.buttons["Details"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Aktivitätsdetails"].waitForExistence(timeout: 2))
@@ -134,23 +139,58 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Profil"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Momo"].exists)
         capture("09-profile")
+        revealAndTap(app.buttons["Einstellungen"], in: app)
+        XCTAssertTrue(app.navigationBars["Einstellungen"].waitForExistence(timeout: 3))
+        capture("23-settings")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Privatsphäre"].tap()
         XCTAssertTrue(app.navigationBars["Datenschutz"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Wer sieht meine Aktivitäten?"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
         XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))
+        capture("02-onboarding-intro")
         app.buttons["Los geht's"].tap()
+        capture("03-onboarding-crew")
         app.buttons["Weiter"].tap()
         XCTAssertTrue(app.buttons["Mit E-Mail anmelden"].waitForExistence(timeout: 3))
         capture("00-welcome")
+        app.buttons["Account erstellen"].tap()
+        XCTAssertTrue(app.textFields["max@example.com"].waitForExistence(timeout: 3))
+        capture("06-email-registration")
+    }
+
+    func testCrewGoalReferenceScreen() {
+        let app = launchDemo()
+        revealAndTap(app.buttons["crew-goal"], in: app)
+        XCTAssertTrue(app.staticTexts["Unsere Crew"].waitForExistence(timeout: 3))
+        capture("20-crew-goal")
     }
 
     func testNotificationsReferenceScreen() {
-        let app = launchDemo()
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--social-fixtures"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 4))
         app.buttons["Mitteilungen"].tap()
         XCTAssertTrue(app.navigationBars["Mitteilungen"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Sarah hat dein Training geliked."].exists)
         capture("10-notifications")
+    }
+
+    func testInvitationResponseFlow() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--social-fixtures"]
+        app.launch()
+        let invitation = app.buttons["session-invitation"]
+        XCTAssertTrue(invitation.waitForExistence(timeout: 4))
+        invitation.tap()
+        XCTAssertTrue(app.buttons["✓ Dabei"].waitForExistence(timeout: 3))
+        capture("14-invitation")
+        app.buttons["✓ Dabei"].tap()
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["session-invitation"].exists)
+        XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
 
     func testProfileSportsRemainEditable() {
@@ -196,6 +236,10 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["Weiter"].tap()
 
         XCTAssertTrue(app.staticTexts["Freunde hinzufügen"].waitForExistence(timeout: 3))
+        let friendSearch = app.textFields["Username suchen …"]
+        friendSearch.tap()
+        friendSearch.typeText("sarah\n")
+        XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
         capture("onboarding-04-friends")
         app.buttons["Später"].tap()
 

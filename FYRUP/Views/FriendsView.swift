@@ -26,7 +26,7 @@ struct FriendsView: View {
                 }
                 Text("DEINE FREUNDE").sectionTitle()
                 if store.crew.isEmpty { ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2") }
-                ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); Text("\(member.weeklyCount) diese Woche").font(.caption).foregroundStyle(FYColor.muted) } } }.buttonStyle(.plain) }
+                ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); Text("\(member.weeklyCount) diese Woche").font(.caption).foregroundStyle(FYColor.muted) } } }.buttonStyle(.plain).accessibilityIdentifier("friend-\(member.profile.username)") }
                 }
             }.padding(20)
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }

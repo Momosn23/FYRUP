@@ -11,8 +11,10 @@ actor DemoRepository: AppRepository {
     private var pushPreferences: NotificationPreferences = .standard
     private var hosted: [HostedSession] = []
     private var groups: [TrainingGroup] = []
+    private var demoInvitations: [SessionInvitation] = []
+    private var demoNotifications: [AppNotification] = []
 
-    init(startsWithoutProfile: Bool = false) {
+    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false) {
         profileExists = !startsWithoutProfile
         me = Profile(id: meID, username: "momo", displayName: "Momo", avatarPath: nil, birthYear: nil, city: "Berlin", bio: "Move together.", sports: [.gym, .running], weeklyGoal: 4, activityVisibility: "friends")
         crew = [
@@ -29,6 +31,15 @@ actor DemoRepository: AppRepository {
             Activity(id: UUID(), userID: meID, sport: .running, subtype: "Easy Run", status: .completed, plannedAt: nil, startedAt: Calendar.current.date(byAdding: .day, value: -3, to: now)?.addingTimeInterval(-2_760), endedAt: Calendar.current.date(byAdding: .day, value: -3, to: now), distanceMeters: 5_200, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil),
             Activity(id: UUID(), userID: meID, sport: .yoga, subtype: "Mobility", status: .completed, plannedAt: nil, startedAt: Calendar.current.date(byAdding: .day, value: -5, to: now)?.addingTimeInterval(-1_800), endedAt: Calendar.current.date(byAdding: .day, value: -5, to: now), distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
         ]
+        if includesSocialFixtures {
+            let session = PlannedSession(id: UUID(), hostID: crew[0].id, sport: .gym, subtype: "Push", startsAt: now.addingTimeInterval(3600), durationMinutes: 60, note: "Brust / Schulter / Trizeps 💪", placeName: "Fitness First", friendsCanJoin: true, status: "planned")
+            demoInvitations = [SessionInvitation(sessionID: session.id, status: .pending, session: session, host: crew[0])]
+            demoNotifications = [
+                AppNotification(id: UUID(), type: "reaction", title: "Sarah hat dein Training geliked.", body: "Stark gemacht! 🔥", data: nil, createdAt: now.addingTimeInterval(-600), readAt: nil),
+                AppNotification(id: UUID(), type: "fyrup", title: "Leon hat dich gepusht!", body: "Deine Crew motiviert dich. 🔥", data: nil, createdAt: now.addingTimeInterval(-1800), readAt: nil),
+                AppNotification(id: UUID(), type: "session_invite", title: "Max lädt dich zum Training ein.", body: "Gym · Push · Heute", data: nil, createdAt: now.addingTimeInterval(-2400), readAt: nil)
+            ]
+        }
     }
 
     func restoreSession() async throws -> AuthSession? { AuthSession(accessToken: "demo", refreshToken: "demo", expiresAt: .distantFuture, userID: meID) }
@@ -69,7 +80,7 @@ actor DemoRepository: AppRepository {
         hosted.append(HostedSession(session: session, participants: participants))
         activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
     }
-    func invitations() async throws -> [SessionInvitation] { [] }
+    func invitations() async throws -> [SessionInvitation] { demoInvitations }
     func hostedSessions() async throws -> [HostedSession] { hosted }
     func trainingGroups() async throws -> [TrainingGroup] { groups }
     func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {
@@ -89,7 +100,11 @@ actor DemoRepository: AppRepository {
         }
         return session
     }
-    func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {}
+    func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {
+        guard let index = demoInvitations.firstIndex(where: { $0.sessionID == sessionID }) else { throw AppError.server }
+        let invitation = demoInvitations[index]
+        demoInvitations[index] = SessionInvitation(sessionID: invitation.sessionID, status: status, session: invitation.session, host: invitation.host)
+    }
     func cancelPlannedSession(sessionID: UUID) async throws { activities.removeAll { $0.plannedSessionID == sessionID }; hosted.removeAll { $0.id == sessionID } }
     func joinPlannedSession(sessionID: UUID) async throws {}
     func searchUsers(query: String) async throws -> [Profile] { crew.filter { $0.username.localizedCaseInsensitiveContains(query) || $0.displayName.localizedCaseInsensitiveContains(query) } }
@@ -100,7 +115,7 @@ actor DemoRepository: AppRepository {
     func block(_ userID: UUID) async throws { crew.removeAll { $0.id == userID } }
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
-    func notifications() async throws -> [AppNotification] { [] }
+    func notifications() async throws -> [AppNotification] { demoNotifications }
     func notificationPreferences() async throws -> NotificationPreferences { pushPreferences }
     func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { pushPreferences = preferences; return preferences }
     func goalSummary() async throws -> GoalSummary { GoalSummary(weeklyCount: 3, weeklyGoal: me.weeklyGoal, streak: 6, monthCount: 17, crewCount: 15, crewTarget: 16) }

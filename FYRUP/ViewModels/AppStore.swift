@@ -38,7 +38,9 @@ final class AppStore {
 
     static func make() -> AppStore {
         if ProcessInfo.processInfo.arguments.contains("--onboarding-demo") { return AppStore(repository: DemoRepository(startsWithoutProfile: true)) }
-        if ProcessInfo.processInfo.arguments.contains("--demo") { return AppStore(repository: DemoRepository()) }
+        if ProcessInfo.processInfo.arguments.contains("--demo") {
+            return AppStore(repository: DemoRepository(includesSocialFixtures: ProcessInfo.processInfo.arguments.contains("--social-fixtures")))
+        }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
     }
