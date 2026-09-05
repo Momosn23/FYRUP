@@ -9,6 +9,7 @@ struct FriendsView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 Text("Freunde").font(.largeTitle.weight(.black))
+                externalInviteCard
                 NavigationLink { BlindWorkoutsView() } label: { Label("Blind Workouts", systemImage: "eye").frame(maxWidth: .infinity, alignment: .leading).fyCard() }.buttonStyle(.plain).accessibilityIdentifier("open-blind-workouts")
                 Picker("Freunde", selection: $segment) { Text("Meine Freunde").tag(0); Text("Anfragen (\(store.friendRequests.count))").tag(1) }.pickerStyle(.segmented)
                 HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Freunde suchen …", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
@@ -32,6 +33,28 @@ struct FriendsView: View {
             }.padding(20)
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
             .task { await store.weekly.refreshFriends() }
+    }
+
+    private var externalInviteCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "person.crop.circle.badge.plus").font(.title2).foregroundStyle(FYColor.lime)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Freunde zu FYRUP holen").font(.headline)
+                    Text("Du wählst Empfänger und App selbst aus.").font(.caption).foregroundStyle(FYColor.muted)
+                }
+            }
+            ShareLink(item: "Komm zu FYRUP – gemeinsam aktiv, mit echten Sessions und deiner Crew. FYRUP befindet sich aktuell im privaten iPhone-Test; den Testzugang sende ich dir separat.") {
+                Label("FYRUP EINLADUNG TEILEN", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+            }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("share-fyrup-invite")
+            if let username = store.profile?.username, let link = FyrupProfileLink(username: username) {
+                ShareLink(item: link.url, subject: Text("Mein FYRUP Profil"), message: Text("Öffne mein Profil direkt in FYRUP. Dafür muss FYRUP bereits installiert sein.")) {
+                    Label("MEIN PROFIL TEILEN", systemImage: "link").frame(maxWidth: .infinity)
+                }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("share-fyrup-profile")
+            }
+            Text("Es gibt noch keinen bestätigten öffentlichen App-Store- oder TestFlight-Link. FYRUP verschickt nie automatisch SMS, WhatsApp-Nachrichten oder Freundschaftsanfragen.")
+                .font(.caption2).foregroundStyle(FYColor.muted)
+        }.fyCard()
     }
 }
 

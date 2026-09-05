@@ -23,7 +23,7 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
     func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity
     func cancelActivity(id: UUID) async throws
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession
     func invitations() async throws -> [SessionInvitation]
     func hostedSessions() async throws -> [HostedSession]
     func trainingGroups() async throws -> [TrainingGroup]
@@ -147,7 +147,7 @@ actor LiveAppRepository: AppRepository {
         let _: Bool = try await client.rpc("cancel_activity", body: ["p_activity_id": id.uuidString])
     }
 
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession {
         struct Body: Encodable {
             let pSport: String; let pSubtype: String?; let pStartsAt: Date; let pDurationMinutes: Int?
             let pNote: String?; let pPlaceName: String?; let pFriendsCanJoin: Bool; let pInvitees: [UUID]
@@ -164,7 +164,10 @@ actor LiveAppRepository: AppRepository {
             }
         }
         struct Result: Decodable { let id: UUID }
-        let _: Result = try await client.rpc("plan_session", body: Body(pSport: sport.rawValue, pSubtype: subtype, pStartsAt: startsAt, pDurationMinutes: duration, pNote: note, pPlaceName: placeName, pFriendsCanJoin: friendsCanJoin, pInvitees: friendIDs))
+        let result: Result = try await client.rpc("plan_session", body: Body(pSport: sport.rawValue, pSubtype: subtype, pStartsAt: startsAt, pDurationMinutes: duration, pNote: note, pPlaceName: placeName, pFriendsCanJoin: friendsCanJoin, pInvitees: friendIDs))
+        return PlannedSession(id: result.id, hostID: userID, sport: sport, subtype: subtype, startsAt: startsAt,
+                              durationMinutes: duration, note: note, placeName: placeName,
+                              friendsCanJoin: friendsCanJoin, status: "planned")
     }
     func invitations() async throws -> [SessionInvitation] { try await client.rpc("my_session_invites", body: [:] as [String: String]) }
     func hostedSessions() async throws -> [HostedSession] { try await client.rpc("my_hosted_sessions", body: [:] as [String: String]) }

@@ -302,7 +302,7 @@ actor DemoWorkoutStorage {
         return activity
     }
 
-    func planWorkout(planID: UUID, host: Profile, friends: Set<UUID>, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [Profile]) throws {
+    func planWorkout(planID: UUID, host: Profile, friends: Set<UUID>, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [Profile]) throws -> PlannedSession {
         let plan = try readablePlan(planID, userID: host.id, friends: friends, includeArchived: false)
         guard plan.ownerID == host.id, invitees.allSatisfy({ areFriends($0.id, host.id, friends: friends) }) else { throw AppError.conflict("Nur eigene Pläne können mit bestätigten Freunden geplant werden.") }
         guard startsAt > Date() else { throw AppError.validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
@@ -324,6 +324,7 @@ actor DemoWorkoutStorage {
             ), at: 0)
         }
         try persist()
+        return session
     }
 
     func workoutLog(activityID: UUID, userID: UUID) throws -> WorkoutLog {
@@ -520,13 +521,14 @@ extension DemoRepository {
         return activity
     }
 
-    func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
+    func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession {
         let uniqueIDs = Set(friendIDs)
         guard uniqueIDs.isSubset(of: Set(crew.map(\.id))) else { throw AppError.conflict("Du kannst nur bestätigte Freunde einladen.") }
-        try await workoutStorage.planWorkout(planID: planID, host: me, friends: Set(crew.map(\.id)), startsAt: startsAt,
-                                             duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin,
-                                             invitees: crew.filter { uniqueIDs.contains($0.id) })
+        let session = try await workoutStorage.planWorkout(planID: planID, host: me, friends: Set(crew.map(\.id)), startsAt: startsAt,
+                                                           duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin,
+                                                           invitees: crew.filter { uniqueIDs.contains($0.id) })
         try await restoreWorkoutActivities()
+        return session
     }
 
     func workoutLog(activityID: UUID) async throws -> WorkoutLog {

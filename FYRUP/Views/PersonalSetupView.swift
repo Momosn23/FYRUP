@@ -13,6 +13,9 @@ struct PersonalSetupView: View {
     @State private var restoredOwnerID: UUID?
     private let titles = ["Jeder Schritt zählt.", "Dein Körper.\nDeine Daten.", "Bleib im Moment.", "Alles an einem Ort."]
     private var ready: Bool { store.setup.value != nil && store.steps.userID == store.session?.userID }
+    private var requiredBodyDataMissing: Bool {
+        isOnboarding && page == 1 && (store.setup.value?.heightCM == nil || store.setup.value?.weightKG == nil)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -38,6 +41,7 @@ struct PersonalSetupView: View {
                     }.id(page).transition(.opacity.combined(with: .move(edge: .trailing)))
                     if let error = fieldError ?? store.setup.errorMessage { Text(error).font(.footnote).foregroundStyle(FYColor.coral) }
                     if page == 1 && hasUnsavedBodyChanges { Text("Speichere deine Eingaben mit „Körperdaten & Ziel speichern“, bevor du weitergehst.").font(.caption).foregroundStyle(FYColor.muted) }
+                    if requiredBodyDataMissing { Text("Für deine persönliche Verbrauchsschätzung fehlen noch Körpergröße und Gewicht. Beide Angaben bleiben privat auf diesem iPhone.").font(.caption).foregroundStyle(FYColor.coral) }
                     if store.setup.value == nil {
                         Button("Einstellungen erneut laden") { store.setup.activate(userID: store.session?.userID) }.buttonStyle(OutlineButtonStyle())
                     }
@@ -55,7 +59,7 @@ struct PersonalSetupView: View {
                             Haptics.success()
                             if !isOnboarding { dismiss() }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges))
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges) || requiredBodyDataMissing)
                         .accessibilityIdentifier("personal-setup-next")
                     Text("Du entscheidest. Optionale Freigaben dürfen aus bleiben und lassen sich später ändern.")
                         .font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)

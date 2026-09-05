@@ -12,6 +12,10 @@ struct ActivityComposerView: View {
     @State private var duration = 60
     @State private var note = ""
     @State private var placeDraft = GymPlaceDraft()
+    @State private var arrivalPlace: SessionPlace?
+    @State private var arrivalReminderEnabled = false
+    @State private var showsPlacePicker = false
+    @State private var arrivalPermissions = ArrivalPermissionStore()
     @State private var friendsCanJoin = true
     @State private var invitesEnabled = true
     @State private var invitees = Set<UUID>()
@@ -53,8 +57,11 @@ struct ActivityComposerView: View {
                     Button(mode == 0 ? (sport == .gym ? "WORKOUT STARTEN" : "JETZT LOS") : "SESSION PLANEN") {
                         Task {
                             if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID, workoutPlanID: workoutPlan?.id) }
-                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeDraft.value.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id) }
-                            if store.errorMessage == nil { dismiss() }
+                            else {
+                                let planned = await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeDraft.value.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id, arrivalPlace: arrivalReminderEnabled ? arrivalPlace : nil)
+                                if planned { dismiss() }
+                            }
+                            if mode == 0, store.errorMessage == nil { dismiss() }
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -74,9 +81,15 @@ struct ActivityComposerView: View {
             }
         }
         .fullScreenCover(item: $creatingPlan) { draft in WorkoutPlanEditorView(plan: draft) { workoutPlan = $0 } }
-        .onAppear { placeDraft.synchronize(sport: sport, favorite: store.setup.value?.favoriteGymName) }
-        .onChange(of: sport) { _, value in placeDraft.synchronize(sport: value, favorite: store.setup.value?.favoriteGymName) }
-        .onChange(of: store.setup.value?.favoriteGymName) { _, value in placeDraft.synchronize(sport: sport, favorite: value) }
+        .sheet(isPresented: $showsPlacePicker) {
+            SessionPlacePickerView(initialQuery: placeDraft.value) { place in
+                arrivalPlace = place; placeDraft.edit(place.name); arrivalReminderEnabled = false
+            }
+        }
+        .onAppear { synchronizeFavoritePlace() }
+        .task { await arrivalPermissions.refresh() }
+        .onChange(of: sport) { _, _ in synchronizeFavoritePlace() }
+        .onChange(of: store.setup.value?.favoriteGymName) { _, _ in synchronizeFavoritePlace() }
     }
     private var sportChooser: some View {
         VStack(spacing: 14) {
@@ -195,14 +208,43 @@ struct ActivityComposerView: View {
             Divider().overlay(FYColor.line).padding(.leading, 44)
             ComposerRow(symbol: "timer", title: "Dauer") { Stepper("\(duration) Minuten", value: $duration, in: 15...240, step: 15).fixedSize() }
             Divider().overlay(FYColor.line).padding(.leading, 44)
-            HStack(spacing: 12) { Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted); TextField("Ort (optional)", text: Binding(get: { placeDraft.value }, set: { placeDraft.edit($0) })).multilineTextAlignment(.trailing).accessibilityIdentifier("session-place") }.padding(14)
+            HStack(spacing: 12) {
+                Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted)
+                TextField("Ort (optional)", text: Binding(get: { placeDraft.value }, set: { value in
+                    placeDraft.edit(value)
+                    if value != arrivalPlace?.name { arrivalPlace = nil; arrivalReminderEnabled = false }
+                })).multilineTextAlignment(.trailing).accessibilityIdentifier("session-place")
+            }.padding(14)
             VStack(alignment: .leading, spacing: 8) {
                 if placeDraft.usesFavorite { Label("Aus deinem Stammgym vorausgefüllt", systemImage: "checkmark.circle").font(.caption).foregroundStyle(FYColor.lime) }
                 if sport == .gym, let favorite = store.setup.value?.favoriteGymName, !placeDraft.usesFavorite {
-                    Button("Stammgym übernehmen") { placeDraft.useFavorite(favorite) }.font(.caption.bold()).frame(minHeight: 44)
+                    Button("Stammgym übernehmen") { placeDraft.useFavorite(favorite); arrivalPlace = nil; arrivalReminderEnabled = false }.font(.caption.bold()).frame(minHeight: 44)
                 }
+                Button { showsPlacePicker = true } label: { Label("Ort auf der Karte auswählen", systemImage: "map.fill").font(.caption.bold()).frame(minHeight: 44) }
+                    .accessibilityIdentifier("choose-session-place")
                 Text("Der Treffpunkt ist für berechtigte Teilnehmer dieser Session sichtbar. Leer lassen, wenn du keinen Ort teilen möchtest.").font(.caption2).foregroundStyle(FYColor.muted)
                 if placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120 { Text("Bitte kürze den Ort auf höchstens 120 Zeichen.").font(.caption).foregroundStyle(FYColor.coral) }
+                if let arrivalPlace {
+                    Divider().overlay(FYColor.line)
+                    Toggle(isOn: Binding(get: { arrivalReminderEnabled }, set: { value in
+                        arrivalReminderEnabled = value && arrivalPermissions.isReady
+                    })) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Bei Ankunft erinnern").font(.subheadline.bold())
+                            Text("Einmalig in etwa 180 m Umkreis · genaue Koordinate bleibt auf diesem iPhone").font(.caption2).foregroundStyle(FYColor.muted)
+                        }
+                    }.tint(FYColor.lime).accessibilityIdentifier("arrival-reminder-toggle")
+                    if !arrivalPermissions.isReady {
+                        Text("Dafür braucht FYRUP Mitteilungen und Standortzugriff während der Nutzung. Ohne Freigabe bleibt die übrige App vollständig nutzbar.")
+                            .font(.caption2).foregroundStyle(FYColor.muted)
+                        Button("FREIGABEN AKTIVIEREN") { Task { await arrivalPermissions.request() } }
+                            .font(.caption.bold()).frame(minHeight: 44).accessibilityIdentifier("enable-arrival-permissions")
+                    } else {
+                        Label(arrivalReminderEnabled ? "Erinnerung wird mit der Session gespeichert" : "Freigaben erteilt", systemImage: arrivalReminderEnabled ? "bell.badge.fill" : "checkmark.shield.fill")
+                            .font(.caption).foregroundStyle(FYColor.lime)
+                    }
+                    Text("Ausgewählt: \(arrivalPlace.name)").font(.caption2).foregroundStyle(FYColor.muted)
+                }
             }.padding(.horizontal, 14).padding(.bottom, 14).frame(maxWidth: .infinity, alignment: .leading)
         }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
     }
@@ -266,6 +308,12 @@ struct ActivityComposerView: View {
         let areas = GymBodyArea.allCases.filter(gymAreas.contains).map(\.title)
         if let subtype, !areas.isEmpty { return "\(subtype) (\(areas.joined(separator: ", ")))" }
         return subtype ?? (areas.isEmpty ? nil : areas.joined(separator: ", "))
+    }
+
+    private func synchronizeFavoritePlace() {
+        placeDraft.synchronize(sport: sport, favorite: store.setup.value?.favoriteGymName)
+        if placeDraft.usesFavorite { arrivalPlace = store.setup.value?.favoriteGymPlace }
+        else if sport != .gym { arrivalPlace = nil; arrivalReminderEnabled = false }
     }
 }
 
@@ -459,6 +507,10 @@ struct HostedSessionView: View {
     @State private var duration = 60
     @State private var note = ""
     @State private var placeName = ""
+    @State private var arrivalPlace: SessionPlace?
+    @State private var arrivalReminderEnabled = false
+    @State private var showsPlacePicker = false
+    @State private var arrivalPermissions = ArrivalPermissionStore()
     @State private var friendsCanJoin = true
     @State private var confirmCancel = false
 
@@ -468,8 +520,26 @@ struct HostedSessionView: View {
                 ActivityLabel(activity: Activity(id: hosted.id, userID: hosted.session.hostID, sport: hosted.session.sport, subtype: hosted.session.subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: hosted.id, workoutPlanID: hosted.session.workoutPlanID)).fyCard()
                 DatePicker("Datum & Uhrzeit", selection: $startsAt, in: Date()...).fyCard()
                 Stepper("ca. \(duration) Minuten", value: $duration, in: 15...240, step: 15).fyCard()
-                HStack { Image(systemName: "mappin.and.ellipse").foregroundStyle(FYColor.muted); TextField("Ort / Treffpunkt (optional)", text: $placeName) }
+                HStack { Image(systemName: "mappin.and.ellipse").foregroundStyle(FYColor.muted); TextField("Ort / Treffpunkt (optional)", text: Binding(get: { placeName }, set: { value in
+                    placeName = value
+                    if value != arrivalPlace?.name { arrivalPlace = nil; arrivalReminderEnabled = false }
+                })) }
                     .padding().background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                Button { showsPlacePicker = true } label: { Label("Ort auf der Karte auswählen", systemImage: "map.fill") }
+                    .buttonStyle(OutlineButtonStyle())
+                if let arrivalPlace {
+                    Toggle("Bei Ankunft erinnern", isOn: Binding(get: { arrivalReminderEnabled }, set: { arrivalReminderEnabled = $0 && arrivalPermissions.isReady }))
+                        .tint(FYColor.lime).fyCard()
+                    if !arrivalPermissions.isReady {
+                        Text("Dafür braucht FYRUP Mitteilungen und Standortzugriff während der Nutzung. Die übrige App funktioniert auch ohne diese Freigaben.").font(.caption).foregroundStyle(FYColor.muted)
+                        Button("FREIGABEN AKTIVIEREN") { Task { await arrivalPermissions.request() } }.font(.caption.bold()).frame(minHeight: 44)
+                    } else if arrivalReminderEnabled {
+                        Label("Einmalige Erinnerung bei der nächsten Ankunft", systemImage: "bell.badge.fill").font(.caption).foregroundStyle(FYColor.lime)
+                    }
+                    Text("Die genaue Koordinate bleibt auf diesem iPhone.").font(.caption2).foregroundStyle(FYColor.muted)
+                } else if store.arrival.records[hosted.id] != nil {
+                    Button("Ankunftserinnerung entfernen", role: .destructive) { store.arrival.remove(sessionID: hosted.id) }.frame(minHeight: 44)
+                }
                 TextField("Notiz (optional)", text: $note, axis: .vertical).padding().background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
                 Toggle("Freunde dürfen sich anschließen", isOn: $friendsCanJoin).fyCard()
 
@@ -491,7 +561,10 @@ struct HostedSessionView: View {
                     session.note = trimmedNote.isEmpty ? nil : trimmedNote
                     session.placeName = trimmedPlace.isEmpty ? nil : trimmedPlace
                     session.friendsCanJoin = friendsCanJoin
-                    Task { await store.updateHostedSession(session) }
+                    Task {
+                        await store.updateHostedSession(session, arrivalPlace: arrivalReminderEnabled ? arrivalPlace : nil)
+                        if !arrivalReminderEnabled { store.arrival.remove(sessionID: hosted.id) }
+                    }
                 }.buttonStyle(SecondaryButtonStyle())
                 if let planID = hosted.session.workoutPlanID {
                     NavigationLink { WorkoutPlanDetailView(planID: planID, sessionID: hosted.id) } label: { Text("Workout-Plan ansehen") }.buttonStyle(OutlineButtonStyle())
@@ -509,6 +582,14 @@ struct HostedSessionView: View {
             note = hosted.session.note ?? ""
             placeName = hosted.session.placeName ?? ""
             friendsCanJoin = hosted.session.friendsCanJoin
+            arrivalPlace = store.arrival.records[hosted.id]?.place
+            arrivalReminderEnabled = arrivalPlace != nil
+            await arrivalPermissions.refresh()
+        }
+        .sheet(isPresented: $showsPlacePicker) {
+            SessionPlacePickerView(initialQuery: placeName) { place in
+                placeName = place.name; arrivalPlace = place; arrivalReminderEnabled = false
+            }
         }
         .confirmationDialog("Session wirklich absagen?", isPresented: $confirmCancel) {
             Button("Session absagen", role: .destructive) { Task { await store.cancelPlannedSession(hosted.id); if store.errorMessage == nil { dismiss() } } }

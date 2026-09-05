@@ -218,12 +218,13 @@ actor DemoRepository: AppRepository {
         try await synchronizeBlindActivity(updated)
         return updated
     }
-    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
+    func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession {
         let sessionID = UUID()
         let session = PlannedSession(id: sessionID, hostID: meID, sport: sport, subtype: subtype, startsAt: startsAt, durationMinutes: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, status: "planned")
         let participants = crew.filter { friendIDs.contains($0.id) }.map { SessionParticipant(profile: $0, status: .pending) }
         hosted.append(HostedSession(session: session, participants: participants))
         activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
+        return session
     }
     func invitations() async throws -> [SessionInvitation] { try await workoutStorage.invitations(userID: meID, friends: Set(crew.map(\.id))) + demoInvitations }
     func hostedSessions() async throws -> [HostedSession] {

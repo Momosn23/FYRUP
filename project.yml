@@ -58,6 +58,7 @@ targets:
         INFOPLIST_KEY_NSFaceIDUsageDescription: FYRUP kann Face ID zum Schutz deiner Sitzung verwenden.
         INFOPLIST_KEY_NSHealthShareUsageDescription: FYRUP liest auf deinen Wunsch deine heutigen Schritte und – nach eigener Freigabe – aktive Energie für deine Kalorienanzeige. Die zusammengefasste Schrittzahl teilst du nur nach gesonderter Zustimmung mit Freunden. Energie und Körperdaten bleiben privat.
         INFOPLIST_KEY_NSHealthUpdateUsageDescription: FYRUP schreibt keine Daten in Apple Health. Für deine Anzeigen werden ausschließlich die von dir freigegebenen Schritte und aktiven Energiedaten gelesen.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: FYRUP nutzt deinen Standort nur für eine von dir aktivierte Ankunftserinnerung an einer geplanten Session. Dein aktueller Standort wird nicht an Freunde oder FYRUP-Server gesendet.
         INFOPLIST_KEY_SUPABASE_URL: $(SUPABASE_URL)
         INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
         INFOPLIST_KEY_APP_ENVIRONMENT: $(APP_ENVIRONMENT)

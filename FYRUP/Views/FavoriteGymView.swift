@@ -4,11 +4,14 @@ struct FavoriteGymView: View {
     @Environment(AppStore.self) private var store
     @State private var name = ""
     @State private var baseline = ""
+    @State private var baselinePlace: SessionPlace?
     @State private var saved = false
     @State private var loadedUserID: UUID?
     @State private var hasLoadedName = false
+    @State private var selectedPlace: SessionPlace?
+    @State private var showsPlacePicker = false
     @FocusState private var isEditing: Bool
-    private var hasChanges: Bool { name != baseline }
+    private var hasChanges: Bool { name != baseline || selectedPlace != baselinePlace }
 
     var body: some View {
         ScrollView {
@@ -23,22 +26,33 @@ struct FavoriteGymView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "mappin.and.ellipse").foregroundStyle(FYColor.lime)
                     TextField("z. B. Fitness First Köln", text: $name).focused($isEditing).submitLabel(.done)
+                        .onChange(of: name) { _, value in if value != selectedPlace?.name { selectedPlace = nil } }
                         .accessibilityLabel("Name deines Stammgyms").accessibilityIdentifier("favorite-gym-name")
                 }.padding(16).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                Button { showsPlacePicker = true } label: {
+                    Label(selectedPlace == nil ? "Stammgym auf der Karte wählen" : "Kartenort ändern", systemImage: "map.fill")
+                }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("choose-favorite-gym-place")
+                if let selectedPlace {
+                    Label(selectedPlace.detail ?? "Kartenort ausgewählt", systemImage: "checkmark.circle.fill")
+                        .font(.caption).foregroundStyle(FYColor.lime)
+                }
                 Text("Privat auf diesem iPhone gespeichert. Keine Standortfreigabe und kein GPS-Zugriff. Wenn du den Ort beim Planen stehen lässt, wird er zum Treffpunkt dieser Session und ist für deren berechtigte Teilnehmer sichtbar.")
                     .font(.caption).foregroundStyle(FYColor.muted)
                 Button("Stammgym speichern") {
                     guard loadedUserID == store.setup.userID else { return }
                     let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if store.setup.update({ $0.favoriteGymName = trimmed.isEmpty ? nil : trimmed }) {
-                        name = trimmed; baseline = trimmed; saved = true; isEditing = false; Haptics.success()
+                    if store.setup.update({ value in
+                        value.favoriteGymName = trimmed.isEmpty ? nil : trimmed
+                        value.favoriteGymPlace = trimmed.isEmpty ? nil : selectedPlace
+                    }) {
+                        name = trimmed; baseline = trimmed; baselinePlace = selectedPlace; saved = true; isEditing = false; Haptics.success()
                     }
                 }.buttonStyle(PrimaryButtonStyle()).disabled(store.setup.value == nil || loadedUserID != store.setup.userID).accessibilityIdentifier("save-favorite-gym")
-                if hasChanges { Button("Änderungen verwerfen") { name = baseline; isEditing = false }.frame(minHeight: 44) }
+                if hasChanges { Button("Änderungen verwerfen") { name = baseline; selectedPlace = baselinePlace; isEditing = false }.frame(minHeight: 44) }
                 if store.setup.value?.favoriteGymName != nil {
                     Button("Stammgym entfernen", role: .destructive) {
                         guard loadedUserID == store.setup.userID else { return }
-                        if store.setup.update({ $0.favoriteGymName = nil }) { name = ""; baseline = ""; saved = false }
+                        if store.setup.update({ $0.favoriteGymName = nil; $0.favoriteGymPlace = nil }) { name = ""; baseline = ""; selectedPlace = nil; baselinePlace = nil; saved = false }
                     }.frame(minHeight: 44).accessibilityIdentifier("remove-favorite-gym")
                 }
                 if saved { Label("Stammgym gespeichert", systemImage: "checkmark.circle.fill").foregroundStyle(FYColor.lime).accessibilityIdentifier("favorite-gym-saved") }
@@ -53,10 +67,14 @@ struct FavoriteGymView: View {
             .onChange(of: store.setup.userID) { _, _ in loadSavedName() }
             .onChange(of: name) { _, value in if value != baseline { saved = false } }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Fertig") { isEditing = false } } }
+            .sheet(isPresented: $showsPlacePicker) {
+                SessionPlacePickerView(initialQuery: name) { place in name = place.name; selectedPlace = place }
+            }
     }
 
     private func loadSavedName() {
         loadedUserID = store.setup.userID; hasLoadedName = true
-        name = store.setup.value?.favoriteGymName ?? ""; baseline = name; saved = false
+        name = store.setup.value?.favoriteGymName ?? ""; baseline = name
+        selectedPlace = store.setup.value?.favoriteGymPlace; baselinePlace = selectedPlace; saved = false
     }
 }

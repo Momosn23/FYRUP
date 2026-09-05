@@ -6,7 +6,7 @@ final class FavoriteGymTests: XCTestCase {
     func testOlderPrivateSetupDecodesWithoutFavoriteGym() throws {
         let old = Data(#"{"version":1,"completed":true,"heightCM":180,"weightKG":80,"activeCalorieGoal":450,"energyRequested":false,"liveActivityEnabled":false}"#.utf8)
         let value = try JSONDecoder().decode(PersonalSetupPreferences.self, from: old)
-        XCTAssertNil(value.favoriteGymName); XCTAssertNil(value.validationMessage)
+        XCTAssertNil(value.favoriteGymName); XCTAssertNil(value.favoriteGymPlace); XCTAssertNil(value.validationMessage)
         XCTAssertTrue(value.completed); XCTAssertEqual(value.weightKG, 80)
     }
 
@@ -14,9 +14,11 @@ final class FavoriteGymTests: XCTestCase {
         var value = PersonalSetupPreferences()
         XCTAssertNil(value.favoriteGymName)
         value.favoriteGymName = "Köln · Gym 💪"
+        value.favoriteGymPlace = SessionPlace(name: "Köln · Gym 💪", detail: "Köln", latitude: 50.94, longitude: 6.95)
         let restored = try JSONDecoder().decode(PersonalSetupPreferences.self, from: JSONEncoder().encode(value))
         XCTAssertEqual(restored, value); XCTAssertNil(restored.validationMessage)
         XCTAssertFalse(restored.energyRequested); XCTAssertFalse(restored.liveActivityEnabled)
+        value.favoriteGymPlace = nil
         value.favoriteGymName = String(repeating: "G", count: 120)
         XCTAssertNil(value.validationMessage)
     }
@@ -29,7 +31,7 @@ final class FavoriteGymTests: XCTestCase {
             XCTAssertFalse(store.update { $0.favoriteGymName = name })
             XCTAssertEqual(store.value?.favoriteGymName, "Mein Gym")
         }
-        XCTAssertTrue(store.update { $0.favoriteGymName = nil })
+        XCTAssertTrue(store.update { $0.favoriteGymName = nil; $0.favoriteGymPlace = nil })
         XCTAssertNil(store.errorMessage); XCTAssertNil(store.value?.favoriteGymName)
     }
 

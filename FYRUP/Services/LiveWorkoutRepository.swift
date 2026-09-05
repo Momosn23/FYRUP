@@ -77,8 +77,8 @@ extension LiveAppRepository {
         return try await client.rpc("start_workout", body: Body(plan: planID, linked: linkedActivityID, session: sessionID))
     }
 
-    func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
-        let _: PlannedSession = try await client.rpc("plan_workout", body: PlanWorkoutRequest(
+    func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession {
+        try await client.rpc("plan_workout", body: PlanWorkoutRequest(
             plan: planID, startsAt: startsAt, duration: duration, note: note, place: placeName,
             friendsCanJoin: friendsCanJoin, friends: Array(Set(friendIDs))
         ))

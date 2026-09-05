@@ -53,11 +53,17 @@ struct MainTabView: View {
         .sheet(item: Binding(get: { store.notificationRouting.presentation }, set: { if $0 == nil { store.notificationRouting.dismiss() } })) { presentation in
             NotificationDestinationView(presentation: presentation).id(presentation.id)
         }
+        .sheet(item: $store.arrivalDestination) { hosted in
+            NavigationStack { HostedSessionView(hosted: hosted) }
+        }
+        .sheet(item: $store.sharedProfileDestination) { profile in SharedProfileDestinationView(profile: profile) }
         .task {
             await store.deliverPendingNotification()
             await store.refresh()
             store.deliverPendingLiveLink()
             store.deliverPendingRestReminder()
+            await store.deliverPendingArrivalReminder()
+            await store.deliverPendingProfileLink()
             store.synchronizeLiveSurface()
             guard !Task.isCancelled, store.route == .main, let userID = store.session?.userID, store.profile?.id == userID else { return }
             await store.steps.activate(userID: userID)

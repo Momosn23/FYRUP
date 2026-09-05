@@ -1,5 +1,32 @@
 # Weiterarbeit ohne Cloud-Guthaben – 05.09.2026
 
+## Gebündelter externer Einladungsblock (lokal, noch ohne Upload)
+
+- „Freunde“ enthält jetzt zwei getrennte native Teilen-Aktionen: eine allgemeine Einladung und den eigenen Profillink. Empfänger und Versand-App werden ausschließlich im iOS-Teilen-Menü gewählt.
+- Die Texte behaupten keinen nicht verifizierten Store- oder TestFlight-Link, sondern weisen ehrlich auf den privaten iPhone-Test und separat nötigen Testzugang hin.
+- Ein strikter `fyrup://profile/<username>`-Parser lehnt fremde Schemes, Zugangsdaten, Ports, Parameter, Fragmente, zusätzliche Pfade und ungültige Usernames ab. Der Pfad bleibt über Login/Einrichtung erhalten und wird danach über einen aktuell auffindbaren Serverdatensatz aufgelöst.
+- Die Zielansicht zeigt nur freigegebene Profildaten und bietet eine bewusste Freundschaftsanfrage; keine Aktivitäten, Schritte, Körperdaten oder Kontakte werden über den Link transportiert.
+- Zwei Parser-Tests sind vorbereitet. Telefonnummern/Kontakte bleiben bis zu Nummernverifizierung, Backend-Datenschutzregeln, Missbrauchsschutz, SMS-Konfiguration und einem tatsächlich nutzbaren Installationslink offen; es wurde kein externer Dienst oder Kostenposten eingerichtet.
+
+## Gebündelter Kalorienblock (lokal, noch ohne Upload)
+
+- Die Heute-Karte nutzt gültige aktive Energie aus Apple Health weiterhin exklusiv. Fehlt sie, steht nun eine offen erklärte, grobe FYRUP-Schätzung aus echten heutigen Schritten, privaten Körperdaten und ausdrücklich bewerteter tatsächlicher Gym-Dauer bereit.
+- Die Rechnung addiert Schritt- und Gym-Energie nicht, sondern nimmt wegen fehlender Zeitstempel nur den größeren Wert. Geplante, abgebrochene, fremde, doppelte und nicht-heutige Aktivitäten sind ausgeschlossen.
+- Neue Nutzer können die Ersteinrichtung nicht mehr abschließen, solange Körpergröße oder Gewicht für die gewünschte Verbrauchsschätzung fehlen. Beide Werte bleiben im privaten Gerätespeicher und lassen sich später ändern oder löschen.
+- Quelle, Zeitpunkt, Zielrest und Unsicherheit sind auf Heute sichtbar; das Ziel bleibt ausdrücklich aktive Bewegung, kein Gesamtbedarf und keine Abnehm- oder Ernährungsvorgabe.
+- Fünf deterministische `ActiveCalorieEstimateTests` sind vorbereitet. Native Swift-/UI-Ausführung und echte Health-Daten bleiben offen. Ein externer KI-Zielvorschlag ist nicht stillschweigend simuliert und bleibt ohne geprüften Anbieter, ausdrückliche Dateneinwilligung und Kostenbegrenzung offen.
+
+## Gebündelter Standortblock nach `166f4bd` (lokal, noch ohne Upload)
+
+- Geplante Sessions geben nach erfolgreichem Erstellen nun ihre echte Serverkennung zurück. Eine lokale Ankunftserinnerung wird damit nicht über unsichere Zeit-/Textvergleiche einer möglicherweise falschen Session zugeordnet.
+- Apple-Karten-Suche für Gym, Adresse oder Ort ergänzt; Suchanfrage an Apple und lokale Datenschutzgrenze werden in der Oberfläche erklärt.
+- Optionaler Kartenort für das Stammgym wird zusammen mit den übrigen privaten Einrichtungseinstellungen kontogetrennt gespeichert. Name und Koordinate müssen zusammenpassen; alte gespeicherte Einstellungen bleiben decodierbar.
+- Pro eigener geplanter Session kann nach einer vorgeschalteten Erklärung die optionale Mitteilungs- und Standortfreigabe angefragt und eine einmalige Ankunftserinnerung im Umkreis von etwa 180 Metern gesetzt werden. Ohne Freigabe bleibt die Session planbar.
+- Der Sperrbildschirmtext bleibt neutral und enthält keine Übung, Gewichte, Notiz, Personennamen oder Blind-Workout-Details. Beim Antippen werden Konto, lokaler Datensatz und der aktuell vom Server geladene Sessionstatus erneut geprüft, bevor die richtige Session geöffnet wird.
+- Änderung von Zeit/Ort, Start, Absage, Logout, Kontolöschung und bestätigtes Verschwinden der Session entfernen alte Erinnerungen. Ein fehlgeschlagener Nebenabruf der gehosteten Sessions löscht lokale Erinnerungen nicht irrtümlich.
+- Vier neue `ArrivalReminderTests` sowie erweiterte Stammgym-Tests sind im Quellstand vorbereitet. Auf Windows stehen Swift/Xcode/iOS-Simulator weiterhin nicht zur Verfügung; entsprechend noch kein nativer Testnachweis und keine echte Geräteprüfung.
+- Seit Aktivierung des Codemagic-Guthabens weiterhin **kein neuer Upload und kein neuer Cloud-Build** durch diesen Arbeitsblock. Die Änderungen werden wie verlangt zuerst gebündelt.
+
 ## Aktueller Nachtrag: Codemagic wieder freigegeben
 
 Der Nutzer hat die kostenpflichtige Codemagic-Nutzung selbst aktiviert und anschließend ausdrücklich angewiesen, entsprechend weiterzuarbeiten. Frisch verifiziert: „Manage subscription“, aktueller Betrag $0, nächste Rechnung 01.10.2026. Die 500/500 Freiminuten bleiben als verbrauchtes Freikontingent stehen. GitHub Actions hat weiterhin ein $0-Budget mit Nutzungsstopp. Die frühere Upload-/Cloud-Pause unten ist damit für die jetzt beauftragte Codemagic-Prüfung aufgehoben.

@@ -55,6 +55,7 @@ struct TodayView: View {
             await store.supplements.refresh()
             await store.steps.refresh()
             await store.energy.refresh()
+            await loadCalorieFeedback()
             await store.weekly.refresh()
             await store.weekly.refreshFriends()
             if !store.showsActivityComposer { await store.weekly.prepareCelebration() }
@@ -66,10 +67,22 @@ struct TodayView: View {
                 await store.supplements.refresh()
                 await store.steps.refresh()
                 await store.energy.refresh()
+                await loadCalorieFeedback()
                 await store.weekly.refresh()
                 await store.weekly.refreshFriends()
                 await store.blind.refreshSummaries()
             }
+        }
+    }
+
+    private func loadCalorieFeedback() async {
+        guard let owner = store.session?.userID else { return }
+        var candidates = store.recentActivities
+        if let current = store.myActivity { candidates.append(current) }
+        var seen = Set<UUID>()
+        let completedGym = candidates.filter { $0.userID == owner && $0.sport == .gym && $0.status == .completed }
+        for activity in completedGym.prefix(8) where seen.insert(activity.id).inserted {
+            await store.personal.loadFeedback(activityID: activity.id)
         }
     }
 

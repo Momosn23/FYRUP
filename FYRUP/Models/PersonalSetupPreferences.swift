@@ -11,6 +11,7 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var energyRequested = false
     var liveActivityEnabled = false
     var favoriteGymName: String?
+    var favoriteGymPlace: SessionPlace?
     var setupPage: Int?
 
     var validationMessage: String? {
@@ -22,6 +23,9 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
         if let activeCalorieGoal, !(50...5000).contains(activeCalorieGoal) { return "Prüfe dein frei gewähltes Bewegungsziel (50–5.000 kcal)." }
         if let name = favoriteGymName, name.isEmpty || name.count > 120 || name != name.trimmingCharacters(in: .whitespacesAndNewlines) || name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) {
             return "Gib einen Gym-Namen mit höchstens 120 Zeichen ohne Zeilenumbrüche ein."
+        }
+        if let favoriteGymPlace, favoriteGymPlace.validationMessage != nil || favoriteGymName != favoriteGymPlace.name {
+            return "Wähle dein Stammgym erneut auf der Karte aus."
         }
         return nil
     }

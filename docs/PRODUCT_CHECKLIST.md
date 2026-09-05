@@ -1,5 +1,29 @@
 # FYRUP – zentrale Produkt- und Abnahmecheckliste
 
+## Danach lokal ergänzt: Kalorienschätzung und externe Einladungswege
+
+- [x] Health-Energie bleibt exklusiv; ohne Health-Wert steht eine grobe, offen erklärte Schritt-/Gym-Schätzung mit privaten Körperdaten bereit, ohne Addition überlappender Quellen.
+- [x] Neue Nutzer müssen für die gewünschte Verbrauchsschätzung Größe und Gewicht in der Einrichtung speichern; Ziel, Quelle, Stand und Unsicherheit erscheinen auf Heute.
+- [x] Fünf feste Rechentests für Vorrang, Eingabegrenzen, Formel, Intensität/Doppelzählung und unzulässige Aktivitäten vorbereitet.
+- [x] Native iOS-Teilen-Auswahl für allgemeine Einladung und persönlichen Profilpfad ergänzt; kein automatischer Empfänger oder Versand.
+- [x] Strikter Profilpfad mit Login-Fortsetzung, aktueller Serversuche und datensparsamer Zielansicht ergänzt; zwei Parser-Tests vorbereitet.
+- [x] Kein erfundener öffentlicher Store-/TestFlight-Link: Die UI kennzeichnet den aktuellen privaten iPhone-Test ausdrücklich.
+- [ ] Externer KI-Zielvorschlag bleibt bis zu Anbieterwahl, Einwilligung, serverseitigem Schlüssel, fachlicher Eingrenzung und Kostenlimit offen.
+- [ ] Telefonnummern/Kontaktabgleich bleiben bis zu Verifizierung, Backend-Datenschutzregeln und Missbrauchsschutz offen.
+- [ ] Alle neuen Swift-/UI-Tests und die tatsächlichen Teilen-/Deep-Link-Abläufe nativ auf iOS prüfen.
+
+## Neuester lokaler Block: Kartenort und Ankunftserinnerung (noch nicht ausgeliefert)
+
+- [x] Apple-Karten-Suche für einen konkreten Session-Ort und optional für das private Stammgym im Quellstand ergänzt.
+- [x] Exakte Koordinaten verbleiben kontogetrennt auf dem iPhone; nur der bewusst gesetzte Treffpunktname geht in die geteilte Session.
+- [x] Optionale, erklärte Mitteilungs- und Standortfreigabe sowie einmalige neutrale Ankunftserinnerung an die echte Sessionkennung verdrahtet.
+- [x] Abgleich und Aufräumen bei Änderung, Start, Absage, Abmeldung, Kontolöschung und bestätigtem Serverstatus eingebaut; fehlgeschlagene Nebenabfragen löschen keine Erinnerung.
+- [x] Direkter Tippweg zur nach Serverprüfung bestätigten eigenen Session ergänzt.
+- [x] Vier fokussierte lokale Testfälle und erweiterte Stammgym-Kompatibilitätstests vorbereitet.
+- [ ] Native Swift-/UI-Tests, visuelle Prüfung und reale iPhone-Ankunft mit Hintergrund, Sperrbildschirm, ungefährer Position und verweigerter Freigabe ausführen.
+- [ ] Ort bei sofort gestarteten Aktivitäten ergänzen; der aktuelle Block gilt nur für geplante Sessions.
+- [ ] Gebündelten Stand erst nach weiteren offenen lokalen Punkten gemeinsam hochladen und bauen. Seit der Guthabenaktivierung wurde durch diesen Block kein neuer Build ausgelöst.
+
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 
 ## 1. Status und Abnahmeregel

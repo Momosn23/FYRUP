@@ -1,24 +1,30 @@
 # Geschätzter Kalorienverbrauch und persönliches Tagesziel
 
-Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen, noch nicht implementiert oder abgenommen. Keine exakte Messung, medizinische Beratung oder automatische Abnehm-/Ernährungsvorgabe daraus ableiten.
+Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen. Teilweise lokal implementiert, noch nicht nativ oder auf einem iPhone abgenommen. Keine exakte Messung, medizinische Beratung oder automatische Abnehm-/Ernährungsvorgabe daraus ableiten.
 
 Nachtrag ab 17:45 CEST: [Einrichtung und erste Health-Energieanzeige](MODERN_SETUP_LIVE_CHECKLIST.md) in Umsetzung. Körperdaten/privates aktives Tagesziel/gesonderter Read-only-Energiepfad werden ergänzt; native Prüfung noch ausstehend. Der erste Datenpfad übernimmt Apple Health, addiert keine Schritte oder Workouts dazu und ersetzt ausdrücklich **nicht** die noch offene eigene Schritt-/Intensitätsrechnung oder den freiwilligen KI-Zielvorschlag. Die Abnahmehaken darunter bleiben bis zu Nachweisen offen.
 
+**Neuer lokaler Rechenstand:** Apple Health bleibt die bevorzugte und alleinige Quelle, sobald ein gültiger Wert aktiver Energie vorliegt. Ohne Health-Energie kann FYRUP nun nur bei vorhandener Körpergröße **und** vorhandenem Gewicht grob aus echten heutigen Schritten schätzen. Dokumentierte Annahmen: Schrittlänge `0,414 × Körpergröße`, mittleres ebenes Gehen mit 4,8 km/h und 3,8 MET; bei MET-Werten wird der Ruheanteil von 1 MET abgezogen. Für abgeschlossene eigene Gym-Aktivitäten wird nur tatsächliche aktive Dauer und ausdrücklich gespeichertes Easy/Mittel/Hardcore-Feedback berücksichtigt (3,5/5/6 MET). Weil keine zeitaufgelösten Schritte vorliegen, werden Schritt- und Gym-Schätzung **nicht addiert**, sondern nur der größere Wert gezeigt. Geplante, abgebrochene, fremde, doppelte und nicht-heutige Aktivitäten zählen nicht. Das ist absichtlich konservativ und sichtbar als grobe FYRUP-Schätzung markiert.
+
+Fachliche Grundlage für die MET-Klassifikation ist das [2024 Adult Compendium of Physical Activities](https://pacompendium.com/adult-compendium/); dessen eigene Hinweise betonen, dass Standard-METs keine präzise individuelle Messung sind. Die konkreten Gehannahmen orientieren sich an der dort geführten Kategorie für [moderates ebenes Gehen](https://pacompendium.com/walking/). Der Größenfaktor der Schrittlänge bleibt eine offengelegte Näherung, keine Messung.
+
+Fünf deterministische Rechentests sind vorbereitet: Health-Vorrang, fehlende Körperdaten, feste Schrittberechnung, explizite Gym-Intensität ohne Addition/Doppel-ID und Ausschluss unzulässiger Aktivitäten. Native Ausführung steht aus.
+
 ## Einrichtung und Startseite
 
-- [ ] KCAL-01 Körpergröße und Gewicht während der Registrierung/Ersteinrichtung erfassen, Einheiten erklären und Eingaben validieren; persönliche Verbrauchsschätzung erst mit den benötigten Angaben aktivieren. Fehlende Daten nicht erfinden.
+- [x] KCAL-01 Körpergröße und Gewicht während der Registrierung/Ersteinrichtung erfassen, Einheiten erklären und Eingaben validieren; persönliche Verbrauchsschätzung erst mit den benötigten Angaben aktivieren. Fehlende Daten nicht erfinden. *(Quellstand; native UI-Abnahme offen.)*
 - [ ] KCAL-02 Körperdaten später privat ändern und löschen können; Bestandsnutzer erhalten eine verständliche Einrichtung statt eines erfundenen Standardgewichts. Gültigkeitszeitpunkt für spätere Berechnungen speichern.
-- [ ] KCAL-03 Auf Heute „Geschätzter Verbrauch heute“ mit kcal, Datenquelle, Aktualisierungszeitpunkt und verständlichem Unsicherheitshinweis anzeigen.
+- [x] KCAL-03 Auf Heute „Geschätzter Verbrauch heute“ mit kcal, Datenquelle, Aktualisierungszeitpunkt und verständlichem Unsicherheitshinweis anzeigen. *(Quellstand; Beschriftung lautet derzeit „Bewegung heute“.)*
 - [ ] KCAL-04 Verbrauch bis jetzt und eine eventuelle Tagesprognose ausdrücklich unterscheiden. Keine geplante oder abgebrochene Einheit als bereits vollständig absolviert berechnen.
-- [ ] KCAL-05 Tagesziel selbst eingeben, ändern oder deaktivieren; passend dazu Fortschritt und noch verbleibende kcal anzeigen. Bei Erreichen neutral bestätigen, keine negative Restzahl und kein Druck zu zusätzlichem Training.
-- [ ] KCAL-06 Zielart eindeutig benennen: aktive Bewegungskalorien oder Gesamtverbrauch einschließlich Ruheverbrauch. Niemals den gesamten Tagesenergiebedarf als zusätzlich durch Sport zu verbrennendes Ziel darstellen.
+- [x] KCAL-05 Tagesziel selbst eingeben, ändern oder deaktivieren; passend dazu Fortschritt und noch verbleibende kcal anzeigen. Bei Erreichen neutral bestätigen, keine negative Restzahl und kein Druck zu zusätzlichem Training. *(Quellstand.)*
+- [x] KCAL-06 Zielart eindeutig benennen: aktive Bewegungskalorien oder Gesamtverbrauch einschließlich Ruheverbrauch. Niemals den gesamten Tagesenergiebedarf als zusätzlich durch Sport zu verbrennendes Ziel darstellen. *(Quellstand: nur aktive Bewegungskalorien.)*
 
 ## Nachvollziehbare Schätzung
 
 - [ ] KCAL-07 Vor Umsetzung eine dokumentierte, geeignete Rechenmethode auswählen und fachlich prüfen; benötigte Zusatzangaben erläutern. Größe und Gewicht allein ergeben keinen verlässlichen individuellen Tagesbedarf.
-- [ ] KCAL-08 Schrittzahl und vorhandene geeignete Bewegungsdaten berücksichtigen; Schrittlänge, Tempo und andere unbekannte Parameter nicht als gemessen ausgeben.
+- [x] KCAL-08 Schrittzahl und vorhandene geeignete Bewegungsdaten berücksichtigen; Schrittlänge, Tempo und andere unbekannte Parameter nicht als gemessen ausgeben. *(Quellstand mit sichtbarer Näherungskennzeichnung.)*
 - [ ] KCAL-09 Training nach Sportart, tatsächlicher aktiver Dauer und selbst angegebener Intensität berücksichtigen. „Easy / Mittel / Hardcore“ ist eine subjektive Angabe, kein exakter physiologischer Messwert.
-- [ ] KCAL-10 Überschneidungen auflösen: Lauf-/Gehschritte während eines Trainings und bereits von Apple Health gelieferte Trainingsenergie nicht zusätzlich doppelt zählen.
+- [x] KCAL-10 Überschneidungen auflösen: Lauf-/Gehschritte während eines Trainings und bereits von Apple Health gelieferte Trainingsenergie nicht zusätzlich doppelt zählen. *(Quellstand: Health exklusiv; sonst Maximum statt Addition.)*
 - [ ] KCAL-11 Ruheverbrauch, aktive Energie und Gesamtverbrauch getrennt berechnen/ausweisen; beim Trainingsmodell gegebenenfalls bereits enthaltenen Ruheanteil berücksichtigen.
 - [ ] KCAL-12 Fehlende oder verweigerte Daten als fehlend anzeigen, nicht als 0 kcal; bei zu wenig Information keine scheinpräzise Tagesprognose erzeugen. Quelle und Schätzmethode sichtbar halten.
 - [ ] KCAL-13 Neue HealthKit-Energiedaten nur nach gesonderter freiwilliger Freigabe lesen; vorhandene Schrittfreigabe ist keine Zustimmung zum Lesen oder Teilen aller Gesundheitsdaten.
