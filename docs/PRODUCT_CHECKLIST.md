@@ -37,6 +37,8 @@ Zweiter Korrekturlauf: `e0e1192` wurde auf `main` geladen. [Codemagic 40](https:
 
 Dritter Korrekturlauf: `91899a7` wurde auf `main` geladen. [Codemagic 41](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c7875fac9a246beda8fb0) übersetzte App und Widget und erreichte erstmals das Testziel. Dort stoppte der Compiler in `ActiveCalorieEstimateTests.swift:46`, weil der Fremdnutzer-Test eine absichtlich unveränderliche Nutzer-ID nachträglich zuweisen wollte. Der Test erzeugt die fremde Aktivität im nächsten Quellstand direkt mit der anderen ID; Produktverhalten und Datenmodell werden nicht aufgeweicht.
 
+Vierter Korrekturlauf: `aa243a2` wurde auf `main` geladen. [Codemagic 42](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c79a3fac9a246beda923e) übersetzte App, Widget sowie beide Testziele und führte 459 Swift-Einzeltests aus; 458 bestanden. Einziger Fehler war eine zu frühe Testprüfung des asynchronen Ankunftshinweis-Aufräumens. Die lokalen Produktdaten waren bereits korrekt entfernt. Der Folgequellstand wartet in genau diesem Test begrenzt auf den Aufräumaufruf. Weil der Einzeltest rot war, wurde der bereits gestartete UI-Lauf abgebrochen; visuelle und iPhone-Abnahme bleiben offen.
+
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 
 ## 1. Status und Abnahmeregel

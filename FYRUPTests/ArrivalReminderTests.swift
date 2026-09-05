@@ -32,6 +32,10 @@ final class ArrivalReminderTests: XCTestCase {
         var changed = session; changed.startsAt = session.startsAt.addingTimeInterval(60)
         store.reconcile([changed])
         XCTAssertNil(store.records[sessionID])
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while !notifications.removed.contains(sessionID), ContinuousClock.now < deadline {
+            await Task.yield()
+        }
         XCTAssertTrue(notifications.removed.contains(sessionID))
     }
 
