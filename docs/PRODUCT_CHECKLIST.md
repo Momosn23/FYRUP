@@ -31,11 +31,13 @@
 
 Nachtrag nach Bündelung: Acht Commits wurden bis `4896581` gemeinsam auf `main` geladen. [Codemagic 38](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c72d8fac9a246beda8329) bestand die Vorprüfungen, stoppte aber nach 39 Sekunden an drei Swift-6-Nebenläufigkeitsfehlern im neuen App Intent. Die unveränderlichen Angaben sind im Folgequellstand als Konstanten korrigiert. Noch kein vollständiger nativer Test, Screenshot oder neues TestFlight-Artefakt aus diesem Block.
 
+Korrekturlauf: `a964fe6` wurde auf `main` geladen. [Codemagic 39](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c75b03cf4759eab7e97fe) kam über den Widget-Fehler hinaus und stoppte nach 48 Sekunden exakt in `SessionIntervalView.swift:72`: Swift 6 erlaubt keinen gemeinsamen `@State`-Wrapper für drei Variablen. Die drei Intervallfelder sind im nächsten Quellstand getrennt; vollständige native Tests, Bildschirmbilder und TestFlight bleiben bis zum grünen Folgelauf offen.
+
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 
 ## 1. Status und Abnahmeregel
 
-**Neuester Stand nach Zahlungsfreigabe:** Nutzer hat Codemagic selbst aktiviert und Weiterarbeit beauftragt. „Manage subscription“ und $0 aktueller Betrag frisch bestätigt; GitHub Actions steht weiterhin auf $0-Budget. Die anschließende Kostenanweisung hat Vorrang: erst Änderungen lokal fertig bündeln, dann gemeinsam prüfen, keine häufigen Uploads/Builds. Seit der Aktivierung noch nichts hochgeladen und keinen Lauf gestartet. [Bündelung und Prüfstatus](LOCAL_CONTINUATION_2026-09-05.md). Nachfolgende Guthabenstopp-Angaben beschreiben die vorherige Phase.
+**Neuester Stand nach Zahlungsfreigabe:** Nutzer hat Codemagic selbst aktiviert und Weiterarbeit beauftragt. „Manage subscription“ und $0 aktueller Betrag frisch bestätigt; GitHub Actions steht weiterhin auf $0-Budget. Die anschließende Kostenanweisung hat Vorrang: Änderungen bündeln, gemeinsam prüfen und keine parallelen oder unnötig häufigen Builds starten. Der gebündelte Stand und zwei gezielte Compiler-Korrekturläufe sind inzwischen hochgeladen beziehungsweise dokumentiert. [Bündelung und Prüfstatus](LOCAL_CONTINUATION_2026-09-05.md). Nachfolgende Guthabenstopp-Angaben beschreiben die vorherige Phase.
 
 **Aktueller lokaler Funktionsblock:** Eigene Intervallzeiten/Runden auf Heute und LIVE, Satzpause im Blind Workout, Fortsetzung der unvollständigen Einrichtung und Schutz vor erneutem LIVE-Anzeigen nach bestätigt abgeschlossenem/abgebrochenem Vorgang bei Netzfehler. 13 native Einzeltests sowie neue/erweiterte Bedienabläufe vorbereitet, noch nicht ausgeführt. Sprachprüfung für 103 Textdateien und zehn Tests des Release-Prüfskripts lokal grün. Keine Haken für die vollständige Produkt-/iPhone-Abnahme gesetzt.
 

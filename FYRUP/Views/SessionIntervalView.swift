@@ -69,7 +69,9 @@ private struct SessionIntervalSettings: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let activityID: UUID
-    @State private var work = "", recovery = "", rounds = ""
+    @State private var work = ""
+    @State private var recovery = ""
+    @State private var rounds = ""
     @State private var loaded = false
     @State private var message: String?
     @FocusState private var focusedField: Field?
