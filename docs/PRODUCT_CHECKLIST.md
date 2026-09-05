@@ -35,6 +35,8 @@ Korrekturlauf: `a964fe6` wurde auf `main` geladen. [Codemagic 39](https://codema
 
 Zweiter Korrekturlauf: `e0e1192` wurde auf `main` geladen. [Codemagic 40](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c7715fac9a246beda8cc5) passierte beide älteren Fehler und stoppte nach 2 Minuten 6 Sekunden beim Übersetzen zweier Demo-Datenwege: Der bestehende Helfer `trimmedNil` war noch dateiprivat, wurde aber nun für die freiwillige Ortsangabe modulweit benötigt. Der Helfer ist im nächsten Quellstand ausschließlich app-intern sichtbar; native Tests und Bilder wurden in Lauf 40 noch nicht erreicht.
 
+Dritter Korrekturlauf: `91899a7` wurde auf `main` geladen. [Codemagic 41](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c7875fac9a246beda8fb0) übersetzte App und Widget und erreichte erstmals das Testziel. Dort stoppte der Compiler in `ActiveCalorieEstimateTests.swift:46`, weil der Fremdnutzer-Test eine absichtlich unveränderliche Nutzer-ID nachträglich zuweisen wollte. Der Test erzeugt die fremde Aktivität im nächsten Quellstand direkt mit der anderen ID; Produktverhalten und Datenmodell werden nicht aufgeweicht.
+
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 
 ## 1. Status und Abnahmeregel

@@ -43,14 +43,14 @@ final class ActiveCalorieEstimateTests: XCTestCase {
     func testPlannedCancelledForeignAndOtherDayActivitiesDoNotCount() {
         var values = [completedGym()]
         values[0].status = .planned
-        var foreign = completedGym(); foreign.userID = UUID()
+        let foreign = completedGym(userID: UUID())
         var old = completedGym(); old.endedAt = calendar.date(byAdding: .day, value: -1, to: now)
         XCTAssertNil(ActiveCalorieEstimate.make(healthKilocalories: nil, steps: nil, heightCM: 175, weightKG: 80,
             ownerID: owner, activities: values + [foreign, old], feedback: [:], now: now, calendar: calendar))
     }
 
-    private func completedGym() -> Activity {
-        Activity(id: UUID(), userID: owner, sport: .gym, subtype: "Push", status: .completed,
+    private func completedGym(userID: UUID? = nil) -> Activity {
+        Activity(id: UUID(), userID: userID ?? owner, sport: .gym, subtype: "Push", status: .completed,
                  plannedAt: nil, startedAt: now.addingTimeInterval(-3600), endedAt: now,
                  distanceMeters: nil, plannedDurationMinutes: 60, note: nil, plannedSessionID: nil)
     }
