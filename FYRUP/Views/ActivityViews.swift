@@ -312,15 +312,18 @@ private extension Button {
 struct LiveActivityView: View {
     @Environment(AppStore.self) private var store
     @State private var workoutActivityID: UUID?
+    @State private var blindWorkoutID: UUID?
     @State private var resolved = false
     var body: some View {
         Group {
-            if let workoutActivityID { WorkoutTrackingView(activityID: workoutActivityID) }
+            if let blindWorkoutID { BlindWorkoutDetailView(id: blindWorkoutID) }
+            else if let workoutActivityID { WorkoutTrackingView(activityID: workoutActivityID) }
             else if resolved { FreeActivityView() }
             else { ProgressView() }
         }.task {
             guard !resolved else { return }
             if store.myActivity?.workoutPlanID != nil { workoutActivityID = store.myActivity?.id }
+            blindWorkoutID = store.myActivity?.blindWorkoutID
             resolved = true
         }
     }
@@ -514,7 +517,9 @@ struct ActivityDetailView: View {
     }
 
     @ViewBuilder private var detailAction: some View {
-        if owner.id == store.profile?.id, activity.status == .live {
+        if owner.id == store.profile?.id, let blindID = activity.blindWorkoutID {
+            NavigationLink { BlindWorkoutDetailView(id: blindID) } label: { Text("BLIND WORKOUT ÖFFNEN") }.buttonStyle(PrimaryButtonStyle())
+        } else if owner.id == store.profile?.id, activity.status == .live {
             NavigationLink { LiveActivityView() } label: { Text("TRAINING ÖFFNEN") }.buttonStyle(PrimaryButtonStyle())
         } else if activity.status == .live {
             Button("MITZIEHEN 🔥") { showsJoin = true }.buttonStyle(PrimaryButtonStyle())

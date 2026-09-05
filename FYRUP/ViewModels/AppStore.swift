@@ -37,6 +37,8 @@ final class AppStore {
     let workoutDrafts: WorkoutDraftStore
     let steps: StepStore
     let weekly: WeeklyFlameStore
+    let blind: BlindWorkoutStore
+    let shot: CallMyShotStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
@@ -47,6 +49,8 @@ final class AppStore {
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.steps = steps ?? StepStore(repository: repository)
         self.weekly = weekly ?? WeeklyFlameStore(repository: repository)
+        self.blind = BlindWorkoutStore(repository: repository)
+        self.shot = CallMyShotStore(repository: repository, weekly: self.weekly)
     }
 
     static func make() -> AppStore {
@@ -59,7 +63,8 @@ final class AppStore {
                 ?? (arguments.contains("--persistent-demo") ? "app.fyrup.demo.workouts" : nil)
             let localDefaults = UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard
             let drafts = WorkoutDraftStore(defaults: localDefaults)
-            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite), weeklyStorage: DemoWeeklyFlameStorage(persistenceSuiteName: suite))
+            let demoUser = arguments.first(where: { $0.hasPrefix("--demo-user=") }).flatMap { UUID(uuidString: String($0.dropFirst("--demo-user=".count))) } ?? DemoRepository.defaultUserID
+            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), userID: demoUser, workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite), weeklyStorage: DemoWeeklyFlameStorage(persistenceSuiteName: suite), blindStorage: DemoBlindWorkoutStorage(persistenceSuiteName: suite))
             let steps = arguments.contains("--steps-demo")
                 ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
                 : StepStore(repository: repository, defaults: localDefaults)
@@ -98,6 +103,8 @@ final class AppStore {
         workoutDrafts.clearCurrentAccount()
         steps.reset()
         weekly.reset()
+        blind.reset()
+        shot.reset()
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
         goals = .empty; friendRequests = []; userSearchResults = []; errorMessage = nil
@@ -226,6 +233,8 @@ final class AppStore {
         await saveOnboardingStep("done")
         guard errorMessage == nil, session?.userID == userID else { return }
         workouts.activate(userID: session?.userID)
+        blind.activate(userID: session?.userID)
+        shot.activate(userID: session?.userID)
         workoutDrafts.activate(userID: session?.userID)
         route = .main
         await analytics.track(.onboardingCompleted)
@@ -322,8 +331,8 @@ final class AppStore {
 
     func sendFriendRequest(to profile: Profile) async { await perform { try await self.repository.sendFriendRequest(to: profile.id); await self.analytics.track(.friendRequestSent); self.userSearchResults.removeAll { $0.id == profile.id } } }
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
-    func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); self.weekly.removeFriend(userID: profile.id); await self.refresh() } }
-    func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); self.weekly.removeFriend(userID: profile.id); await self.refresh() } }
+    func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); self.shot.removeFriend(userID: profile.id); self.blind.removeFriend(userID: profile.id); await self.refresh() } }
+    func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); self.shot.removeFriend(userID: profile.id); self.blind.removeFriend(userID: profile.id); await self.refresh() } }
     func deleteAccount() async {
         await perform {
             let userID = self.session?.userID
@@ -333,6 +342,8 @@ final class AppStore {
             self.workoutDrafts.clearCurrentAccount()
             self.steps.reset(clearLocalPreferences: true)
             self.weekly.reset(clearLocalPreferences: true)
+            self.blind.reset()
+            self.shot.reset()
             self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil
             self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []
             self.notifications = []; self.trainingGroups = []; self.avatarCache = [:]
@@ -382,6 +393,8 @@ final class AppStore {
     private func loadProfileAndRoute() async throws {
         guard let userID = session?.userID else { route = .signedOut; return }
         workouts.activate(userID: userID)
+        blind.activate(userID: userID)
+        shot.activate(userID: userID)
         workoutDrafts.activate(userID: userID)
         profile = try await repository.profile(userID: userID)
         guard session?.userID == userID else { return }
@@ -412,6 +425,19 @@ private extension String {
 }
 
 private actor DemoRepositoryPlaceholder: AppRepository {
+    func blindWorkouts() async throws -> [BlindWorkoutSummary] { throw AppError.configuration }
+    func callMyShot(expectedWeekID: UUID) async throws -> WeeklyCommitment { throw AppError.configuration }
+    func setShotReaction(commitmentID: UUID, reaction: ShotReaction?) async throws -> Bool { throw AppError.configuration }
+    func blindWorkout(id: UUID) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func sendBlindWorkout(_ draft: BlindWorkoutDraft) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func respondToBlindWorkout(id: UUID, accept: Bool, equipmentConfirmed: Bool) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func planBlindWorkout(id: UUID, startsAt: Date) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func startBlindWorkout(id: UUID) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func saveBlindWorkoutExercise(id: UUID, exerciseID: UUID, sets: [WorkoutSetLog], complete: Bool) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func finishBlindWorkout(id: UUID) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func cancelBlindWorkout(id: UUID) async throws -> BlindWorkoutState { throw AppError.configuration }
+    func copyBlindWorkout(id: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
+    func reactToBlindWorkout(id: UUID, reaction: ReactionKind?) async throws -> BlindWorkoutState { throw AppError.configuration }
     func weeklyState(userID: UUID, timezone: String?) async throws -> WeeklyFlameState { throw AppError.configuration }
     func confirmWeeklyGoal(_ goal: Int, timezone: String) async throws -> WeeklyFlameState { throw AppError.configuration }
     func setNextWeeklyGoal(_ goal: Int) async throws -> WeeklyFlameState { throw AppError.configuration }

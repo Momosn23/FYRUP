@@ -3,6 +3,15 @@ import Foundation
 /// Isolated demo backend, not a source of credits in a signed-in production session.
 /// An explicit suite persists confirmed goals, immutable weekly periods and receipts.
 actor DemoWeeklyFlameStorage {
+    private struct Commitment: Codable {
+        var id = UUID()
+        var calledAt: Date
+        var ownerName: String
+        var audience: Set<UUID>
+        var reactions: [UUID: ShotReaction] = [:]
+        var reactionNotificationAuthors: Set<UUID> = []
+    }
+
     private struct Week: Codable {
         var id = UUID()
         var label: String
@@ -16,6 +25,8 @@ actor DemoWeeklyFlameStorage {
         var finalizedAt: Date?
         var celebrationClaimed = false
         var reactions: [UUID: ReactionKind] = [:]
+        // Optional so already-persisted weekly state remains readable after this extension.
+        var commitment: Commitment?
     }
 
     private struct Account: Codable {
@@ -31,6 +42,8 @@ actor DemoWeeklyFlameStorage {
     private struct State: Codable {
         var accounts: [UUID: Account] = [:]
         var revokedFriendships: Set<String> = []
+        var notifications: [UUID: [AppNotification]]?
+        var preferences: [UUID: NotificationPreferences]?
     }
 
     private var state: State
@@ -133,7 +146,52 @@ actor DemoWeeklyFlameStorage {
                               startsAt: week.startsAt, endsAt: week.endsAt, weeklyGoal: week.goal,
                               completedWorkouts: week.credits.count, flameEarned: week.earnedAt != nil,
                               flameEarnedAt: week.earnedAt, finalized: week.finalizedAt != nil, finalizedAt: week.finalizedAt,
-                              reactionCounts: counts, myReaction: visibleReactions[viewer])
+                              reactionCounts: counts, myReaction: visibleReactions[viewer],
+                              commitment: commitmentDocument(week, owner: owner, viewer: viewer))
+    }
+
+    private func commitmentDocument(_ week: Week, owner: UUID, viewer: UUID) -> WeeklyCommitment? {
+        guard let commitment = week.commitment else { return nil }
+        let visible = commitment.reactions.filter { !state.revokedFriendships.contains(friendshipKey(owner, $0.key)) }
+        let counts = ShotReaction.allCases.compactMap { reaction -> ShotReactionCount? in
+            let count = visible.values.filter { $0 == reaction }.count
+            return count == 0 ? nil : ShotReactionCount(reaction: reaction, count: count)
+        }
+        // Success and finalization are projections of the same authoritative week;
+        // they cannot diverge or be set by a separate client mutation.
+        return WeeklyCommitment(id: commitment.id, userID: owner, weekID: week.id, weekStartDate: week.label,
+                                weeklyGoal: week.goal, calledAt: commitment.calledAt, achieved: week.earnedAt != nil,
+                                achievedAt: week.earnedAt, finalized: week.finalizedAt != nil,
+                                reactionCounts: counts, myReaction: visible[viewer])
+    }
+
+    private func appendNotification(owner: UUID, recipient: UUID, actor: UUID, commitmentID: UUID,
+                                    type: String, title: String, body: String, receipt: Date) {
+        guard recipient != actor, !state.revokedFriendships.contains(friendshipKey(recipient, actor)) else { return }
+        let preference = state.preferences?[recipient] ?? .standard
+        guard (type == "shot_reaction" ? preference.reactions : preference.weeklyGoal),
+              let weekID = state.accounts[owner]?.weeks.first(where: { $0.commitment?.id == commitmentID })?.id else { return }
+        var notifications = state.notifications ?? [:]
+        let exists = notifications[recipient, default: []].contains {
+            $0.type == type && $0.data?["commitment_id"] == commitmentID.uuidString
+                && (type != "shot_reaction" || $0.data?["actor_id"] == actor.uuidString)
+        }
+        guard !exists else { return }
+        notifications[recipient, default: []].insert(AppNotification(
+            id: UUID(), type: type, title: title, body: body,
+            data: ["commitment_id": commitmentID.uuidString, "week_id": weekID.uuidString,
+                   "user_id": owner.uuidString, "actor_id": actor.uuidString],
+            createdAt: receipt, readAt: nil), at: 0)
+        state.notifications = notifications
+    }
+
+    private func announceAchievement(_ week: Week, owner: UUID, receipt: Date) {
+        guard let commitment = week.commitment else { return }
+        for friend in commitment.audience {
+            appendNotification(owner: owner, recipient: friend, actor: owner, commitmentID: commitment.id,
+                               type: "shot_achieved", title: "CALLED IT ✓",
+                               body: "\(commitment.ownerName) hat das angekündigte Wochenziel geschafft.", receipt: receipt)
+        }
     }
 
     private func snapshot(owner: UUID, viewer: UUID, receipt: Date, includeHistory: Bool = true) throws -> WeeklyFlameState {
@@ -224,6 +282,7 @@ actor DemoWeeklyFlameStorage {
         account.weeks[index].credits.insert(activity.id)
         if account.weeks[index].goalConfirmed && account.weeks[index].earnedAt == nil && account.weeks[index].credits.count >= account.weeks[index].goal {
             account.weeks[index].earnedAt = end
+            announceAchievement(account.weeks[index], owner: activity.userID, receipt: receipt)
         }
         state.accounts[activity.userID] = account
         try persist()
@@ -252,13 +311,86 @@ actor DemoWeeklyFlameStorage {
         return true
     }
 
+    func callMyShot(userID: UUID, expectedWeekID: UUID, friends: Set<UUID>, displayName: String) throws -> WeeklyCommitment {
+        try checkLoaded()
+        let receipt = now()
+        try advance(userID: userID, receipt: receipt)
+        guard var account = state.accounts[userID], account.confirmedAt != nil, let current = account.weeks.last,
+              current.goalConfirmed else { throw AppError.conflict("Bestätige zuerst dein persönliches Wochenziel.") }
+        // This check runs against the authoritative current week after rollover,
+        // before any commitment, audience, or notification is created.
+        guard current.id == expectedWeekID else {
+            throw AppError.conflict("Deine Woche hat gewechselt. Prüfe das aktuelle Ziel und bestätige deinen Call erneut.")
+        }
+        guard current.commitment == nil else { throw AppError.conflict("Du hast dein Wochenziel diese Woche bereits angekündigt.") }
+        guard current.earnedAt == nil else { throw AppError.conflict("Du hast dein Wochenziel bereits erreicht. Kündige es nächste Woche an.") }
+        let audience = friends.filter { $0 != userID && !state.revokedFriendships.contains(friendshipKey(userID, $0)) }
+        let commitment = Commitment(calledAt: receipt, ownerName: displayName, audience: Set(audience))
+        let index = account.weeks.count - 1
+        account.weeks[index].commitment = commitment
+        state.accounts[userID] = account
+        for friend in audience {
+            appendNotification(owner: userID, recipient: friend, actor: userID, commitmentID: commitment.id,
+                               type: "shot_called", title: "CALL MY SHOT",
+                               body: "\(displayName) kündigt \(current.goal) Trainings für diese Woche an.", receipt: receipt)
+        }
+        try persist()
+        guard let result = commitmentDocument(account.weeks[index], owner: userID, viewer: userID) else { throw AppError.server }
+        return result
+    }
+
+    func reactToShot(commitmentID: UUID, viewer: UUID, friends: Set<UUID>, reaction: ShotReaction?, displayName: String) throws -> Bool {
+        try checkLoaded()
+        guard let owner = state.accounts.first(where: { $0.value.weeks.contains { $0.commitment?.id == commitmentID } })?.key,
+              owner != viewer, canRead(owner: owner, viewer: viewer, friends: friends) else { throw AppError.accessDenied }
+        try advance(userID: owner, receipt: now())
+        guard var account = state.accounts[owner], let index = account.weeks.firstIndex(where: { $0.commitment?.id == commitmentID }),
+              var commitment = account.weeks[index].commitment else { throw AppError.accessDenied }
+        let previous = commitment.reactions[viewer]
+        commitment.reactions[viewer] = reaction
+        if let reaction, previous != reaction, (state.preferences?[owner] ?? .standard).reactions,
+           commitment.reactionNotificationAuthors.insert(viewer).inserted {
+            appendNotification(owner: owner, recipient: owner, actor: viewer, commitmentID: commitmentID,
+                               type: "shot_reaction", title: "\(displayName) unterstützt dein Wochenziel",
+                               body: reaction.rawValue, receipt: now())
+        }
+        account.weeks[index].commitment = commitment
+        state.accounts[owner] = account
+        try persist()
+        return true
+    }
+
+    func notifications(userID: UUID, friends: Set<UUID>) throws -> [AppNotification] {
+        try checkLoaded()
+        return (state.notifications?[userID] ?? []).filter { notification in
+            guard let ownerText = notification.data?["user_id"], let owner = UUID(uuidString: ownerText),
+                  let actorText = notification.data?["actor_id"], let actor = UUID(uuidString: actorText),
+                  let idText = notification.data?["commitment_id"], let id = UUID(uuidString: idText),
+                  state.accounts[owner]?.weeks.contains(where: { $0.commitment?.id == id }) == true else { return false }
+            return canRead(owner: owner, viewer: userID, friends: friends)
+                && actor != userID && friends.contains(actor)
+                && !state.revokedFriendships.contains(friendshipKey(userID, actor))
+        }
+    }
+
+    func setNotificationPreferences(_ preferences: NotificationPreferences, userID: UUID) throws {
+        try checkLoaded()
+        var values = state.preferences ?? [:]
+        values[userID] = preferences; state.preferences = values
+        try persist()
+    }
+
     func revokeFriendship(_ first: UUID, _ second: UUID) throws {
         try checkLoaded()
         state.revokedFriendships.insert(friendshipKey(first, second))
         for owner in [first, second] {
             guard var account = state.accounts[owner] else { continue }
             let other = owner == first ? second : first
-            for index in account.weeks.indices { account.weeks[index].reactions.removeValue(forKey: other) }
+            for index in account.weeks.indices {
+                account.weeks[index].reactions.removeValue(forKey: other)
+                account.weeks[index].commitment?.reactions.removeValue(forKey: other)
+                account.weeks[index].commitment?.audience.remove(other)
+            }
             state.accounts[owner] = account
         }
         try persist()
@@ -267,9 +399,15 @@ actor DemoWeeklyFlameStorage {
     func deleteAccount(userID: UUID) throws {
         try checkLoaded()
         state.accounts.removeValue(forKey: userID)
+        state.notifications?.removeValue(forKey: userID)
+        state.preferences?.removeValue(forKey: userID)
         for owner in Array(state.accounts.keys) {
             guard var account = state.accounts[owner] else { continue }
-            for index in account.weeks.indices { account.weeks[index].reactions.removeValue(forKey: userID) }
+            for index in account.weeks.indices {
+                account.weeks[index].reactions.removeValue(forKey: userID)
+                account.weeks[index].commitment?.reactions.removeValue(forKey: userID)
+                account.weeks[index].commitment?.audience.remove(userID)
+            }
             state.accounts[owner] = account
         }
         try persist()

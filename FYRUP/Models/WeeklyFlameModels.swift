@@ -27,6 +27,7 @@ struct WeeklyProgress: Codable, Identifiable, Equatable, Sendable {
     let finalizedAt: Date?
     let reactionCounts: [WeeklyFlameReactionCount]
     let myReaction: ReactionKind?
+    var commitment: WeeklyCommitment? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, timezone, finalized
@@ -34,6 +35,7 @@ struct WeeklyProgress: Codable, Identifiable, Equatable, Sendable {
         case weeklyGoal = "weekly_goal", completedWorkouts = "completed_workouts", flameEarned = "flame_earned"
         case flameEarnedAt = "flame_earned_at", finalizedAt = "finalized_at"
         case reactionCounts = "reaction_counts", myReaction = "my_reaction"
+        case commitment
     }
 
     var fraction: Double {
@@ -66,6 +68,7 @@ struct WeeklyProgress: Codable, Identifiable, Equatable, Sendable {
         if let finalizedAt, !finalizedAt.timeIntervalSince1970.isFinite || finalizedAt < endsAt { return false }
         guard reactionCounts.allSatisfy({ $0.count >= 0 }),
               Set(reactionCounts.map(\.reaction)).count == reactionCounts.count else { return false }
+        guard commitment.map({ $0.isValid(for: self) }) ?? true else { return false }
         return flameEarned || (reactionCounts.isEmpty && myReaction == nil)
     }
 

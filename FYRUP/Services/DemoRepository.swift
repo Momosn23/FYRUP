@@ -8,6 +8,7 @@ actor DemoRepository: AppRepository {
     let workoutStorage: DemoWorkoutStorage
     let stepStorage: DemoStepStorage
     let weeklyStorage: DemoWeeklyFlameStorage
+    let blindStorage: DemoBlindWorkoutStorage
     let hasConfirmedDemoWeeklyGoal: Bool
     private let now: @Sendable () -> Date
     private var avatarObjects: [String: Data] = [:]
@@ -20,11 +21,12 @@ actor DemoRepository: AppRepository {
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
 
-    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
+    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), blindStorage: DemoBlindWorkoutStorage = DemoBlindWorkoutStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
         meID = userID
         self.workoutStorage = workoutStorage
         self.stepStorage = stepStorage
         self.weeklyStorage = weeklyStorage
+        self.blindStorage = blindStorage
         self.hasConfirmedDemoWeeklyGoal = !startsWithoutProfile
         self.now = now
         profileExists = !startsWithoutProfile
@@ -122,6 +124,14 @@ actor DemoRepository: AppRepository {
     }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity {
         try await restoreWorkoutActivities()
+        try await requireBlindCompletionAllowed(activityID: id)
+        return try await completeValidatedActivity(id: id, distanceMeters: distanceMeters)
+    }
+
+    // Internal completion core. Only the regular guarded entry point or the Blind
+    // finish flow after validating every revealed exercise may call it.
+    func completeValidatedActivity(id: UUID, distanceMeters: Int?) async throws -> Activity {
+        try await restoreWorkoutActivities()
         guard let index = activities.firstIndex(where: { $0.id == id && $0.userID == meID }), [.live, .completed].contains(activities[index].status) else { throw AppError.server }
         if activities[index].status == .completed {
             let completed = activities[index]
@@ -145,6 +155,7 @@ actor DemoRepository: AppRepository {
         activities[currentIndex].status = .completed; activities[currentIndex].endedAt = now; activities[currentIndex].distanceMeters = distanceMeters
         let completed = activities[currentIndex]
         try await workoutStorage.updateActivity(completed, userID: meID)
+        try await synchronizeBlindActivity(completed)
         try await weeklyStorage.recordCompletion(completed)
         return completed
     }
@@ -157,6 +168,7 @@ actor DemoRepository: AppRepository {
             cancelled.pausedAt = nil
         }
         try await workoutStorage.updateActivity(cancelled, userID: meID)
+        try await synchronizeBlindActivity(cancelled)
         activities.removeAll { $0.id == id }
     }
 
@@ -173,6 +185,7 @@ actor DemoRepository: AppRepository {
         }
         let updated = activities[index]
         try await workoutStorage.updateActivity(updated, userID: meID)
+        try await synchronizeBlindActivity(updated)
         return updated
     }
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
@@ -218,13 +231,18 @@ actor DemoRepository: AppRepository {
     func requests() async throws -> [Profile] { [] }
     func sendFriendRequest(to userID: UUID) async throws {}
     func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
-    func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); try await weeklyStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
-    func block(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); try await weeklyStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
+    func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); try await weeklyStorage.revokeFriendship(meID, userID); try await blindStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
+    func block(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); try await weeklyStorage.revokeFriendship(meID, userID); try await blindStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
-    func notifications() async throws -> [AppNotification] { try await workoutStorage.notifications(userID: meID) + demoNotifications }
+    func notifications() async throws -> [AppNotification] { try await (workoutStorage.notifications(userID: meID) + blindNotifications() + weeklyNotifications() + demoNotifications).sorted { $0.createdAt > $1.createdAt } }
     func notificationPreferences() async throws -> NotificationPreferences { pushPreferences }
-    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { pushPreferences = preferences; return preferences }
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        try await blindStorage.setNotificationPreferences(preferences, userID: meID)
+        try await weeklyStorage.setNotificationPreferences(preferences, userID: meID)
+        pushPreferences = preferences
+        return preferences
+    }
     func goalSummary() async throws -> GoalSummary {
         let own = try await weeklyState(userID: meID, timezone: nil)
         let friends = try await friendsWeeklyState()
@@ -237,5 +255,5 @@ actor DemoRepository: AppRepository {
     }
     func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}
-    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID); await stepStorage.deleteAccount(userID: meID); try await weeklyStorage.deleteAccount(userID: meID) }
+    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID); await stepStorage.deleteAccount(userID: meID); try await weeklyStorage.deleteAccount(userID: meID); try await blindStorage.deleteAccount(userID: meID) }
 }

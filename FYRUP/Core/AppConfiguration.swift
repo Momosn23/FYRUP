@@ -57,6 +57,7 @@ struct AppConfiguration: Sendable {
 enum AppError: LocalizedError, Equatable {
     case configuration
     case authentication
+    case accessDenied
     case validation(String)
     case conflict(String)
     case network
@@ -66,9 +67,15 @@ enum AppError: LocalizedError, Equatable {
         switch self {
         case .configuration: "Die App ist noch nicht mit dem Backend verbunden."
         case .authentication: "Bitte melde dich erneut an."
+        case .accessDenied: "Du hast auf diesen Inhalt keinen Zugriff mehr."
         case .validation(let message), .conflict(let message): message
         case .network: "Du scheinst offline zu sein. Versuche es gleich noch einmal."
         case .server: "Das hat gerade nicht geklappt. Versuche es erneut."
         }
+    }
+
+    var isAccessDenied: Bool {
+        self == .authentication || self == .accessDenied
+            || self == .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr.")
     }
 }

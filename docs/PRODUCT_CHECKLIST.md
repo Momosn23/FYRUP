@@ -10,10 +10,10 @@ Nachweise werden getrennt geführt: **Code integriert → Backend geprüft/ausge
 
 | Bereich | Belegter Stand | Noch nicht abgenommen |
 | --- | --- | --- |
-| Trainingspläne / Bibliothek | 105 lokale PostgreSQL-Tests; native Unit-Tests bestanden. UI-Custom- und Entwurfs-Neustart bestanden, Einfach/Tracken noch fehlgeschlagen. [Arbeitsnachweis](WORKOUT_IMPLEMENTATION_STATUS.md) | Fehlerbehebung mit erneutem Simulatorlauf, visuelle/manuelle Abnahme, produktives Backend und iPhone |
+| Trainingspläne / Bibliothek | 105 lokale PostgreSQL-Tests; native Unit-Tests bestanden. Build24: alle4 Workout-UI-Flows einschließlich Einfach/Tracken/Neustart bestanden. [Arbeitsnachweis](WORKOUT_IMPLEMENTATION_STATUS.md) | Frische visuelle/manuelle Abnahme, produktives Backend und iPhone |
 | Apple Health / Schritte | 100 lokale PostgreSQL-Tests,32 native Unit-Tests bestanden. Optionalität im UI bestanden, Freigabe noch fehlgeschlagen. [Arbeitsnachweis](HEALTH_IMPLEMENTATION_STATUS.md) | Freigabe-UI, visuelle Abnahme, produktives Backend/Signing und Gerätetest |
-| Neues Wochenziel-/Flammensystem | Wochenregeln, Speicherung, helle UI und Tests integriert;183 Weekly- plus205 Bestands-DB-Prüfungen gemeinsam bestanden. Weitere50 Onboarding-DB-Tests bestanden. [Arbeitsnachweis](WEEKLY_IMPLEMENTATION_STATUS.md) | Nativer Weekly-Lauf, produktive Migration, manuelle und iPhone-Abnahme |
-| Blind Workout / Call My Shot | Anforderungen erfasst | Implementierung und sämtliche Tests |
+| Neues Wochenziel-/Flammensystem | 183 Weekly-DB- plus50 Onboardingprüfungen bestanden; Build24:30 Store- und11/12 Repository-Tests bestanden, Zielwechsel-/Neustart-UI bestanden. Testfixture-Korrektur vorbereitet. [Arbeitsnachweis](WEEKLY_IMPLEMENTATION_STATUS.md) | Nativer Wiederholungslauf, produktive Migration, manuelle und iPhone-Abnahme |
+| Blind Workout / Call My Shot | Server, Modelle, Speicherung, helle UI und neue native Tests integriert. 678 gemeinsame lokale DB-Prüfungen mit Wochen-ID-Absicherung sowie29 Push-Dispatcher-Tests bestanden. [Arbeitsnachweis](SOCIAL_EXTENSIONS_IMPLEMENTATION_STATUS.md) | Neue native Ausführung, Produktiv-Backend, visuelle Abnahme, Push und iPhone |
 | Helles Grunddesign | Bestehende SwiftUI-Seiten und Referenzliste vorhanden | Vergleich jeder Seite und Integration der neuen Funktionen |
 
 Bestandsnachweis: Cloud-Build17 (`4311282`),11 UI-Tests bestanden. Build18 (`f461c1b`) erfolgreich; Einzelbilder visuell geprüft, Abweichungen in VISUAL_QA_BUILD18.md und VISUAL_QA_BUILD18_DETAILS.md dokumentiert. Feature-Builds19/20 scheiterten beim Kompilieren;21 an einer Schritte-Zeitgrenzenprüfung, jeweils korrigiert. **Build22 (`b899685`):117 native Unit-Tests bestanden;19 UI-Tests tatsächlich ausgeführt,15 bestanden und4 fehlgeschlagen.** Kein grüner Feature-Gesamtlauf. Echte iPhone-/HealthKit-Abnahme und TestFlight-Auslieferung der neuen Funktionen weiterhin **NICHT AUSGEFÜHRT**.
@@ -21,6 +21,8 @@ Bestandsnachweis: Cloud-Build17 (`4311282`),11 UI-Tests bestanden. Build18 (`f46
 Dokumentenprüfung am 05.09.2026: 230 eindeutige Hauptlisten-IDs, alle 41 Auftragstests, alle 127 verlangten Übungs-Gruppeneinträge im Katalog-Anhang und 16 lokale Dokumentlinks geprüft. Die 127 Einträge sind nach benannter Singular-/Plural-Zuordnung in den 122 Übungsnamen des Dateientwurfs enthalten. Das prüft Vollständigkeit der Liste/Namen, nicht Muskelmetadaten, App-Verhalten oder Datenbankfunktion.
 
 ## 2. Quellen und Vorrang
+
+Aktualisierung Build24 (`bb03c6f`):159 Unit-Tests ausgeführt,158 bestanden;20 UI-Tests ausgeführt,18 bestanden. Alle4 Trainingsplan-Bedienabläufe und Weekly-Zielwechsel/Neustart bestanden. Drei Korrekturen für den nächsten Lauf: fehlendes Testprofil, inzwischen umbenannter Feed-Button sowie gezieltes Antippen des inneren nativen Schritte-Schalters. Produktive Strukturprüfung: Erweiterungen noch nicht ausgerollt. Der neuere Stand ergänzt die historische Build22-Bilanz oben.
 
 Originale: jeweils `pasted-text.txt` im genannten Unterordner von `C:/Users/Momo/.codex/attachments/`.
 

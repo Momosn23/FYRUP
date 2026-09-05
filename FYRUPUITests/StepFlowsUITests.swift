@@ -21,7 +21,11 @@ final class StepFlowsUITests: XCTestCase {
         // settings screen again after navigation, never an inactive stack's row.
         let visible = query.allElementsBoundByIndex.filter { $0.exists && $0.isHittable }
         XCTAssertEqual(visible.count, 1, "Genau eine sichtbare Freigabe-Einstellung erwartet.", file: file, line: line)
-        return visible.first ?? query.firstMatch
+        let row = visible.first ?? query.firstMatch
+        // Native Form exposes a full-width labeled switch row plus a nested
+        // switch for the actual thumb. Tapping the row's center hits its label.
+        let controls = row.descendants(matching: .switch).allElementsBoundByIndex.filter { $0.exists && $0.isHittable }
+        return controls.last ?? row
     }
 
     private func launch() -> XCUIApplication {

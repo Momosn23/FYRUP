@@ -83,7 +83,10 @@ struct OwnWeeklyCard: View {
             TimelineView(.periodic(from: .now, by: 30)) { _ in
                 VStack(alignment: .leading, spacing: 13) {
                     HStack { Text("Deine Woche").font(.headline); Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted) }
-                    if let week = store.weekly.currentWeek { WeeklyProgressContent(week: week) }
+                    if let week = store.weekly.currentWeek {
+                        WeeklyProgressContent(week: week)
+                        if let commitment = week.commitment { ShotStatusBadge(commitment: commitment) }
+                    }
                     else if store.weekly.needsGoalConfirmation == true {
                         Text("Lege dein persönliches Wochenziel fest.").font(.subheadline).foregroundStyle(FYColor.muted)
                         Label("Ziel auswählen", systemImage: "target").font(.subheadline.bold()).foregroundStyle(FYColor.lime)
@@ -125,6 +128,7 @@ struct WeeklyFlameDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Deine Flames").font(.largeTitle.weight(.black))
                 if let week = store.weekly.currentWeek { WeeklyProgressContent(week: week).fyCard() }
+                OwnShotCard()
                 if let state = store.weekly.state, state.goalConfirmed {
                     HStack {
                         streakMetric(state.currentStreak, title: "Wochen in Folge")
@@ -149,6 +153,9 @@ struct WeeklyFlameDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Woche ab \(weeklyDateLabel(week.weekStartDate))").font(.subheadline.bold())
                             Text(week.flameEarned ? "Persönliches Ziel geschafft" : "Diese Woche nicht erreicht").font(.caption).foregroundStyle(FYColor.muted)
+                            if let commitment = week.commitment {
+                                Text(commitment.achieved ? "🎯 CALLED IT ✓" : "🎯 Neue Woche, neue Chance.").font(.caption.bold()).foregroundStyle(commitment.achieved ? FYColor.lime : FYColor.muted)
+                            }
                         }
                         Spacer()
                         Text(week.progressText).font(.subheadline.bold()).monospacedDigit()
@@ -183,6 +190,7 @@ struct FriendWeeklyLine: View {
                 HStack(spacing: 4) {
                     Text(week.progressText).monospacedDigit()
                     if week.flameEarned { Image(systemName: "flame.fill").foregroundStyle(FYColor.coral) }
+                    if let commitment = week.commitment { Text(commitment.achieved ? "🎯 CALLED IT ✓" : "🎯 Called: \(commitment.weeklyGoal)/\(commitment.weeklyGoal)").foregroundStyle(FYColor.lime) }
                 }.font(.caption.bold()).foregroundStyle(FYColor.muted)
             }
         }
@@ -199,6 +207,7 @@ struct FriendWeeklyCard: View {
                     Text("Diese Woche").font(.headline)
                     WeeklyProgressContent(week: week)
                     Text("\(state.currentStreak) Wochen in Folge").font(.subheadline).foregroundStyle(FYColor.muted)
+                    FriendShotContent(week: week)
                     if week.flameEarned {
                         HStack(spacing: 10) {
                             ForEach(ReactionKind.allCases, id: \.self) { reaction in
@@ -245,9 +254,13 @@ struct FlameCelebrationView: View {
                 Image(systemName: "flame.fill").font(.system(size: 98)).foregroundStyle(FYColor.coral)
                     .shadow(color: FYColor.coral.opacity(0.24), radius: 24)
             }.scaleEffect(appeared ? 1 : 0.82).opacity(appeared ? 1 : 0)
-            Text("WOCHENZIEL GESCHAFFT").font(.title2.weight(.black)).multilineTextAlignment(.center)
+            Text(celebration.week.commitment?.achieved == true ? "CALLED IT. 🎯🔥" : "WOCHENZIEL GESCHAFFT").font(.title2.weight(.black)).multilineTextAlignment(.center)
             Text("\(celebration.week.progressText) Trainings").font(.title.weight(.bold)).monospacedDigit()
             Text("Deine Flamme gehört dir.").font(.title3).foregroundStyle(FYColor.muted)
+            if celebration.week.commitment?.achieved == true {
+                Text("Du hast gesagt, du ziehst durch. Du hast es gemacht.").font(.headline).multilineTextAlignment(.center)
+                    .accessibilityIdentifier("called-it-celebration")
+            }
             Text("Stark. Nächste Woche wieder.").font(.subheadline).foregroundStyle(FYColor.muted)
             Spacer()
             Button("Weiter") { store.weekly.dismissCelebration() }.buttonStyle(PrimaryButtonStyle())

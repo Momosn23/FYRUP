@@ -51,9 +51,13 @@ struct MainTabView: View {
             await store.steps.activate(userID: userID)
             guard store.session?.userID == userID, store.route == .main else { return }
             await store.weekly.activate(userID: userID)
+            guard store.session?.userID == userID else { return }
+            store.blind.activate(userID: userID)
+            store.shot.activate(userID: userID)
+            await store.blind.refreshSummaries()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && store.route == .main { Task { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends() } }
+            if phase == .active && store.route == .main { Task { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() } }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             Task { await store.steps.refresh(force: true); await store.weekly.refresh(force: true) }

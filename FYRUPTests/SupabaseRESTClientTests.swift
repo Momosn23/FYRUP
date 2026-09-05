@@ -33,8 +33,15 @@ final class SupabaseRESTClientTests: XCTestCase {
     }
 
     func testWorkoutErrorsDoNotExposeTechnicalMessages() {
-        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "forbidden"), .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr."))
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "forbidden"), .accessDenied)
         XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "plan_not_available"), .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert."))
         XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "23514", message: "check constraint"), .validation("Prüfe Name, Übungen, Sätze, Wiederholungen und optionale Gewichte."))
+    }
+
+    func testShotErrorsExplainConfirmedStateWithoutLeakingBackendCodes() {
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "weekly_commitment_exists"), .conflict("Dein Shot für diese Woche ist bereits gespeichert."))
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "weekly_goal_not_confirmed"), .validation("Bestätige zuerst dein persönliches Wochenziel."))
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "weekly_goal_already_reached"), .conflict("Du hast dein Wochenziel bereits erreicht. Ein neuer Call ist nächste Woche möglich."))
+        XCTAssertTrue(SupabaseRESTClient.appError(status: 403, code: "42501", message: "permission denied").isAccessDenied)
     }
 }

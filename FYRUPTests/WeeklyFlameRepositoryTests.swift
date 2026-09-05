@@ -288,6 +288,10 @@ final class WeeklyFlameRepositoryTests: XCTestCase {
         let clock = WeeklyRepositoryTestClock(noon)
         let storage = DemoWeeklyFlameStorage(now: { clock.now() })
         let momo = repository(clock, storage: storage)
+        // This helper starts before profile setup. Complete that real setup step
+        // before testing a subsequent change to the owner's privacy setting.
+        let profileFixture = await momo.me
+        try await momo.saveProfile(profileFixture)
         let max = repository(clock, storage: storage, userID: maxID)
         let stranger = repository(clock, storage: storage, userID: UUID())
         let initial = try await momo.confirmWeeklyGoal(3, timezone: "UTC")

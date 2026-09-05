@@ -61,7 +61,7 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["TRAINING BEENDEN"].tap()
         XCTAssertTrue(app.staticTexts["Workout geschafft!"].waitForExistence(timeout: 3))
         capture("08-workout-complete")
-        app.buttons["Auf Feed teilen"].tap()
+        app.buttons["Im Feed ansehen"].tap()
         XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
     }
 

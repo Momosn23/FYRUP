@@ -305,22 +305,23 @@ struct WorkoutTrackingView: View {
     }
 }
 
-private enum TrackingMode: String, CaseIterable, Identifiable {
+enum TrackingMode: String, CaseIterable, Identifiable {
     case easy, track
     var id: String { rawValue }
     var title: String { self == .easy ? "Einfach" : "Tracken" }
 }
 
-private struct TrackingSetSelection: Identifiable {
+struct TrackingSetSelection: Identifiable {
     let exerciseID: UUID
     let exerciseName: String
     let unit: String
     let set: WorkoutSetLog
+    var isBlind = false
     var id: UUID { self.set.id }
 }
 
 @MainActor
-private struct WorkoutSetEntrySheet: View {
+struct WorkoutSetEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     let selection: TrackingSetSelection
     let onSave: (WorkoutSetLog) async -> Bool
@@ -339,6 +340,15 @@ private struct WorkoutSetEntrySheet: View {
         return original.weight != input.weight || original.reps != input.reps
     }
 
+    private var validationMessage: String? {
+        if let message = input.validationMessage { return message }
+        guard selection.isBlind else { return nil }
+        if let weight = Double(input.weight.replacingOccurrences(of: ",", with: ".")), weight > 500 { return "Prüfe das Gewicht. Für Blind Workouts sind höchstens 500 kg erfassbar." }
+        let limit = selection.unit == "Sek." ? 300 : 30
+        if let reps = Int(input.reps), reps > limit { return "Für dieses Blind Workout sind höchstens \(limit) \(selection.unit) pro Satz erfassbar." }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -352,7 +362,7 @@ private struct WorkoutSetEntrySheet: View {
                     TextField("\(selection.unit) (optional)", text: $input.reps).keyboardType(.numberPad)
                         .accessibilityLabel(selection.unit == "Sek." ? "Sekunden" : "Wiederholungen").accessibilityIdentifier("set-reps")
                 }
-                if let validation = input.validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.coral) }
+                if let validation = validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.coral) }
                 if let error { Text(error).font(.footnote).foregroundStyle(FYColor.coral).accessibilityIdentifier("set-save-error") }
                 Section {
                     Button(selection.set.completed ? "Abgeschlossenen Satz speichern" : "Satz abschließen") { Task { await save(completed: true) } }
@@ -361,7 +371,7 @@ private struct WorkoutSetEntrySheet: View {
                     if selection.set.completed {
                         Button("Satz wieder öffnen") { Task { await save(completed: false) } }
                     }
-                }.disabled(isSaving || input.validationMessage != nil)
+                }.disabled(isSaving || validationMessage != nil)
             }.disabled(isSaving)
                 .scrollContentBackground(.hidden).background(FYColor.background)
                 .navigationTitle("Satz \(selection.set.setNumber)").navigationBarTitleDisplayMode(.inline)
@@ -380,7 +390,7 @@ private struct WorkoutSetEntrySheet: View {
     }
 
     private func save(completed: Bool) async {
-        guard !isSaving else { return }
+        guard !isSaving, validationMessage == nil else { return }
         isSaving = true; error = nil
         defer { isSaving = false }
         do {
@@ -482,7 +492,7 @@ private struct WorkoutSummaryMetric: View {
     }
 }
 
-private struct WorkoutSetRow: View {
+struct WorkoutSetRow: View {
     let set: WorkoutSetLog
     let unit: String
     let editable: Bool

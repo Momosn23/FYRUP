@@ -193,13 +193,17 @@ actor SupabaseRESTClient {
         if text.contains("invalid_group_name") { return .validation("Der Gruppenname braucht 2–40 Zeichen.") }
         if text.contains("group_name_exists") { return .conflict("Du hast bereits eine Gruppe mit diesem Namen.") }
         if text.contains("already_live") { return .conflict("Du hast bereits ein LIVE-Training.") }
+        if text.contains("weekly_commitment_exists") { return .conflict("Dein Shot für diese Woche ist bereits gespeichert.") }
+        if text.contains("weekly_week_changed") { return .conflict("Die Woche hat gewechselt. Prüfe dein aktuelles Ziel und bestätige es erneut.") }
+        if text.contains("weekly_goal_not_confirmed") { return .validation("Bestätige zuerst dein persönliches Wochenziel.") }
+        if text.contains("weekly_goal_already_reached") { return .conflict("Du hast dein Wochenziel bereits erreicht. Ein neuer Call ist nächste Woche möglich.") }
         if text.contains("already_sent_today") { return .conflict("Diesen Freund hast du heute bereits motiviert.") }
         if text.contains("friendship_exists") { return .conflict("Diese Freundschaftsanfrage gibt es bereits.") }
         if text.contains("start_in_past") { return .validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
         if text.contains("session_not_editable") { return .conflict("Dieses Training kann nicht mehr geändert werden.") }
         if text.contains("plan_not_available") { return .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert.") }
         if text.contains("not_friends") { return .conflict("Du kannst den Plan nur mit akzeptierten Freunden teilen.") }
-        if text.contains("forbidden") || code == "42501" { return .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr.") }
+        if text.contains("forbidden") || code == "42501" { return .accessDenied }
         if text.contains("invalid_exercise") || text.contains("invalid_plan") || text.contains("invalid_prescription") || code == "23514" {
             return .validation("Prüfe Name, Übungen, Sätze, Wiederholungen und optionale Gewichte.")
         }

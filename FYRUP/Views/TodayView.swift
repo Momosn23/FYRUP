@@ -16,6 +16,7 @@ struct TodayView: View {
                     MyFeedCard(activity: store.myActivity)
                     OwnWeeklyCard()
                     OwnStepsCard()
+                    BlindInboxCards()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                     Text("Deine Crew").font(.headline).padding(.top, 4)
                     ForEach(store.crew) { member in CrewFeedCard(member: member) }
@@ -29,7 +30,7 @@ struct TodayView: View {
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends() }
+        .refreshable { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
         .navigationBarHidden(true)
         .task {
             await store.steps.refresh()
@@ -43,6 +44,7 @@ struct TodayView: View {
                 await store.steps.refresh()
                 await store.weekly.refresh()
                 await store.weekly.refreshFriends()
+                await store.blind.refreshSummaries()
             }
         }
     }

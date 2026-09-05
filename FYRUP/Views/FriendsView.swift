@@ -9,6 +9,7 @@ struct FriendsView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 Text("Freunde").font(.largeTitle.weight(.black))
+                NavigationLink { BlindWorkoutsView() } label: { Label("Blind Workouts", systemImage: "eye").frame(maxWidth: .infinity, alignment: .leading).fyCard() }.buttonStyle(.plain).accessibilityIdentifier("open-blind-workouts")
                 Picker("Freunde", selection: $segment) { Text("Meine Freunde").tag(0); Text("Anfragen (\(store.friendRequests.count))").tag(1) }.pickerStyle(.segmented)
                 HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Freunde suchen …", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
                     .padding(.horizontal, 14).frame(height: 46).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 13))
@@ -45,6 +46,7 @@ struct FriendProfileView: View {
     @State private var confirmRemove = false
     @State private var recentActivities: [Activity] = []
     @State private var sharedPlans: [WorkoutPlan] = []
+    @State private var createsBlindWorkout = false
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -54,6 +56,7 @@ struct FriendProfileView: View {
                 if let bio = member.profile.bio { Text(bio).font(.subheadline).multilineTextAlignment(.center).foregroundStyle(FYColor.ink.opacity(0.8)) }
                 FriendWeeklyCard(userID: member.id)
                 FriendStepsLine(userID: member.id)
+                Button { createsBlindWorkout = true } label: { Label("Blind Workout erstellen", systemImage: "eye") }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("create-blind-for-friend")
                 VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
                 WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
                 if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
@@ -69,6 +72,7 @@ struct FriendProfileView: View {
             }.padding(20)
         }
         .background(FYColor.background)
+        .sheet(isPresented: $createsBlindWorkout) { BlindWorkoutComposerView(recipientID: member.id) }
         .task {
             await store.steps.refresh()
             _ = await store.weekly.loadFriend(userID: member.id)

@@ -13,7 +13,14 @@ struct NotificationCenterView: View {
             } else {
                 List(filteredNotifications) { item in
                     Group {
-                        if item.type == "workout_plan_shared", let value = item.data?["plan_id"], let planID = UUID(uuidString: value) {
+                        if let value = item.data?["blind_workout_id"], let blindID = UUID(uuidString: value) {
+                            NavigationLink { BlindWorkoutDetailView(id: blindID) } label: { notificationRow(item) }
+                        } else if item.type.hasPrefix("shot_"), let value = item.data?["user_id"], let userID = UUID(uuidString: value) {
+                            NavigationLink {
+                                if userID == store.profile?.id { WeeklyFlameDetailView() }
+                                else { FriendWeeklyDestination(userID: userID) }
+                            } label: { notificationRow(item) }
+                        } else if item.type == "workout_plan_shared", let value = item.data?["plan_id"], let planID = UUID(uuidString: value) {
                             NavigationLink { WorkoutPlanDetailView(planID: planID) } label: { notificationRow(item) }
                         } else if item.type == "weekly_goal" || item.type == "flame_reaction" {
                             NavigationLink { WeeklyFlameDetailView() } label: { notificationRow(item) }
@@ -46,7 +53,7 @@ struct NotificationCenterView: View {
 
     private var filteredNotifications: [AppNotification] {
         switch filter {
-        case 1: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("invite") || $0.type.localizedCaseInsensitiveContains("session") || $0.type == "workout_plan_shared" }
+        case 1: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("invite") || $0.type.localizedCaseInsensitiveContains("session") || $0.type == "workout_plan_shared" || $0.type == "blind_workout_received" }
         case 2: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("reaction") || $0.type.localizedCaseInsensitiveContains("fyrup") }
         default: store.notifications
         }

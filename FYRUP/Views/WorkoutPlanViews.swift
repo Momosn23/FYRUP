@@ -186,24 +186,26 @@ struct WorkoutPlanEditorView: View {
     static let categories = ["Push", "Pull", "Legs", "Upper Body", "Lower Body", "Full Body", "Chest", "Back", "Arms", "Shoulders", "Cardio", "Custom"]
 }
 
-private struct WorkoutPrescriptionEditor: View {
+struct WorkoutPrescriptionEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State private var entry: WorkoutPlanExercise
     @State private var weight: String
     let onSave: (WorkoutPlanExercise) -> Void
-    init(entry: WorkoutPlanExercise, onSave: @escaping (WorkoutPlanExercise) -> Void) {
+    let isBlind: Bool
+    init(entry: WorkoutPlanExercise, isBlind: Bool = false, onSave: @escaping (WorkoutPlanExercise) -> Void) {
         _entry = State(initialValue: entry)
         _weight = State(initialValue: entry.targetWeight.map { String($0) } ?? "")
         self.onSave = onSave
+        self.isBlind = isBlind
     }
     var body: some View {
         NavigationStack {
             Form {
                 Section { Text(entry.exercise.name).font(.headline); Text(entry.exercise.primaryMuscle.title).foregroundStyle(FYColor.muted) }
                 Section("Vorgaben") {
-                    Stepper("\(entry.targetSets) Sätze", value: $entry.targetSets, in: 1...30)
-                    Stepper("Mindestens \(entry.targetRepsMin) \(unit)", value: $entry.targetRepsMin, in: 1...999)
-                    Stepper("Höchstens \(entry.targetRepsMax) \(unit)", value: $entry.targetRepsMax, in: 1...999)
+                    Stepper("\(entry.targetSets) Sätze", value: $entry.targetSets, in: 1...(isBlind ? 6 : 30))
+                    Stepper("Mindestens \(entry.targetRepsMin) \(unit)", value: $entry.targetRepsMin, in: 1...repLimit)
+                    Stepper("Höchstens \(entry.targetRepsMax) \(unit)", value: $entry.targetRepsMax, in: 1...repLimit)
                     TextField("Zielgewicht in kg (optional)", text: $weight).keyboardType(.decimalPad)
                     TextField("Notiz (optional)", text: Binding(get: { entry.note ?? "" }, set: { entry.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
                 }
@@ -218,8 +220,10 @@ private struct WorkoutPrescriptionEditor: View {
     }
     private var unit: String { entry.exercise.exerciseType == "timed" ? "Sekunden" : "Wiederholungen" }
     private var parsedWeight: Double? { Double(weight.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")) }
+    private var repLimit: Int { isBlind ? (entry.exercise.isTimed ? 300 : 30) : 999 }
     private var isValid: Bool {
-        entry.targetRepsMax >= entry.targetRepsMin && (weight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || parsedWeight.map { $0.isFinite && (0...2000).contains($0) } == true)
+        entry.targetRepsMax >= entry.targetRepsMin && entry.targetRepsMax <= repLimit && (entry.note?.count ?? 0) <= 500
+            && (weight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || parsedWeight.map { $0.isFinite && (0...(isBlind ? 500.0 : 2000.0)).contains($0) } == true)
     }
 }
 

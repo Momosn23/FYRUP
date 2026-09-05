@@ -426,6 +426,7 @@ actor DemoWorkoutStorage {
 
 extension DemoRepository {
     func restoreWorkoutActivities() async throws {
+        try await restoreBlindActivities()
         let persisted = try await workoutStorage.activities(userID: meID, friends: Set(crew.map(\.id)))
         // Replace, rather than merge, persisted summaries so a declined/cancelled invitation
         // or revoked friendship cannot leave an old workout visible in this process.
@@ -464,6 +465,9 @@ extension DemoRepository {
         try await restoreWorkoutActivities()
     }
 
-    func workoutLog(activityID: UUID) async throws -> WorkoutLog { try await workoutStorage.workoutLog(activityID: activityID, userID: meID) }
+    func workoutLog(activityID: UUID) async throws -> WorkoutLog {
+        if let blind = try await blindWorkoutLog(activityID: activityID) { return blind }
+        return try await workoutStorage.workoutLog(activityID: activityID, userID: meID)
+    }
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog { try await workoutStorage.saveLog(log, userID: meID) }
 }
