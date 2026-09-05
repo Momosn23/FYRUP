@@ -11,12 +11,12 @@ Nachweise werden getrennt geführt: **Code integriert → Backend geprüft/ausge
 | Bereich | Belegter Stand | Noch nicht abgenommen |
 | --- | --- | --- |
 | Trainingspläne / Bibliothek | UI, Live-/Demo-Anbindung, Katalog und neue Datenbankregeln im Code; 105 lokale PostgreSQL-Tests bestanden, siehe [Arbeitsnachweis](WORKOUT_IMPLEMENTATION_STATUS.md) | Cloud-Kompilierung/Simulator, visuelle/manuelle Abnahme, produktives Backend und iPhone |
-| Apple Health / Schritte | Erste Lesekomponente, Zustandsverwaltung und SQL-Migrationsentwurf vorhanden | UI-Anbindung, Capability, Freigabefluss, Gerätetest |
-| Neues Wochenziel-/Flammensystem | Anforderungen erfasst; alte Ziellogik ist kein Nachweis für die neuen Regeln | Neue Wochenregeln, Migration, Anbindung und Tests |
+| Apple Health / Schritte | UI, Zustandsverwaltung, Live-/Demo-Anbindung, Capability und SQL-Regeln eingebaut; 96 lokale PostgreSQL-Tests bestanden, siehe [Arbeitsnachweis](HEALTH_IMPLEMENTATION_STATUS.md) | Native Cloud-Prüfung, visuelle Abnahme, produktives Backend/Signing und Gerätetest |
+| Neues Wochenziel-/Flammensystem | Neue Serverregeln und Zustandsmodelle in Arbeit; alte Ziellogik ist kein Nachweis für die neuen Regeln | Fertige Wochenregeln, Migration, Anbindung und Tests |
 | Blind Workout / Call My Shot | Anforderungen erfasst | Implementierung und sämtliche Tests |
 | Helles Grunddesign | Bestehende SwiftUI-Seiten und Referenzliste vorhanden | Vergleich jeder Seite und Integration der neuen Funktionen |
 
-Bestandsnachweis: Cloud-Build 17, Commit `4311282`, **11 UI-Tests bestanden**. Das belegt nicht die neuen Erweiterungen. Zusätzliche Bestands-UI-Tests in Commit `f461c1b` wurden angestoßen; ihr Ergebnis ist hier noch nicht bestätigt. Neue Feature-Simulatorläufe und echte iPhone-/HealthKit-Abnahme: **NICHT AUSGEFÜHRT**. Keine der neuen Erweiterungen ist hier als an TestFlight ausgeliefert bestätigt.
+Bestandsnachweis: Cloud-Build 17, Commit `4311282`, **11 UI-Tests bestanden**. Build 18 (`f461c1b`) ist in Codemagic als erfolgreich bestätigt (7m22); genaue Ergebnisanzahl separat prüfen. Das belegt nicht die neuen Erweiterungen. Feature-Builds 19/20 scheiterten vor Testausführung an zwei Swift-Kompilierfehlern; beide lokal behoben. Neue Feature-Simulatorläufe und echte iPhone-/HealthKit-Abnahme: **NICHT AUSGEFÜHRT** bis eigenem Erfolgsnachweis. Keine der neuen Erweiterungen ist hier als an TestFlight ausgeliefert bestätigt.
 
 Dokumentenprüfung am 05.09.2026: 230 eindeutige Hauptlisten-IDs, alle 41 Auftragstests, alle 127 verlangten Übungs-Gruppeneinträge im Katalog-Anhang und 16 lokale Dokumentlinks geprüft. Die 127 Einträge sind nach benannter Singular-/Plural-Zuordnung in den 122 Übungsnamen des Dateientwurfs enthalten. Das prüft Vollständigkeit der Liste/Namen, nicht Muskelmetadaten, App-Verhalten oder Datenbankfunktion.
 

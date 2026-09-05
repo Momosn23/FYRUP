@@ -24,10 +24,17 @@ final class WorkoutDraftStore {
         self.userID = userID; drafts = []; errorMessage = nil
         guard let userID, let data = defaults.data(forKey: key(userID)) else { return }
         do {
-            drafts = try JSONDecoder().decode([WorkoutPlanDraft].self, from: data)
+            let decoded = try JSONDecoder().decode([WorkoutPlanDraft].self, from: data)
                 .filter { $0.original.ownerID == userID && $0.edited.ownerID == userID && $0.original.id == $0.edited.id }
                 .sorted { $0.updatedAt > $1.updatedAt }
-        } catch { errorMessage = "Ein lokaler Planentwurf konnte nicht geladen werden. Deine gespeicherten Pläne sind davon nicht betroffen." }
+            var seen = Set<UUID>()
+            drafts = decoded.filter { seen.insert($0.id).inserted }
+        } catch {
+            // Preserve the unreadable original before any later edit replaces the main data.
+            let recoveryKey = key(userID) + ".recovery"
+            if defaults.data(forKey: recoveryKey) == nil { defaults.set(data, forKey: recoveryKey) }
+            errorMessage = "Ein lokaler Planentwurf konnte nicht geladen werden. Eine Sicherung wurde behalten; deine gespeicherten Pläne sind davon nicht betroffen."
+        }
     }
 
     func draft(id: UUID) -> WorkoutPlanDraft? { drafts.first { $0.id == id } }
@@ -47,7 +54,7 @@ final class WorkoutDraftStore {
 
     /// Explicit sign-out/account deletion removes drafts from this device as well.
     func clearCurrentAccount() {
-        if let userID { defaults.removeObject(forKey: key(userID)) }
+        if let userID { defaults.removeObject(forKey: key(userID)); defaults.removeObject(forKey: key(userID) + ".recovery") }
         drafts = []; errorMessage = nil; userID = nil
     }
 

@@ -32,14 +32,16 @@ final class AppStore {
     let repository: any AppRepository
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
+    let steps: StepStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository)
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
+        self.steps = steps ?? StepStore(repository: repository)
     }
 
     static func make() -> AppStore {
@@ -50,8 +52,13 @@ final class AppStore {
             let testID = arguments.first(where: { $0.hasPrefix(testPrefix) }).map { String($0.dropFirst(testPrefix.count)) }
             let suite = testID.flatMap(UUID.init(uuidString:)).map { "app.fyrup.uitest.workouts.\($0.uuidString)" }
                 ?? (arguments.contains("--persistent-demo") ? "app.fyrup.demo.workouts" : nil)
-            let drafts = WorkoutDraftStore(defaults: UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard)
-            return AppStore(repository: DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite)), workoutDrafts: drafts)
+            let localDefaults = UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard
+            let drafts = WorkoutDraftStore(defaults: localDefaults)
+            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite))
+            let steps = arguments.contains("--steps-demo")
+                ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
+                : StepStore(repository: repository, defaults: localDefaults)
+            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps)
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -82,6 +89,7 @@ final class AppStore {
         if let id = session?.userID { FeedCache.clear(userID: id) }
         workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount()
+        steps.reset()
         await repository.signOut()
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
@@ -254,7 +262,7 @@ final class AppStore {
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
     func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); await self.refresh() } }
     func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); await self.refresh() } }
-    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.workoutDrafts.clearCurrentAccount(); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
+    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.workoutDrafts.clearCurrentAccount(); self.steps.reset(clearLocalPreferences: true); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
 
     func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID], workoutPlanID: UUID? = nil) async {
         guard let userID = session?.userID else { return }
@@ -322,6 +330,10 @@ private extension String {
 }
 
 private actor DemoRepositoryPlaceholder: AppRepository {
+    func stepSharingPreference(userID: UUID) async throws -> StepSharingPreference { throw AppError.configuration }
+    func setStepSharing(userID: UUID, enabled: Bool) async throws -> StepSharingPreference { throw AppError.configuration }
+    func syncSteps(userID: UUID, localDate: String, timezone: String, steps: Int?, sharingRevision: Int, observedAt: Date) async throws -> Bool { throw AppError.configuration }
+    func sharedSteps() async throws -> [DailyStepMetric] { throw AppError.configuration }
     func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity { throw AppError.configuration }
     func exercises() async throws -> [GymExercise] { throw AppError.configuration }
     func saveExercise(_ exercise: GymExercise) async throws -> GymExercise { throw AppError.configuration }

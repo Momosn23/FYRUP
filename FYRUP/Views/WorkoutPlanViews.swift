@@ -131,6 +131,7 @@ struct WorkoutPlanEditorView: View {
                 if let error = store.workouts.errorMessage { Section { Text(error).foregroundStyle(FYColor.coral).accessibilityIdentifier("workout-error") } }
                 if let error = store.workoutDrafts.errorMessage { Section { Text(error).foregroundStyle(FYColor.coral) } }
             }
+            .disabled(store.workouts.isBusy)
             .scrollContentBackground(.hidden).background(FYColor.background)
             .navigationTitle(original.name.isEmpty ? "Plan erstellen" : "Plan bearbeiten").navigationBarTitleDisplayMode(.inline)
             .toolbar {

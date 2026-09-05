@@ -10,6 +10,7 @@ Stand 05.09.2026, vor erster Cloud-Abnahme dieses Bausteins. Zugehörige Anforde
 - Einfach-/Tracken-Ansicht, optionale tatsächliche Satzwerte, Übungsabschluss, gespeicherte Ergebnis-/Verlaufsansicht.
 - Echte serverseitige Pause/Fortsetzen mit Pausensumme, auch bei Abschluss/Abbruch. Zielgewicht ist keine tatsächliche Messung.
 - Neue Datenzugriffe nach Logout/Kontowechsel geschützt; alte Antworten dürfen neue Speicherungen/Fehler nicht überschreiben.
+- Lokale, kontogetrennte ungespeicherte Planentwürfe werden unter Meine Pläne fortgesetzt; explizites Verwerfen/Logout entfernt sie. Beschädigte Daten werden vor Überschreiben gesichert. Zusätzliche Neustart- und Regressionstests geschrieben.
 
 ## Tatsächlich ausgeführt
 
@@ -26,8 +27,10 @@ Die lokale PostgreSQL-Prüfung arbeitet mit minimalen Supabase-Auth-Fixtures, ni
 - Screenshots/Animationen manuell prüfen, lange Texte, Dynamic Type, VoiceOver, kleine Displays und Fehlerzustände.
 - Produktive Migrationen/REST/RLS, echte Zwei-Konten-Endabnahme und Push-Zustellung.
 - Signierter TestFlight-Upload/Installation dieses Bausteins; bestehende TestFlight-Builds enthalten diese neuen Änderungen nicht.
-- Dauerhafte ungespeicherte Planeditor-Entwürfe über einen vollständigen Prozessneustart (gespeicherte Pläne sind bereits über Repository persistiert).
+- Native Neustart-Abnahme der ungespeicherten Planeditor-Entwürfe.
 - Die weiteren Auftragspakete HealthKit, neue Wochenflammen, Blind Workout und Call My Shot sind von diesem Baustein nicht als fertig abgedeckt.
+
+Cloud-Zwischenstand: Build 19 fand den Swift-Parserkonflikt `set.id` (durch `self.set.id` behoben); Build 20 fand einen Actor-/Autoclosure-Konflikt in DemoRepository (Crew-Prüfung vorab ausgewertet). Beide Builds haben die Featuretests **nicht ausgeführt**; nächster Lauf erforderlich.
 
 ## Lokal reproduzieren
 

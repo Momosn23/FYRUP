@@ -246,6 +246,7 @@ private struct PrivacyView: View {
             Section("Wer sieht meine Aktivitäten?") {
                 Picker("Sichtbarkeit", selection: visibilityBinding) { Text("Freunde").tag("friends"); Text("Niemand").tag("nobody") }.pickerStyle(.inline)
             }
+            Section { NavigationLink { StepSettingsView() } label: { Label("Schritte", systemImage: "figure.walk") }.accessibilityIdentifier("privacy-steps") }
             Section { Text("FYRUP zeigt in V1 weder Live-Standort noch GPS-Daten. Deine Aktivitäten sind niemals öffentlich.") }
         }.scrollContentBackground(.hidden).background(FYColor.background).navigationTitle("Datenschutz")
     }

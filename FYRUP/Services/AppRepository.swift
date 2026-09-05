@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AppRepository: WorkoutRepository {
+protocol AppRepository: WorkoutRepository, StepRepository {
     func restoreSession() async throws -> AuthSession?
     func signUp(email: String, password: String) async throws -> AuthSession?
     func signIn(email: String, password: String) async throws -> AuthSession

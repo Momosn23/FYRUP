@@ -133,6 +133,32 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
 
+    func testUnsavedPlanDraftSurvivesTerminationAndCanBeResumed() {
+        let app = launch()
+        openPlans(app)
+        tap(app.buttons["create-workout-plan"], in: app)
+        let name = app.textFields["workout-plan-name"]
+        tap(name, in: app); name.typeText("Unfinished Push\n")
+        tap(app.buttons["add-plan-exercise"], in: app)
+        let search = app.textFields["exercise-search"]
+        tap(search, in: app); search.typeText("Bankdrücken Langhantel\n")
+        tap(app.buttons["exercise-10000000-0000-0000-0000-000000000001"], in: app)
+        XCTAssertTrue(waitUntilReady(app.buttons["plan-exercise-0"]))
+        capture("32-unsaved-workout-draft")
+        // Deliberately never tap Plan speichern: only the local recovery snapshot exists.
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 8))
+        openPlans(app)
+        tap(app.buttons["resume-workout-draft"].firstMatch, in: app)
+        XCTAssertTrue(app.textFields["workout-plan-name"].waitForExistence(timeout: 4))
+        XCTAssertEqual(app.textFields["workout-plan-name"].value as? String, "Unfinished Push")
+        let exercise = app.buttons["plan-exercise-0"]
+        XCTAssertTrue(exercise.waitForExistence(timeout: 4))
+        XCTAssertTrue(exercise.label.contains("Bankdrücken Langhantel"))
+        XCTAssertFalse(app.alerts["Hinweis"].exists)
+        capture("33-restored-workout-draft")
+    }
+
     func testTrackOptionalSetValuesAndPause() {
         let app = launch()
         createPlan(app, name: "Tracked Push")

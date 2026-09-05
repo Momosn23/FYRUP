@@ -14,6 +14,7 @@ struct TodayView: View {
                     FeedSkeleton()
                 } else {
                     MyFeedCard(activity: store.myActivity)
+                    OwnStepsCard()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                     Text("Deine Crew").font(.headline).padding(.top, 4)
                     ForEach(store.crew) { member in CrewFeedCard(member: member) }
@@ -27,13 +28,15 @@ struct TodayView: View {
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh() }
+        .refreshable { await store.refresh(); await store.steps.refresh(force: true) }
         .navigationBarHidden(true)
         .task {
+            await store.steps.refresh()
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
                 guard !Task.isCancelled else { break }
                 await store.refresh()
+                await store.steps.refresh()
             }
         }
     }
@@ -119,7 +122,7 @@ private struct MyFeedCard: View {
                         Text(activityTitle(activity)).font(.subheadline).foregroundStyle(FYColor.muted)
                         HStack(spacing: 5) {
                             StatusBadge(status: todayStatus(activity))
-                            if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
+                            if activity.status == .live { LiveActivityTimer(activity: activity).font(.caption).foregroundStyle(FYColor.live) }
                             else if let plannedAt = activity.plannedAt { Text("· \(plannedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
                         }
                     } else {
@@ -237,6 +240,7 @@ private struct CrewFeedCard: View {
                     }
                     NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { Text("Details").font(.caption2).foregroundStyle(FYColor.cyan) }
                 } else { Text("Noch nichts heute").font(.caption).foregroundStyle(FYColor.muted) }
+                FriendStepsLine(userID: member.id)
             }
             Spacer()
             action

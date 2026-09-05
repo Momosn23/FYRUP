@@ -6,6 +6,7 @@ actor DemoRepository: AppRepository {
     var me: Profile
     var activities: [Activity]
     let workoutStorage: DemoWorkoutStorage
+    let stepStorage: DemoStepStorage
     private var avatarObjects: [String: Data] = [:]
     var crew: [Profile]
     private var sentFyrups = Set<UUID>()
@@ -16,9 +17,10 @@ actor DemoRepository: AppRepository {
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
 
-    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage()) {
+    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage()) {
         meID = userID
         self.workoutStorage = workoutStorage
+        self.stepStorage = stepStorage
         profileExists = !startsWithoutProfile
         me = Profile(id: meID, username: "momo", displayName: "Momo", avatarPath: nil, birthYear: nil, city: "Berlin", bio: "Move together.", sports: [.gym, .running], weeklyGoal: 4, activityVisibility: "friends")
         crew = [
@@ -44,7 +46,8 @@ actor DemoRepository: AppRepository {
                 AppNotification(id: UUID(), type: "session_invite", title: "Max lädt dich zum Training ein.", body: "Gym · Push · Heute", data: nil, createdAt: now.addingTimeInterval(-2400), readAt: nil)
             ]
         }
-        let isKnownFixture = userID == Self.defaultUserID || crew.contains { $0.id == userID }
+        let belongsToCrewFixture = crew.contains { $0.id == userID }
+        let isKnownFixture = userID == Self.defaultUserID || belongsToCrewFixture
         if let ownFixture = crew.first(where: { $0.id == userID }) {
             me = ownFixture
         }
@@ -179,8 +182,8 @@ actor DemoRepository: AppRepository {
     func requests() async throws -> [Profile] { [] }
     func sendFriendRequest(to userID: UUID) async throws {}
     func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
-    func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
-    func block(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
+    func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
+    func block(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
     func notifications() async throws -> [AppNotification] { try await workoutStorage.notifications(userID: meID) + demoNotifications }
@@ -189,5 +192,5 @@ actor DemoRepository: AppRepository {
     func goalSummary() async throws -> GoalSummary { GoalSummary(weeklyCount: 3, weeklyGoal: me.weeklyGoal, streak: 6, monthCount: 17, crewCount: 15, crewTarget: 16) }
     func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}
-    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID) }
+    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID); await stepStorage.deleteAccount(userID: meID) }
 }

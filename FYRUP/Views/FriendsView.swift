@@ -52,6 +52,7 @@ struct FriendProfileView: View {
                 Text("@\(member.profile.username)").foregroundStyle(FYColor.muted)
                 if let bio = member.profile.bio { Text(bio).font(.subheadline).multilineTextAlignment(.center).foregroundStyle(FYColor.ink.opacity(0.8)) }
                 HStack { Label("\(member.weeklyCount) / \(member.profile.weeklyGoal)", systemImage: "target"); Spacer(); Label("Wochenziel", systemImage: "flame.fill") }.fyCard()
+                FriendStepsLine(userID: member.id)
                 VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
                 WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
                 if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
@@ -68,6 +69,7 @@ struct FriendProfileView: View {
         }
         .background(FYColor.background)
         .task {
+            await store.steps.refresh()
             recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? []
             sharedPlans = await store.workouts.sharedPlans(ownerID: member.id) ?? []
         }
