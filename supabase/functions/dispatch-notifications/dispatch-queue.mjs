@@ -191,6 +191,17 @@ export async function dispatchQueuedNotification({ db, note, prepareToSend = asy
     if (latestDecision === "drop") return finish(true);
     if (latestDecision === "defer") return { delivered, deferred: 1, suppressed: 0 };
     try {
+      // An installation can be rebound by logout/account switching after the batch
+      // was loaded. Verify this exact recipient/token/environment again, rather
+      // than sending using the earlier device list. Unknown state stays queued.
+      const binding = await db.from("device_tokens").select("user_id,token,environment")
+        .eq("user_id", note.recipient_id).eq("token", device.token).eq("environment", device.environment).maybeSingle();
+      if (binding.error) { canFinalize = false; continue; }
+      if (binding.data === null) continue;
+      if (!isObject(binding.data) || binding.data.user_id !== note.recipient_id
+        || binding.data.token !== device.token || binding.data.environment !== device.environment) {
+        canFinalize = false; continue;
+      }
       const response = await sendToDevice(note, device);
       if (response.ok) delivered++;
       else if (response.status === 410) {

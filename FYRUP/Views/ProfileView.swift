@@ -310,9 +310,9 @@ struct SystemNotificationSettingsRow: View {
     private func refreshStatus() async {
         guard !isWorking else { return }
         isWorking = true; defer { isWorking = false }
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let rawStatus = await SystemNotificationAuthorization.rawStatus()
         guard !Task.isCancelled else { return }
-        status = settings.authorizationStatus
+        status = UNAuthorizationStatus(rawValue: rawStatus)
     }
 
     private func act() async {
@@ -324,9 +324,10 @@ struct SystemNotificationSettingsRow: View {
             do {
                 let center = UNUserNotificationCenter.current()
                 _ = try await center.requestAuthorization(options: [.alert, .badge, .sound])
-                let settings = await center.notificationSettings()
-                self.status = settings.authorizationStatus
-                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+                let currentStatus = UNAuthorizationStatus(rawValue: await SystemNotificationAuthorization.rawStatus())
+                guard !Task.isCancelled else { return }
+                self.status = currentStatus
+                if currentStatus == .authorized || currentStatus == .provisional {
                     UIApplication.shared.registerForRemoteNotifications()
                 }
             } catch { errorMessage = "Die Anfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut." }

@@ -59,7 +59,7 @@ test("supplement database uncertainty defers, never grants permission", async ()
 });
 test("confirmed intake between two devices stops the second supplement push", async () => {
   let reads = 0;
-  const context = supplementFixture({ rpc: async () => ok(++reads < 3), route: q => q.table === "device_tokens" ? ok([
+  const context = supplementFixture({ rpc: async () => ok(++reads < 3), route: q => q.table === "device_tokens" && !q.single ? ok([
     { token: "abc1", environment: "ios" }, { token: "abc2", environment: "ios" }
   ]) : undefined });
   const result = await context.dispatch();
@@ -114,7 +114,9 @@ function fixture(type = "shot_called", options = {}) {
       case "blind_workouts": return ok(workout);
       case "weekly_commitments": return ok(commitment);
       case "blind_workout_reactions": case "weekly_shot_reactions": return ok({ reaction: "🔥" });
-      case "device_tokens": return query.kind === "delete" ? ok(null) : ok([{ token: "abcdef0123456789", environment: "ios" }]);
+      case "device_tokens": return query.kind === "delete" ? ok(null) : query.single
+        ? ok(Object.fromEntries(query.filters.map(([, key, value]) => [key, value])))
+        : ok([{ token: "abcdef0123456789", environment: "ios" }]);
       case "notifications": return ok(null);
       default: throw new Error(`Unexpected table ${query.table}`);
     }
@@ -128,7 +130,7 @@ function fixture(type = "shot_called", options = {}) {
         is(key, value) { query.filters.push(["is", key, value]); return builder; },
         update(value) { query.kind = "update"; query.values = value; return builder; },
         delete() { query.kind = "delete"; return builder; },
-        async maybeSingle() { return await route(query); },
+        async maybeSingle() { query.single = true; return await route(query); },
         then(resolve, reject) { return Promise.resolve().then(() => route(query)).then(resolve, reject); },
       };
       return builder;
@@ -202,7 +204,7 @@ test("privacy is rechecked after slow credential preparation, and preparation fa
 
 test("revocation between devices prevents the second device push", async () => {
   const context = fixture("shot_achieved", {
-    route: (query) => query.table === "device_tokens" ? ok([{ token: "aaaa", environment: "ios" }, { token: "bbbb", environment: "ios-sandbox" }]) : undefined,
+    route: (query) => query.table === "device_tokens" && !query.single ? ok([{ token: "aaaa", environment: "ios" }, { token: "bbbb", environment: "ios-sandbox" }]) : undefined,
     rpc: (_name, _args, count) => ok(count < 3),
   });
   assert.deepEqual(await context.dispatch(), { delivered: 1, deferred: 0, suppressed: 1 });
@@ -338,6 +340,39 @@ test("invalid device records are not interpolated into APNS URLs", async () => {
     assert.deepEqual(await context.dispatch(), { delivered: 0, deferred: 1, suppressed: 0 });
     assert.equal(context.sends.length, 0);
   }
+});
+
+test("device binding is rechecked after slow preparation and before each send", async () => {
+  let rebound = false;
+  const context = supplementFixture({ route: q => q.table === "device_tokens" && q.single && rebound ? ok(null) : undefined });
+  const result = await dispatchQueuedNotification({ db: context.db, note: context.note,
+    prepareToSend: async () => { rebound = true; },
+    sendToDevice: async () => { assert.fail("rebound installation must not receive the old account's reminder"); } });
+  assert.deepEqual(result, { delivered: 0, deferred: 0, suppressed: 0 });
+  const binding = context.queries.find(q => q.table === "device_tokens" && q.single);
+  assert.deepEqual(binding.filters, [["eq", "user_id", recipient], ["eq", "token", "abcdef0123456789"], ["eq", "environment", "ios"]]);
+});
+
+test("binding failures and malformed responses defer without sending or finalizing", async () => {
+  for (const response of [failure(), ok(undefined), ok([]), ok({}), ok({ user_id: actor, token: "abcdef0123456789", environment: "ios" }),
+    ok({ user_id: recipient, token: "other", environment: "ios" }), ok({ user_id: recipient, token: "abcdef0123456789", environment: "ios-sandbox" })]) {
+    const context = fixture("weekly_goal", { route: q => q.table === "device_tokens" && q.single ? response : undefined });
+    assert.deepEqual(await context.dispatch(), { delivered: 0, deferred: 1, suppressed: 0 });
+    assert.equal(context.sends.length, 0);
+    assert.equal(context.queries.some(q => q.kind === "update"), false);
+  }
+});
+
+test("account rebind between devices skips only the changed installation", async () => {
+  let sentFirst = false;
+  const context = fixture("weekly_goal", { route: q => {
+    if (q.table !== "device_tokens") return;
+    if (!q.single) return ok([{ token: "aaaa", environment: "ios" }, { token: "bbbb", environment: "ios" }]);
+    if (sentFirst && q.filters.some(([, key, value]) => key === "token" && value === "bbbb")) return ok(null);
+  } });
+  let sends = 0;
+  const result = await context.dispatch(async () => { sends++; sentFirst = true; return { ok: true, status: 200 }; });
+  assert.deepEqual(result, { delivered: 1, deferred: 0, suppressed: 0 }); assert.equal(sends, 1);
 });
 
 test("APNS retryable response or thrown request leaves notification queued", async () => {

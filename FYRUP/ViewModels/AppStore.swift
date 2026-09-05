@@ -156,9 +156,9 @@ final class AppStore {
     func prepareNotificationRegistration() async {
         guard !(repository is DemoRepository), let userID = session?.userID, route == .main else { return }
         let generation = accountGeneration
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let status = UNAuthorizationStatus(rawValue: await SystemNotificationAuthorization.rawStatus())
         guard generation == accountGeneration, session?.userID == userID, route == .main else { return }
-        if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+        if status == .authorized || status == .provisional {
             UIApplication.shared.registerForRemoteNotifications()
         }
     }
