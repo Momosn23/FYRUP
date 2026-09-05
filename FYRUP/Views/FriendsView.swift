@@ -43,6 +43,7 @@ struct FriendProfileView: View {
     let member: CrewMember
     @State private var confirmRemove = false
     @State private var recentActivities: [Activity] = []
+    @State private var sharedPlans: [WorkoutPlan] = []
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -54,11 +55,22 @@ struct FriendProfileView: View {
                 VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
                 WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
                 if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
+                if !sharedPlans.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Freigegebene Trainingspläne").font(.headline)
+                        ForEach(sharedPlans) { plan in
+                            NavigationLink { WorkoutPlanDetailView(planID: plan.id) } label: { WorkoutPlanCard(plan: plan) }.buttonStyle(.plain)
+                        }
+                    }
+                }
                 Menu("Freundschaft verwalten") { Button("Freund entfernen", role: .destructive) { confirmRemove = true }; Button("Blockieren", role: .destructive) { Task { await store.block(member.profile) } } }.foregroundStyle(FYColor.muted)
             }.padding(20)
         }
         .background(FYColor.background)
-        .task { recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? [] }
+        .task {
+            recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? []
+            sharedPlans = await store.workouts.sharedPlans(ownerID: member.id) ?? []
+        }
         .confirmationDialog("Freund entfernen?", isPresented: $confirmRemove) { Button("Entfernen", role: .destructive) { Task { await store.removeFriend(member.profile) } } }
     }
 }

@@ -2,6 +2,8 @@
 
 Referenz: `docs/reference/FYRUP-light-storyboard.png`
 
+Diese Tabelle erfasst die 24 bestehenden Referenzseiten. Die [zentrale Produkt-Checkliste](PRODUCT_CHECKLIST.md) ergänzt verbindlich neue Seiten, Funktionsprüfung, Animationen und Abnahmetests. „Umgesetzt“ ist hier kein Beleg für Funktionsfähigkeit oder visuellen Gleichstand im aktuellen TestFlight-Build. Neue Erweiterungen sind noch nicht abgenommen.
+
 Status: ✅ umgesetzt · 🧪 im Cloud-Build visuell zu prüfen · ⚙️ iOS-Systemansicht
 
 | Nr. | Referenzseite | Umsetzung |
@@ -29,8 +31,10 @@ Status: ✅ umgesetzt · 🧪 im Cloud-Build visuell zu prüfen · ⚙️ iOS-Sy
 | 21 | Eigenes Profil | 🧪 Profilkopf, Statistiken, Sportarten und Einstellungen |
 | 22 | Mitteilungen | 🧪 Alle/Einladungen/Reaktionen und Ereignisliste |
 | 23 | Einstellungen | 🧪 Profilkopf und strukturierte Einstellungsgruppen |
-| 24 | Hell/Dunkel | ✅ Light Design ist verbindlicher Standard; Dark Mode bleibt optional |
+| 24 | Hell/Dunkel | 🧪 Light Design ist verbindlicher Standard; heller Referenzvergleich offen, Dark Mode bleibt optional |
 
 ## Abnahmeregel
 
 Jeder neue UI-Cloud-Build erzeugt Screenshots. Akzeptiert wird eine Seite erst, wenn Informationshierarchie, Weißraum, Kartengrößen, grüne Akzente, Kontrast und Navigation sichtbar zur Referenz passen und der dazugehörige UI-Test bestanden ist.
+
+Zusätzlich jede sichtbare Aktion manuell bedienen, kleine/große Schrift und Leer-/Fehlerzustände prüfen. Bei iOS-eigenen Apple-/Foto-/Health-Dialogen die native Systemansicht korrekt verwenden; die Illustration ist kein Auftrag für einen nachgebauten Systemdialog. Pro Seite Build/Commit, Screenshot, Ergebnis und Restabweichungen dokumentieren. Standbilder allein belegen weder funktionierende Pause noch Animationen oder gespeicherte Eingaben.

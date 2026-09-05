@@ -31,4 +31,10 @@ final class SupabaseRESTClientTests: XCTestCase {
             .conflict("Die Apple-Anmeldung konnte nicht bestätigt werden. Versuche es erneut.")
         )
     }
+
+    func testWorkoutErrorsDoNotExposeTechnicalMessages() {
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "forbidden"), .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr."))
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "plan_not_available"), .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert."))
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "23514", message: "check constraint"), .validation("Prüfe Name, Übungen, Sätze, Wiederholungen und optionale Gewichte."))
+    }
 }

@@ -21,6 +21,11 @@ workflows:
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
+      - name: Validate exercise catalog and workout privacy rules
+        script: |
+          node scripts/validate-exercise-catalog.mjs
+          npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
+          node supabase/tests/run_workout_tests.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
@@ -70,6 +75,11 @@ workflows:
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
+      - name: Validate exercise catalog and workout privacy rules
+        script: |
+          node scripts/validate-exercise-catalog.mjs
+          npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
+          node supabase/tests/run_workout_tests.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist

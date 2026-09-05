@@ -23,6 +23,10 @@ targets:
     platform: iOS
     sources:
       - path: FYRUP
+        excludes:
+          - Resources/exercise-library.tsv
+      - path: FYRUP/Resources/exercise-library.tsv
+        buildPhase: resources
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Release.xcconfig
@@ -60,7 +64,12 @@ targets:
   FYRUPTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [FYRUPTests]
+    sources:
+      - path: FYRUPTests
+        excludes:
+          - Fixtures/**
+      - path: FYRUPTests/Fixtures
+        buildPhase: resources
     dependencies:
       - target: FYRUP
     settings:

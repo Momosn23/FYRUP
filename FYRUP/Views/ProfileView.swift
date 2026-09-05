@@ -36,6 +36,9 @@ struct ProfileView: View {
                         Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
                         Stepper("Wochenziel: \(profile.weeklyGoal)", value: weeklyGoalBinding, in: 1...7)
                     }.fyCard()
+                    NavigationLink { WorkoutPlansView() } label: {
+                        HStack { Label("Meine Trainingspläne", systemImage: "list.clipboard").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
+                    }.buttonStyle(.plain).accessibilityIdentifier("profile-workout-plans")
                     RecentActivitiesCard(activities: store.recentActivities, profile: profile)
                 }
                 VStack(spacing: 0) {

@@ -1,0 +1,179 @@
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class WorkoutStore {
+    var plans: [WorkoutPlan] = []
+    var exercises: [GymExercise] = []
+    var favorites = Set<UUID>()
+    var logs: [UUID: WorkoutLog] = [:]
+    var isLoadingPlans = false
+    var isLoadingLibrary = false
+    var isBusy = false
+    var errorMessage: String?
+    private(set) var userID: UUID?
+    private var generation = UUID()
+    private var plansRevision = 0
+    private var libraryRevision = 0
+    private var logRevisions: [UUID: Int] = [:]
+    private var errorRevision = 0
+    private let repository: any WorkoutRepository
+
+    init(repository: any WorkoutRepository) { self.repository = repository }
+
+    func activate(userID: UUID?) {
+        guard self.userID != userID else { return }
+        self.userID = userID
+        generation = UUID()
+        plansRevision = 0; libraryRevision = 0; logRevisions = [:]; errorRevision = 0
+        plans = []; exercises = []; favorites = []; logs = [:]
+        isLoadingPlans = false; isLoadingLibrary = false; isBusy = false; errorMessage = nil
+    }
+
+    func loadPlans() async {
+        guard userID != nil, !isLoadingPlans else { return }
+        let request = generation
+        let revision = plansRevision
+        let messageRevision = errorRevision
+        isLoadingPlans = true
+        defer { if generation == request { isLoadingPlans = false } }
+        do {
+            let values = try await repository.workoutPlans(ownerID: nil)
+            guard generation == request, plansRevision == revision else { return }
+            plans = values
+            if errorRevision == messageRevision { errorMessage = nil }
+        } catch { if generation == request && plansRevision == revision && errorRevision == messageRevision { present(error) } }
+    }
+
+    func loadLibrary() async {
+        guard userID != nil, !isLoadingLibrary else { return }
+        let request = generation
+        let revision = libraryRevision
+        let messageRevision = errorRevision
+        isLoadingLibrary = true
+        defer { if generation == request { isLoadingLibrary = false } }
+        do {
+            async let items = repository.exercises()
+            async let starred = repository.exerciseFavorites()
+            let result = try await (items, starred)
+            guard generation == request, libraryRevision == revision else { return }
+            exercises = result.0; favorites = Set(result.1)
+            if errorRevision == messageRevision { errorMessage = nil }
+        } catch { if generation == request && libraryRevision == revision && errorRevision == messageRevision { present(error) } }
+    }
+
+    func plan(id: UUID) async -> WorkoutPlan? {
+        guard userID != nil else { return nil }
+        let request = generation
+        do {
+            let value = try await repository.workoutPlan(id: id)
+            guard userID != nil, generation == request else { return nil }
+            return value
+        } catch { if generation == request { present(error) }; return nil }
+    }
+
+    func sharedPlans(ownerID: UUID) async -> [WorkoutPlan]? {
+        guard userID != nil else { return nil }
+        let request = generation
+        do {
+            let values = try await repository.workoutPlans(ownerID: ownerID)
+            guard userID != nil, generation == request else { return nil }
+            return values
+        } catch { if generation == request { present(error) }; return nil }
+    }
+
+    func savePlan(_ draft: WorkoutPlan) async -> WorkoutPlan? {
+        if let message = draft.validationMessage { errorMessage = message; return nil }
+        return await mutate {
+            let saved = try await self.repository.saveWorkoutPlan(draft)
+            return saved
+        } update: { saved in
+            self.plansRevision += 1
+            self.plans.removeAll { $0.id == saved.id }
+            self.plans.insert(saved, at: 0)
+        }
+    }
+
+    func saveExercise(_ draft: GymExercise) async -> GymExercise? {
+        await mutate { try await self.repository.saveExercise(draft) } update: { saved in
+            self.libraryRevision += 1
+            self.exercises.removeAll { $0.id == saved.id }
+            self.exercises.append(saved)
+        }
+    }
+
+    func archiveExercise(id: UUID) async -> Bool {
+        await mutate { try await self.repository.archiveExercise(id: id); return true } update: { _ in
+            self.libraryRevision += 1
+            self.exercises.removeAll { $0.id == id }; self.favorites.remove(id)
+        } ?? false
+    }
+
+    func archivePlan(id: UUID) async -> Bool {
+        await mutate { try await self.repository.archiveWorkoutPlan(id: id); return true } update: { _ in
+            self.plansRevision += 1
+            self.plans.removeAll { $0.id == id }
+        } ?? false
+    }
+
+    func toggleFavorite(id: UUID) async {
+        let selected = !favorites.contains(id)
+        _ = await mutate { try await self.repository.favoriteExercise(id: id, favorite: selected); return true } update: { _ in
+            self.libraryRevision += 1
+            if selected { self.favorites.insert(id) } else { self.favorites.remove(id) }
+        }
+    }
+
+    func copyPlan(id: UUID) async -> WorkoutPlan? {
+        await mutate { try await self.repository.copyWorkoutPlan(id: id) } update: { saved in
+            self.plansRevision += 1
+            self.plans.insert(saved, at: 0)
+        }
+    }
+
+    func sharePlan(id: UUID, friendIDs: [UUID]) async -> Bool {
+        guard !friendIDs.isEmpty else { errorMessage = "Wähle mindestens einen Freund."; return false }
+        return await mutate { try await self.repository.shareWorkoutPlan(id: id, friendIDs: friendIDs); return true } update: { _ in } ?? false
+    }
+
+    @discardableResult
+    func loadLog(activityID: UUID) async -> WorkoutLog? {
+        guard userID != nil else { return nil }
+        let request = generation
+        let revision = logRevisions[activityID, default: 0]
+        do {
+            let log = try await repository.workoutLog(activityID: activityID)
+            guard userID != nil, generation == request else { return nil }
+            guard logRevisions[activityID, default: 0] == revision else { return logs[activityID] }
+            logs[activityID] = log
+            return log
+        } catch { if generation == request && logRevisions[activityID, default: 0] == revision { present(error) }; return nil }
+    }
+
+    func saveLog(_ log: WorkoutLog) async -> WorkoutLog? {
+        await mutate { try await self.repository.saveWorkoutLog(log) } update: { saved in
+            self.logRevisions[saved.activityID, default: 0] += 1
+            self.logs[saved.activityID] = saved
+        }
+    }
+
+    private func mutate<T>(_ operation: @MainActor () async throws -> T, update: @MainActor (T) -> Void) async -> T? {
+        guard userID != nil, !isBusy else { return nil }
+        let request = generation
+        isBusy = true; errorMessage = nil
+        errorRevision += 1
+        defer { if generation == request { isBusy = false } }
+        do {
+            let value = try await operation()
+            guard generation == request else { return nil }
+            update(value)
+            return value
+        } catch { if generation == request { present(error) }; return nil }
+    }
+
+    private func present(_ error: Error) {
+        errorRevision += 1
+        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Das Speichern hat nicht geklappt. Deine Eingaben bleiben erhalten. Versuche es erneut."
+    }
+}

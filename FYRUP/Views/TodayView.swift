@@ -189,13 +189,13 @@ private struct InvitationCard: View {
     }
 }
 
-private struct InvitationDetailView: View {
+struct InvitationDetailView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let invitation: SessionInvitation
 
     var body: some View {
-        VStack(spacing: 18) {
+        ScrollView { VStack(spacing: 18) {
             Spacer()
             AvatarView(profile: invitation.host).scaleEffect(1.7).padding(24)
             Text("\(invitation.host.displayName) lädt dich zum\nTraining ein!").font(.title2.weight(.black)).multilineTextAlignment(.center)
@@ -205,11 +205,17 @@ private struct InvitationDetailView: View {
                 if let duration = invitation.session.durationMinutes { Text("ca. \(duration) Minuten").foregroundStyle(FYColor.muted) }
                 if let place = invitation.session.placeName { Text(place).foregroundStyle(FYColor.muted) }
             }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
-            Button("✓ Dabei") { Task { await store.respond(to: invitation, status: .accepted); dismiss() } }.buttonStyle(PrimaryButtonStyle())
-            Button("🤔 Vielleicht") { Task { await store.respond(to: invitation, status: .maybe); dismiss() } }.buttonStyle(OutlineButtonStyle())
-            Button("✕ Kann nicht") { Task { await store.respond(to: invitation, status: .declined); dismiss() } }.buttonStyle(OutlineButtonStyle())
+            if let planID = invitation.session.workoutPlanID {
+                NavigationLink { WorkoutPlanDetailView(planID: planID, sessionID: invitation.sessionID, allowsStarting: false) } label: {
+                    Label("Vollständigen Trainingsplan ansehen", systemImage: "list.bullet.rectangle")
+                }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("invitation-workout-plan")
+                Text("Sieh dir vor deiner Antwort alle Übungen und Vorgaben an.").font(.caption).foregroundStyle(FYColor.muted)
+            }
+            Button("✓ Dabei") { Task { await store.respond(to: invitation, status: .accepted); if store.errorMessage == nil { dismiss() } } }.buttonStyle(PrimaryButtonStyle()).disabled(store.isBusy)
+            Button("🤔 Vielleicht") { Task { await store.respond(to: invitation, status: .maybe); if store.errorMessage == nil { dismiss() } } }.buttonStyle(OutlineButtonStyle()).disabled(store.isBusy)
+            Button("✕ Kann nicht") { Task { await store.respond(to: invitation, status: .declined); if store.errorMessage == nil { dismiss() } } }.buttonStyle(OutlineButtonStyle()).disabled(store.isBusy)
             Spacer()
-        }.padding(22).background(FYColor.background).navigationBarTitleDisplayMode(.inline)
+        }.padding(22) }.background(FYColor.background).navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -226,7 +232,7 @@ private struct CrewFeedCard: View {
                     Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).font(.subheadline).foregroundStyle(FYColor.muted)
                     HStack(spacing: 5) {
                         StatusBadge(status: member.todayStatus)
-                        if activity.status == .live { LiveTimer(start: activity.startedAt ?? .now).font(.caption).foregroundStyle(FYColor.live) }
+                        if activity.status == .live { LiveActivityTimer(activity: activity).font(.caption).foregroundStyle(FYColor.live) }
                         else if let time = activity.plannedAt { Text("· \(time.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(FYColor.muted) }
                     }
                     NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { Text("Details").font(.caption2).foregroundStyle(FYColor.cyan) }
@@ -234,7 +240,14 @@ private struct CrewFeedCard: View {
             }
             Spacer()
             action
-        }.fyCard().fullScreenCover(isPresented: $showJoin) { ActivityComposerView(linkedActivityID: member.activity?.id) }
+        }.fyCard().fullScreenCover(isPresented: $showJoin) {
+            if let activity = member.activity, let planID = activity.workoutPlanID {
+                NavigationStack {
+                    WorkoutPlanDetailView(planID: planID, linkedActivityID: activity.id)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { showJoin = false } } }
+                }
+            } else { ActivityComposerView(linkedActivityID: member.activity?.id) }
+        }
     }
     @ViewBuilder private var action: some View {
         if let activity = member.activity, activity.status == .live {
@@ -256,6 +269,17 @@ struct LiveTimer: View {
     let start: Date
     var body: some View { TimelineView(.periodic(from: .now, by: 1)) { context in Text(Self.format(context.date.timeIntervalSince(start))).fontDesign(.monospaced).fontWeight(.bold).monospacedDigit().contentTransition(.numericText()) } }
     static func format(_ interval: TimeInterval) -> String { let seconds = max(0, Int(interval)); return String(format: "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60) }
+}
+
+struct LiveActivityTimer: View {
+    let activity: Activity
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            Text(LiveTimer.format(activity.duration(at: context.date) ?? 0))
+                .fontDesign(.monospaced).fontWeight(.bold).monospacedDigit()
+                .accessibilityLabel(activity.pausedAt == nil ? "Trainingsdauer" : "Trainingsdauer, pausiert")
+        }
+    }
 }
 
 private struct MotivationCard: View {

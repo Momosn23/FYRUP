@@ -1,11 +1,13 @@
 import Foundation
 
 actor DemoRepository: AppRepository {
-    private let meID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
-    private var me: Profile
-    private var activities: [Activity]
+    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    let meID: UUID
+    var me: Profile
+    var activities: [Activity]
+    let workoutStorage: DemoWorkoutStorage
     private var avatarObjects: [String: Data] = [:]
-    private var crew: [Profile]
+    var crew: [Profile]
     private var sentFyrups = Set<UUID>()
     private var profileExists: Bool
     private var pushPreferences: NotificationPreferences = .standard
@@ -14,7 +16,9 @@ actor DemoRepository: AppRepository {
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
 
-    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false) {
+    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage()) {
+        meID = userID
+        self.workoutStorage = workoutStorage
         profileExists = !startsWithoutProfile
         me = Profile(id: meID, username: "momo", displayName: "Momo", avatarPath: nil, birthYear: nil, city: "Berlin", bio: "Move together.", sports: [.gym, .running], weeklyGoal: 4, activityVisibility: "friends")
         crew = [
@@ -40,6 +44,17 @@ actor DemoRepository: AppRepository {
                 AppNotification(id: UUID(), type: "session_invite", title: "Max lädt dich zum Training ein.", body: "Gym · Push · Heute", data: nil, createdAt: now.addingTimeInterval(-2400), readAt: nil)
             ]
         }
+        let isKnownFixture = userID == Self.defaultUserID || crew.contains { $0.id == userID }
+        if let ownFixture = crew.first(where: { $0.id == userID }) {
+            me = ownFixture
+        }
+        if userID != Self.defaultUserID {
+            crew.append(Profile(id: Self.defaultUserID, username: "momo", displayName: "Momo", avatarPath: nil, birthYear: nil, city: "Berlin", bio: nil, sports: [.gym], weeklyGoal: 4, activityVisibility: "friends"))
+        }
+        crew.removeAll { $0.id == userID }
+        if !isKnownFixture { crew = [] }
+        // Alternate-account tests must not inherit Max's sample LIVE activity.
+        if userID != Self.defaultUserID { activities.removeAll { $0.userID == userID } }
     }
 
     func restoreSession() async throws -> AuthSession? { AuthSession(accessToken: "demo", refreshToken: "demo", expiresAt: .distantFuture, userID: meID) }
@@ -48,31 +63,79 @@ actor DemoRepository: AppRepository {
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { try await signIn(email: "", password: "") }
     func resetPassword(email: String) async throws {}
     func signOut() async {}
-    func profile(userID: UUID) async throws -> Profile? { profileExists ? me : nil }
-    func saveProfile(_ profile: Profile) async throws { me = profile; profileExists = true }
+    func profile(userID: UUID) async throws -> Profile? { userID == meID ? (profileExists ? me : nil) : crew.first { $0.id == userID } }
+    func saveProfile(_ profile: Profile) async throws {
+        guard profile.id == meID else { throw AppError.authentication }
+        me = profile; profileExists = true
+    }
     func uploadAvatar(userID: UUID, data: Data) async throws -> String { let path = "\(userID.uuidString.lowercased())/avatar.jpg"; avatarObjects[path] = data; return path }
     func avatarData(path: String) async throws -> Data { guard let data = avatarObjects[path] else { throw AppError.server }; return data }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {
+        try await restoreWorkoutActivities()
         let mine = DateLogic.status(for: activities.filter { $0.userID == meID })
-        let members = crew.map { profile in CrewMember(profile: profile, activity: DateLogic.status(for: activities.filter { $0.userID == profile.id }), weeklyCount: profile.id == crew[1].id ? 5 : 3) }.sorted { $0.todayStatus < $1.todayStatus }
+        let members = crew.map { profile in CrewMember(profile: profile, activity: DateLogic.status(for: activities.filter { $0.userID == profile.id }), weeklyCount: profile.username == "sarah" ? 5 : 3) }.sorted { $0.todayStatus < $1.todayStatus }
         return (mine, members)
     }
     func recentActivities(userID: UUID) async throws -> [Activity] {
-        activities
+        try await restoreWorkoutActivities()
+        return activities
             .filter { $0.userID == userID && $0.status == .completed }
             .sorted { ($0.endedAt ?? .distantPast) > ($1.endedAt ?? .distantPast) }
     }
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
+        guard userID == meID else { throw AppError.authentication }
+        try await restoreWorkoutActivities()
+        if let plannedSessionID, let planID = try await workoutStorage.planID(sessionID: plannedSessionID, userID: meID, friends: Set(crew.map(\.id))) {
+            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID)
+        }
+        if let linkedActivityID, let planID = try await workoutStorage.planID(activityID: linkedActivityID, userID: meID, friends: Set(crew.map(\.id))) {
+            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID)
+        }
         guard !activities.contains(where: { $0.userID == meID && $0.status == .live }) else { throw AppError.conflict("Du hast bereits ein LIVE-Training.") }
         let activity = Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .live, plannedAt: nil, startedAt: Date(), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
         activities.append(activity); return activity
     }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity {
-        guard let index = activities.firstIndex(where: { $0.id == id }) else { throw AppError.server }
-        activities[index].status = .completed; activities[index].endedAt = Date(); activities[index].distanceMeters = distanceMeters
-        return activities[index]
+        try await restoreWorkoutActivities()
+        guard let index = activities.firstIndex(where: { $0.id == id && $0.userID == meID }), [.live, .completed].contains(activities[index].status) else { throw AppError.server }
+        if activities[index].status == .completed { return activities[index] }
+        let now = Date()
+        if let pausedAt = activities[index].pausedAt {
+            activities[index].pausedSeconds = (activities[index].pausedSeconds ?? 0) + max(0, Int(now.timeIntervalSince(pausedAt)))
+            activities[index].pausedAt = nil
+        }
+        activities[index].status = .completed; activities[index].endedAt = now; activities[index].distanceMeters = distanceMeters
+        let completed = activities[index]
+        try await workoutStorage.updateActivity(completed, userID: meID)
+        return completed
     }
-    func cancelActivity(id: UUID) async throws { activities.removeAll { $0.id == id } }
+    func cancelActivity(id: UUID) async throws {
+        try await restoreWorkoutActivities()
+        guard let activity = activities.first(where: { $0.id == id && $0.userID == meID && [.planned, .ready, .live].contains($0.status) }) else { throw AppError.authentication }
+        var cancelled = activity; cancelled.status = .cancelled; cancelled.endedAt = Date()
+        if let pausedAt = cancelled.pausedAt {
+            cancelled.pausedSeconds = (cancelled.pausedSeconds ?? 0) + max(0, Int((cancelled.endedAt ?? Date()).timeIntervalSince(pausedAt)))
+            cancelled.pausedAt = nil
+        }
+        try await workoutStorage.updateActivity(cancelled, userID: meID)
+        activities.removeAll { $0.id == id }
+    }
+
+    func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity {
+        try await restoreWorkoutActivities()
+        guard let index = activities.firstIndex(where: { $0.id == id && $0.userID == meID && $0.status == .live }) else {
+            throw AppError.conflict("Nur dein laufendes Training kann pausiert werden.")
+        }
+        let now = Date()
+        if paused && activities[index].pausedAt == nil { activities[index].pausedAt = now }
+        else if !paused, let pausedAt = activities[index].pausedAt {
+            activities[index].pausedSeconds = (activities[index].pausedSeconds ?? 0) + max(0, Int(now.timeIntervalSince(pausedAt)))
+            activities[index].pausedAt = nil
+        }
+        let updated = activities[index]
+        try await workoutStorage.updateActivity(updated, userID: meID)
+        return updated
+    }
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws {
         let sessionID = UUID()
         let session = PlannedSession(id: sessionID, hostID: meID, sport: sport, subtype: subtype, startsAt: startsAt, durationMinutes: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, status: "planned")
@@ -80,8 +143,8 @@ actor DemoRepository: AppRepository {
         hosted.append(HostedSession(session: session, participants: participants))
         activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
     }
-    func invitations() async throws -> [SessionInvitation] { demoInvitations }
-    func hostedSessions() async throws -> [HostedSession] { hosted }
+    func invitations() async throws -> [SessionInvitation] { try await workoutStorage.invitations(userID: meID, friends: Set(crew.map(\.id))) + demoInvitations }
+    func hostedSessions() async throws -> [HostedSession] { try await workoutStorage.hostedSessions(userID: meID) + hosted }
     func trainingGroups() async throws -> [TrainingGroup] { groups }
     func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -91,6 +154,7 @@ actor DemoRepository: AppRepository {
     }
     func deleteTrainingGroup(id: UUID) async throws { groups.removeAll { $0.id == id } }
     func updateHostedSession(_ session: PlannedSession) async throws -> PlannedSession {
+        if session.workoutPlanID != nil { return try await workoutStorage.updateSession(session, userID: meID) }
         guard let index = hosted.firstIndex(where: { $0.id == session.id }) else { throw AppError.server }
         hosted[index].session = session
         if let activityIndex = activities.firstIndex(where: { $0.plannedSessionID == session.id && $0.userID == meID }) {
@@ -101,25 +165,29 @@ actor DemoRepository: AppRepository {
         return session
     }
     func respondToInvitation(sessionID: UUID, status: InvitationStatus) async throws {
+        if try await workoutStorage.respond(sessionID: sessionID, status: status, userID: meID, friends: Set(crew.map(\.id))) { return }
         guard let index = demoInvitations.firstIndex(where: { $0.sessionID == sessionID }) else { throw AppError.server }
         let invitation = demoInvitations[index]
         demoInvitations[index] = SessionInvitation(sessionID: invitation.sessionID, status: status, session: invitation.session, host: invitation.host)
     }
-    func cancelPlannedSession(sessionID: UUID) async throws { activities.removeAll { $0.plannedSessionID == sessionID }; hosted.removeAll { $0.id == sessionID } }
-    func joinPlannedSession(sessionID: UUID) async throws {}
+    func cancelPlannedSession(sessionID: UUID) async throws {
+        try await workoutStorage.cancelSession(sessionID: sessionID, userID: meID)
+        activities.removeAll { $0.plannedSessionID == sessionID }; hosted.removeAll { $0.id == sessionID }
+    }
+    func joinPlannedSession(sessionID: UUID) async throws { _ = try await workoutStorage.respond(sessionID: sessionID, status: .accepted, userID: meID, friends: Set(crew.map(\.id))) }
     func searchUsers(query: String) async throws -> [Profile] { crew.filter { $0.username.localizedCaseInsensitiveContains(query) || $0.displayName.localizedCaseInsensitiveContains(query) } }
     func requests() async throws -> [Profile] { [] }
     func sendFriendRequest(to userID: UUID) async throws {}
     func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
-    func removeFriend(_ userID: UUID) async throws { crew.removeAll { $0.id == userID } }
-    func block(_ userID: UUID) async throws { crew.removeAll { $0.id == userID } }
+    func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
+    func block(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
-    func notifications() async throws -> [AppNotification] { demoNotifications }
+    func notifications() async throws -> [AppNotification] { try await workoutStorage.notifications(userID: meID) + demoNotifications }
     func notificationPreferences() async throws -> NotificationPreferences { pushPreferences }
     func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { pushPreferences = preferences; return preferences }
     func goalSummary() async throws -> GoalSummary { GoalSummary(weeklyCount: 3, weeklyGoal: me.weeklyGoal, streak: 6, monthCount: 17, crewCount: 15, crewTarget: 16) }
     func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}
-    func deleteAccount() async throws {}
+    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID) }
 }

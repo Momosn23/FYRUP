@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AppRepository: Sendable {
+protocol AppRepository: WorkoutRepository {
     func restoreSession() async throws -> AuthSession?
     func signUp(email: String, password: String) async throws -> AuthSession?
     func signIn(email: String, password: String) async throws -> AuthSession
@@ -15,6 +15,7 @@ protocol AppRepository: Sendable {
     func recentActivities(userID: UUID) async throws -> [Activity]
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
+    func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity
     func cancelActivity(id: UUID) async throws
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws
     func invitations() async throws -> [SessionInvitation]
@@ -44,7 +45,7 @@ protocol AppRepository: Sendable {
 }
 
 actor LiveAppRepository: AppRepository {
-    private let client: SupabaseRESTClient
+    let client: SupabaseRESTClient
     init(configuration: AppConfiguration) { client = SupabaseRESTClient(configuration: configuration) }
 
     func restoreSession() async throws -> AuthSession? { try await client.restore() }
@@ -107,6 +108,14 @@ actor LiveAppRepository: AppRepository {
         return try await client.rpc("complete_activity", body: Body(pActivityID: id, pDistanceMeters: distanceMeters))
     }
 
+    func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity {
+        struct Body: Encodable {
+            let activity: UUID; let paused: Bool
+            enum CodingKeys: String, CodingKey { case activity = "p_activity", paused = "p_paused" }
+        }
+        return try await client.rpc("set_activity_paused", body: Body(activity: id, paused: paused))
+    }
+
     func cancelActivity(id: UUID) async throws {
         let _: Bool = try await client.rpc("cancel_activity", body: ["p_activity_id": id.uuidString])
     }
@@ -118,6 +127,13 @@ actor LiveAppRepository: AppRepository {
             enum CodingKeys: String, CodingKey {
                 case pSport = "p_sport", pSubtype = "p_subtype", pStartsAt = "p_starts_at", pDurationMinutes = "p_duration_minutes"
                 case pNote = "p_note", pPlaceName = "p_place_name", pFriendsCanJoin = "p_friends_can_join", pInvitees = "p_invitees"
+            }
+            func encode(to encoder: Encoder) throws {
+                var values = encoder.container(keyedBy: CodingKeys.self)
+                try values.encode(pSport, forKey: .pSport); try values.encode(pSubtype, forKey: .pSubtype)
+                try values.encode(pStartsAt, forKey: .pStartsAt); try values.encode(pDurationMinutes, forKey: .pDurationMinutes)
+                try values.encode(pNote, forKey: .pNote); try values.encode(pPlaceName, forKey: .pPlaceName)
+                try values.encode(pFriendsCanJoin, forKey: .pFriendsCanJoin); try values.encode(pInvitees, forKey: .pInvitees)
             }
         }
         struct Result: Decodable { let id: UUID }
@@ -142,6 +158,12 @@ actor LiveAppRepository: AppRepository {
             enum CodingKeys: String, CodingKey {
                 case pSession = "p_session", pStartsAt = "p_starts_at", pDurationMinutes = "p_duration_minutes"
                 case pNote = "p_note", pPlaceName = "p_place_name", pFriendsCanJoin = "p_friends_can_join"
+            }
+            func encode(to encoder: Encoder) throws {
+                var values = encoder.container(keyedBy: CodingKeys.self)
+                try values.encode(pSession, forKey: .pSession); try values.encode(pStartsAt, forKey: .pStartsAt)
+                try values.encode(pDurationMinutes, forKey: .pDurationMinutes); try values.encode(pNote, forKey: .pNote)
+                try values.encode(pPlaceName, forKey: .pPlaceName); try values.encode(pFriendsCanJoin, forKey: .pFriendsCanJoin)
             }
         }
         return try await client.rpc("update_planned_session", body: Body(pSession: session.id, pStartsAt: session.startsAt, pDurationMinutes: session.durationMinutes, pNote: session.note, pPlaceName: session.placeName, pFriendsCanJoin: session.friendsCanJoin))

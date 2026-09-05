@@ -1,6 +1,8 @@
 # FYRUP
 
-FYRUP ist eine native Social-Fitness-App für iPhone. Die Startseite beantwortet zuerst, was heute in der eigenen Crew passiert: LIVE, PLANNED, DONE oder neutral NOT YET. Der Produktloop besteht aus Training starten/planen, Freunde einladen, mitziehen, FYR UP und Reaktionen – ohne GPS, Kalorien- oder Satztracking.
+FYRUP ist eine native Social-Fitness-App für iPhone. Die Startseite beantwortet zuerst, was heute in der eigenen Crew passiert: LIVE, PLANNED, DONE oder neutral NOT YET. Der Produktloop besteht aus Training starten/planen, Freunde einladen, mitziehen, FYR UP und Reaktionen. Neue Aufträge ergänzen Trainingspläne, eigene Übungen, optionales Satztracking, freiwillige HealthKit-Schritte, Wochenflammen, Blind Workout und Call My Shot; FYRUP bleibt Social-zentriert, ohne GPS- oder Kalorientracking.
+
+Die [zentrale Produkt- und Abnahmecheckliste](docs/PRODUCT_CHECKLIST.md) ist die aktuelle Arbeitsliste einschließlich Design, Animationen, Sicherheit und aller 41 ausdrücklich geforderten neuen Tests. Sie trennt vorbereiteten Code, Integration, Backend, Simulator, visuelle Prüfung und echtes iPhone. Neue Erweiterungen sind noch nicht vollständig integriert oder abgenommen; vorhandene Bestands-Builds beweisen sie nicht.
 
 ## Stand der V1
 
@@ -109,7 +111,7 @@ xcodebuild -project FYRUP.xcodeproj -scheme FYRUP \
 supabase test db
 ```
 
-Unit Tests prüfen Tageswechsel, Feed-Priorität, Wochenziel-Streak, Timer, Activity-Lifecycle, genau eine LIVE-Aktivität, Planen und FYR-UP-Deduplizierung. Neun UI-Flows decken unter anderem Start → LIVE → DONE, Planen samt Host-Details, FYR UP, Profilbearbeitung, Notifications und das dreistufige Onboarding ab. Dabei entstehen 13 Referenz-Screenshots und ein browserlesbares Kontaktblatt. pgTAP prüft 30 Schema-, RPC- und RLS-Eigenschaften. Codemagic führt iOS Build und Tests auf macOS aus.
+Bestandstests prüfen unter anderem Authentifizierung, Tageswechsel, Feed-Priorität, Timer, Activity-Lifecycle, Planung und FYR-UP-Deduplizierung. Der bestätigte Cloud-Build 17 (`4311282`) hat 11 UI-Tests bestanden; zusätzliche Bestandsfälle in `f461c1b` benötigen einen eigenen Ergebnisnachweis. pgTAP-Prüfungen und Screenshot-Artefakte ergänzen die UI-Tests. Die neuen Auftragstests sind in der zentralen Checkliste ausdrücklich noch als NICHT AUSGEFÜHRT geführt. Codemagic führt Xcode und Simulator auf macOS aus; Windows allein kann diese Tests nicht ausführen.
 
 ### Ohne eigenen Mac
 
@@ -120,11 +122,11 @@ Für den signierten Workflow `FYRUP Signed TestFlight Build` werden in Codemagic
 - `appstore_credentials`: `APP_STORE_CONNECT_PRIVATE_KEY`, `APP_STORE_CONNECT_KEY_IDENTIFIER`, `APP_STORE_CONNECT_ISSUER_ID`, `CERTIFICATE_PRIVATE_KEY`
 - `fyrup_backend`: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`
 
-Der Workflow holt oder erzeugt passende App-Store-Signing-Dateien für `app.fyrup.ios`, vergibt eine eindeutige Buildnummer, baut die IPA und lädt sie zu App Store Connect hoch. Secrets werden nur während des Builds in die ignorierte `Config/Secrets.xcconfig` geschrieben. Der Cloud-Testworkflow veröffentlicht ausschließlich ein visuelles Kontaktblatt; Testlogs bleiben direkt in Codemagic verfügbar.
+Der Workflow holt oder erzeugt passende App-Store-Signing-Dateien für `app.fyrup.ios`, vergibt eine eindeutige Buildnummer, baut die IPA und lädt sie zu App Store Connect hoch. Secrets werden nur während des Builds in die ignorierte `Config/Secrets.xcconfig` geschrieben. Der Cloud-Testworkflow ist für visuelles Kontaktblatt, Screenshots und Testresultat-Artefakte konfiguriert; erfolgreiche Erzeugung und Download für den jeweiligen Build prüfen.
 
 ## Release / TestFlight
 
-Die Version ist `1.0.0 (1)`, Release nutzt Whole Module Optimization, App Icon und Launch Screen sind vorhanden, das iPhone ist das einzige Zielgerät, und die Entitlements enthalten Apple Sign-In sowie Push. Vor dem ersten Archive:
+Die tatsächliche Version/Buildnummer dem konkreten Build und App Store Connect entnehmen, nicht aus alten Checklisten übernehmen. App Icon und Launch Screen sind vorhanden, iPhone ist das Zielgerät; Apple Sign-In und Push sind eingerichtet, HealthKit-Capability und Signierung für die neue Erweiterung sind gesondert zu prüfen. Vor einem Archive:
 
 1. Bundle ID und Team festlegen.
 2. Production-Supabase-Projekt migrieren und Release-Secrets eintragen.
@@ -137,7 +139,7 @@ Die Version ist `1.0.0 (1)`, Release nutzt Whole Module Optimization, App Icon u
 
 - Profile und Aktivitäten sind nicht öffentlich; Activity Visibility ist `friends` oder `nobody`.
 - Freundschaft ist beidseitig, Blocks greifen in den zentralen Server-Helpern.
-- Es gibt keinen Standortzugriff, kein GPS und kein HealthKit.
+- Kein Standortzugriff/GPS. Die beauftragte HealthKit-Erweiterung darf nur Schritte lesen; Social-Freigabe ist getrennt, freiwillig und standardmäßig aus. Vollständige Datenschutzprüfung dieser Erweiterung ist noch offen.
 - Tokens liegen im Keychain; Publishable Key und Project URL sind keine Geheimnisse, RLS bleibt trotzdem zwingend.
 - Service Role und APNs Credentials dürfen nie in `Secrets.xcconfig` oder die App.
 - Account-Löschung validiert das JWT serverseitig und löscht den Auth-User; Cascades entfernen personenbezogene App-Daten.
@@ -146,7 +148,7 @@ Die Version ist `1.0.0 (1)`, Release nutzt Whole Module Optimization, App Icon u
 
 - Das Repository wurde auf Windows erstellt; ein echter Xcode-/Simulator-Build muss auf macOS bzw. CI laufen.
 - Remote E-Mail-Zustellung, Apple Login und APNs hängen von den jeweiligen externen Account-Einstellungen ab.
-- Kein GPS, HealthKit, Apple Watch, öffentlicher Feed, Chat, Payment oder Community – bewusst außerhalb V1.
-- Das Crew-Ziel ist in V1 automatisch aus Freundeskreis und Wochenbeiträgen abgeleitet; Gruppenverwaltung ist für V2 vorgesehen.
+- GPS, eigenständige Apple-Watch-App, öffentlicher Feed, Chat, Payment und öffentliche Community sind weiterhin außerhalb des Auftrags. HealthKit-Schritte und Trainingspläne sind hingegen ausdrücklich beauftragt.
+- Bestehende private Trainingsgruppen und Crew-Ziele bleiben erhalten; die neuen persönlichen Wochenziele/Flammen müssen davon getrennt und konsistent integriert werden.
 
 Siehe [Backend-Dokumentation](docs/BACKEND.md) und [Release-Checkliste](docs/RELEASE_CHECKLIST.md).

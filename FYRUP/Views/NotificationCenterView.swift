@@ -12,15 +12,14 @@ struct NotificationCenterView: View {
                 ContentUnavailableView("Noch keine Mitteilungen", systemImage: "bell", description: Text("Social Signals aus deiner Crew erscheinen hier."))
             } else {
                 List(filteredNotifications) { item in
-                    HStack(spacing: 12) {
-                        ZStack { Circle().fill(iconColor(item).opacity(0.16)); Image(systemName: icon(item)).foregroundStyle(iconColor(item)) }.frame(width: 44, height: 44)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.title).font(.subheadline.bold())
-                            Text(item.body).font(.caption).foregroundStyle(FYColor.muted).lineLimit(2)
-                            Text(item.createdAt, style: .relative).font(.caption2).foregroundStyle(FYColor.muted)
+                    Group {
+                        if item.type == "workout_plan_shared", let value = item.data?["plan_id"], let planID = UUID(uuidString: value) {
+                            NavigationLink { WorkoutPlanDetailView(planID: planID) } label: { notificationRow(item) }
+                        } else if let value = item.data?["session_id"], let sessionID = UUID(uuidString: value), let invitation = store.invitations.first(where: { $0.sessionID == sessionID }) {
+                            NavigationLink { InvitationDetailView(invitation: invitation) } label: { notificationRow(item) }
+                        } else {
+                            notificationRow(item)
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
                     }
                     .padding(.vertical, 4).listRowBackground(FYColor.background).listRowSeparatorTint(FYColor.line)
                 }.listStyle(.plain).scrollContentBackground(.hidden)
@@ -31,9 +30,21 @@ struct NotificationCenterView: View {
         .task { await store.markNotificationsRead() }
     }
 
+    private func notificationRow(_ item: AppNotification) -> some View {
+        HStack(spacing: 12) {
+            ZStack { Circle().fill(iconColor(item).opacity(0.16)); Image(systemName: icon(item)).foregroundStyle(iconColor(item)) }.frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
+                Text(item.body).font(.caption).foregroundStyle(FYColor.muted).lineLimit(2)
+                Text(item.createdAt, style: .relative).font(.caption2).foregroundStyle(FYColor.muted)
+            }
+            Spacer()
+        }
+    }
+
     private var filteredNotifications: [AppNotification] {
         switch filter {
-        case 1: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("invite") || $0.type.localizedCaseInsensitiveContains("session") }
+        case 1: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("invite") || $0.type.localizedCaseInsensitiveContains("session") || $0.type == "workout_plan_shared" }
         case 2: store.notifications.filter { $0.type.localizedCaseInsensitiveContains("reaction") || $0.type.localizedCaseInsensitiveContains("fyrup") }
         default: store.notifications
         }

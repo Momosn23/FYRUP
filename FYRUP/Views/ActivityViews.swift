@@ -18,10 +18,15 @@ struct ActivityComposerView: View {
     @State private var sportSearch = ""
     @State private var friendSearch = ""
     @State private var showsGroupCreator = false
+    @State private var workoutPlan: WorkoutPlan?
+    @State private var showsWorkoutPlans = false
+    @State private var creatingPlan: WorkoutPlan?
 
-    init(linkedActivityID: UUID? = nil, initialMode: Int = 0) {
+    init(linkedActivityID: UUID? = nil, initialMode: Int = 0, selectedWorkoutPlan: WorkoutPlan? = nil) {
         self.linkedActivityID = linkedActivityID
         _mode = State(initialValue: initialMode)
+        _workoutPlan = State(initialValue: selectedWorkoutPlan)
+        _sport = State(initialValue: selectedWorkoutPlan == nil ? nil : .gym)
     }
     var body: some View {
         NavigationStack {
@@ -47,11 +52,13 @@ struct ActivityComposerView: View {
                 if let sport {
                     Button(mode == 0 ? "JETZT STARTEN" : "TRAINING PLANEN") {
                         Task {
-                            if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID) }
-                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeName.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : []) }
+                            if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID, workoutPlanID: workoutPlan?.id) }
+                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeName.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id) }
+                            if store.errorMessage == nil { dismiss() }
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
+                    .disabled(store.isBusy)
                     .accessibilityIdentifier("confirm-activity")
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(.ultraThinMaterial)
@@ -60,6 +67,13 @@ struct ActivityComposerView: View {
         }
         .preferredColorScheme(.light)
         .fullScreenCover(isPresented: $showsGroupCreator) { TrainingGroupEditorView() }
+        .fullScreenCover(isPresented: $showsWorkoutPlans) {
+            NavigationStack {
+                WorkoutPlansView { selected in workoutPlan = selected; showsWorkoutPlans = false }
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { showsWorkoutPlans = false } } }
+            }
+        }
+        .fullScreenCover(item: $creatingPlan) { draft in WorkoutPlanEditorView(plan: draft) { workoutPlan = $0 } }
     }
     private var sportChooser: some View {
         VStack(spacing: 14) {
@@ -82,7 +96,7 @@ struct ActivityComposerView: View {
                 .padding(12).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(SportKind.allCases.filter { sportSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(sportSearch) }) { item in
-                    Button { sport = item; subtype = nil; gymAreas = [] } label: {
+                    Button { sport = item; subtype = nil; gymAreas = []; workoutPlan = nil } label: {
                         VStack(spacing: 9) {
                             Image(systemName: item.symbol).font(.title2).foregroundStyle(item.accentColor)
                             Text(item.title).font(.caption2.bold()).lineLimit(1).minimumScaleFactor(0.72)
@@ -97,11 +111,14 @@ struct ActivityComposerView: View {
     }
     @ViewBuilder private var details: some View {
         if let sport {
-            Button { self.sport = nil; subtype = nil; gymAreas = [] } label: {
+            Button { self.sport = nil; subtype = nil; gymAreas = []; workoutPlan = nil } label: {
                 SportHeroCard(sport: sport, title: sport.title, subtitle: storedSubtype ?? "Training auswählen")
             }.buttonStyle(.plain)
 
-            if sport == .gym { gymFocus }
+            if sport == .gym {
+                gymPlanChoices
+                if workoutPlan == nil { gymFocus }
+            }
             else if let choices = SportCatalog.subtypes[sport] {
                 Text("WAS GENAU?").composerSectionTitle()
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -115,6 +132,25 @@ struct ActivityComposerView: View {
                 planningDetails
                 invitationPicker
             }
+        }
+    }
+
+    private var gymPlanChoices: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("WIE MÖCHTEST DU TRAINIEREN?").composerSectionTitle()
+            HStack(spacing: 10) {
+                Button { showsWorkoutPlans = true } label: { Label("Meine Pläne", systemImage: "list.clipboard") }
+                    .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("choose-workout-plan")
+                Button { if let id = store.profile?.id { creatingPlan = WorkoutPlan(ownerID: id) } } label: { Label("Neuer Plan", systemImage: "plus") }
+                    .buttonStyle(OutlineButtonStyle())
+            }
+            if let workoutPlan { WorkoutPlanCard(plan: workoutPlan) }
+            Button { workoutPlan = nil } label: {
+                HStack {
+                    Label("Freies Training", systemImage: "figure.strengthtraining.traditional")
+                    Spacer(); Image(systemName: workoutPlan == nil ? "checkmark.circle.fill" : "circle")
+                }.font(.subheadline.bold()).foregroundStyle(FYColor.lime).padding(14).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 13))
+            }.buttonStyle(.plain)
         }
     }
 
@@ -219,6 +255,7 @@ struct ActivityComposerView: View {
 
     private var storedSubtype: String? {
         guard sport == .gym else { return subtype }
+        if let workoutPlan { return workoutPlan.name }
         let areas = GymBodyArea.allCases.filter(gymAreas.contains).map(\.title)
         if let subtype, !areas.isEmpty { return "\(subtype) (\(areas.joined(separator: ", ")))" }
         return subtype ?? (areas.isEmpty ? nil : areas.joined(separator: ", "))
@@ -274,11 +311,27 @@ private extension Button {
 
 struct LiveActivityView: View {
     @Environment(AppStore.self) private var store
+    @State private var workoutActivityID: UUID?
+    @State private var resolved = false
+    var body: some View {
+        Group {
+            if let workoutActivityID { WorkoutTrackingView(activityID: workoutActivityID) }
+            else if resolved { FreeActivityView() }
+            else { ProgressView() }
+        }.task {
+            guard !resolved else { return }
+            if store.myActivity?.workoutPlanID != nil { workoutActivityID = store.myActivity?.id }
+            resolved = true
+        }
+    }
+}
+
+private struct FreeActivityView: View {
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var confirmCancel = false
     @State private var distanceKM = ""
     @State private var didComplete = false
-    @State private var isPaused = false
     var body: some View {
         VStack(spacing: 24) {
             HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
@@ -293,7 +346,8 @@ struct LiveActivityView: View {
                 } else {
                     StatusBadge(status: .live).font(.headline)
                     Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).font(.headline)
-                    LiveTimer(start: activity.startedAt ?? .now).font(.system(size: 46, weight: .bold, design: .monospaced))
+                    LiveActivityTimer(activity: activity).font(.system(size: 46, weight: .bold, design: .monospaced))
+                    if activity.pausedAt != nil { Text("Pausiert").font(.subheadline.bold()).foregroundStyle(FYColor.muted) }
                     if let liveFriend = store.crew.first(where: { $0.todayStatus == .live }) {
                         Label("\(liveFriend.profile.displayName) trainiert ebenfalls.", systemImage: "person.2.fill").font(.subheadline).foregroundStyle(FYColor.live)
                     }
@@ -310,15 +364,24 @@ struct LiveActivityView: View {
             }
             else {
                 HStack(spacing: 38) {
-                    Button { isPaused.toggle() } label: {
-                        Image(systemName: isPaused ? "play.fill" : "pause.fill").font(.title2).foregroundStyle(FYColor.ink).frame(width: 62, height: 62).background(FYColor.elevated, in: Circle())
-                    }.accessibilityLabel(isPaused ? "TRAINING FORTSETZEN" : "TRAINING PAUSIEREN")
-                    Button { Task { let normalized = distanceKM.replacingOccurrences(of: ",", with: "."); let meters = Double(normalized).map { Int($0 * 1000) }; await store.finish(distanceMeters: meters); didComplete = store.myActivity?.status == .completed } } label: { Image(systemName: "stop.fill").font(.title2).frame(width: 68, height: 68).background(FYColor.coral, in: Circle()).shadow(color: FYColor.coral.opacity(0.35), radius: 14) }.foregroundStyle(.white).accessibilityLabel("TRAINING BEENDEN")
+                    Button { Task { await store.setPaused(store.myActivity?.pausedAt == nil) } } label: {
+                        Image(systemName: store.myActivity?.pausedAt != nil ? "play.fill" : "pause.fill").font(.title2).foregroundStyle(FYColor.ink).frame(width: 62, height: 62).background(FYColor.elevated, in: Circle())
+                    }.disabled(store.isBusy).accessibilityLabel(store.myActivity?.pausedAt != nil ? "TRAINING FORTSETZEN" : "TRAINING PAUSIEREN")
+                    Button { Task {
+                        let normalized = distanceKM.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+                        let kilometers = Double(normalized)
+                        if !normalized.isEmpty && (kilometers == nil || kilometers?.isFinite != true || !(0...10000).contains(kilometers ?? -1)) {
+                            store.errorMessage = "Prüfe die optionale Distanz."; return
+                        }
+                        let activityID = store.myActivity?.id
+                        await store.finish(distanceMeters: kilometers.map { Int($0 * 1000) })
+                        didComplete = store.errorMessage == nil && (store.myActivity?.id == activityID && store.myActivity?.status == .completed)
+                    } } label: { Image(systemName: "stop.fill").font(.title2).frame(width: 68, height: 68).background(FYColor.coral, in: Circle()).shadow(color: FYColor.coral.opacity(0.35), radius: 14) }.foregroundStyle(.white).disabled(store.isBusy).accessibilityLabel("TRAINING BEENDEN")
                 }
                 Text("Du machst das stark! 🔥").font(.subheadline).foregroundStyle(FYColor.muted)
                 Button("Training abbrechen") { confirmCancel = true }.font(.caption).foregroundStyle(FYColor.coral)
             }
-        }.padding(24).background(FYColor.background).confirmationDialog("Training wirklich abbrechen?", isPresented: $confirmCancel) { Button("Training abbrechen", role: .destructive) { Task { await store.cancelCurrent(); dismiss() } }; Button("Weiter trainieren", role: .cancel) {} }
+        }.padding(24).background(FYColor.background).confirmationDialog("Training wirklich abbrechen?", isPresented: $confirmCancel) { Button("Training abbrechen", role: .destructive) { Task { await store.cancelCurrent(); if store.errorMessage == nil { dismiss() } } }; Button("Weiter trainieren", role: .cancel) {} }
     }
 }
 
@@ -364,7 +427,10 @@ struct HostedSessionView: View {
                     session.friendsCanJoin = friendsCanJoin
                     Task { await store.updateHostedSession(session) }
                 }.buttonStyle(SecondaryButtonStyle())
-                Button("TRAINING STARTEN") { Task { await store.start(sport: hosted.session.sport, subtype: hosted.session.subtype, plannedSessionID: hosted.id); dismiss() } }.buttonStyle(PrimaryButtonStyle())
+                if let planID = hosted.session.workoutPlanID {
+                    NavigationLink { WorkoutPlanDetailView(planID: planID, sessionID: hosted.id) } label: { Text("Trainingsplan ansehen") }.buttonStyle(OutlineButtonStyle())
+                }
+                Button("TRAINING STARTEN") { Task { await store.start(sport: hosted.session.sport, subtype: hosted.session.subtype, plannedSessionID: hosted.id); if store.errorMessage == nil { dismiss() } } }.buttonStyle(PrimaryButtonStyle()).disabled(store.isBusy)
                 Button("Training absagen", role: .destructive) { confirmCancel = true }.frame(maxWidth: .infinity).padding(.top, 4)
             }.padding(20)
         }
@@ -423,6 +489,10 @@ struct ActivityDetailView: View {
                     if let subtype = activity.subtype { DetailRow(symbol: "list.bullet", title: "Unterkategorie", value: subtype) }
                     if let date = activity.plannedAt ?? activity.startedAt { DetailRow(symbol: "calendar", title: "Datum", value: date.formatted(date: .abbreviated, time: .shortened)) }
                     if let minutes = activity.plannedDurationMinutes { DetailRow(symbol: "clock", title: "Dauer (geplant)", value: "ca. \(minutes) min") }
+                    if let count = activity.exerciseCount { DetailRow(symbol: "list.bullet", title: "Trainingsplan", value: "\(count) Übungen") }
+                    if activity.status == .completed && activity.workoutPlanID != nil && owner.id == store.profile?.id {
+                        NavigationLink { WorkoutHistoryView(activityID: activity.id) } label: { Label("Mein privates Trainingsprotokoll", systemImage: "list.clipboard") }.buttonStyle(OutlineButtonStyle()).padding(.vertical, 12)
+                    }
                     HStack(spacing: -7) { AvatarView(profile: owner).scaleEffect(0.72); Text(owner.displayName).font(.subheadline.bold()).padding(.leading, 12); Spacer(); StatusBadge(status: activity.status == .live ? .live : activity.status == .completed ? .done : .planned) }.padding(.vertical, 16)
                     detailAction.padding(.top, 10)
                 }.padding(.horizontal, 18)
@@ -431,7 +501,14 @@ struct ActivityDetailView: View {
         .background(FYColor.background)
         .navigationTitle("Aktivitätsdetails")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showsJoin) { ActivityComposerView(linkedActivityID: activity.id) }
+        .fullScreenCover(isPresented: $showsJoin) {
+            if let planID = activity.workoutPlanID {
+                NavigationStack {
+                    WorkoutPlanDetailView(planID: planID, linkedActivityID: activity.id)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { showsJoin = false } } }
+                }
+            } else { ActivityComposerView(linkedActivityID: activity.id) }
+        }
     }
 
     @ViewBuilder private var detailAction: some View {

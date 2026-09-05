@@ -8,4 +8,4 @@ FYRUP.xcodeproj/
 Config/Secrets.xcconfig
 supabase/.temp/
 .env
-
+.qa/

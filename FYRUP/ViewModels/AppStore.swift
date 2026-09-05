@@ -30,16 +30,25 @@ final class AppStore {
     var suggestedDisplayName = ""
     private(set) var session: AuthSession?
     let repository: any AppRepository
+    let workouts: WorkoutStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics()) { self.repository = repository; self.analytics = analytics }
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics()) {
+        self.repository = repository; self.analytics = analytics
+        self.workouts = WorkoutStore(repository: repository)
+    }
 
     static func make() -> AppStore {
         if ProcessInfo.processInfo.arguments.contains("--onboarding-demo") { return AppStore(repository: DemoRepository(startsWithoutProfile: true)) }
         if ProcessInfo.processInfo.arguments.contains("--demo") {
-            return AppStore(repository: DemoRepository(includesSocialFixtures: ProcessInfo.processInfo.arguments.contains("--social-fixtures")))
+            let arguments = ProcessInfo.processInfo.arguments
+            let testPrefix = "--workout-persistence="
+            let testID = arguments.first(where: { $0.hasPrefix(testPrefix) }).map { String($0.dropFirst(testPrefix.count)) }
+            let suite = testID.flatMap(UUID.init(uuidString:)).map { "app.fyrup.uitest.workouts.\($0.uuidString)" }
+                ?? (arguments.contains("--persistent-demo") ? "app.fyrup.demo.workouts" : nil)
+            return AppStore(repository: DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite)))
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -66,7 +75,14 @@ final class AppStore {
     }
 
     func resetPassword(email: String) async { await perform { try await self.repository.resetPassword(email: email); self.errorMessage = "Wir haben dir einen Link zum Zurücksetzen gesendet." } }
-    func logout() async { if let id = session?.userID { FeedCache.clear(userID: id) }; await repository.signOut(); session = nil; profile = nil; route = .signedOut }
+    func logout() async {
+        if let id = session?.userID { FeedCache.clear(userID: id) }
+        workouts.activate(userID: nil)
+        await repository.signOut()
+        session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
+        invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
+        route = .signedOut
+    }
 
     func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = Self.randomNonce(); appleNonce = nonce
@@ -156,6 +172,7 @@ final class AppStore {
     }
 
     func finishOnboarding() async {
+        workouts.activate(userID: session?.userID)
         route = .main
         await analytics.track(.onboardingCompleted)
         await refresh()
@@ -177,9 +194,26 @@ final class AppStore {
         }
     }
 
-    func start(sport: SportKind, subtype: String?, linked: UUID? = nil, plannedSessionID: UUID? = nil) async {
+    func start(sport: SportKind, subtype: String?, linked: UUID? = nil, plannedSessionID: UUID? = nil, workoutPlanID: UUID? = nil) async {
         guard let userID = session?.userID else { return }
-        await perform { self.myActivity = try await self.repository.startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linked, plannedSessionID: plannedSessionID); Haptics.impact(.heavy); await self.analytics.track(linked == nil ? .activityStarted : .joinLiveFriend); self.showsActivityComposer = false; await self.refresh() }
+        let linkedPlan = crew.first(where: { $0.activity?.id == linked && linked != nil })?.activity?.workoutPlanID
+        let sessionPlan = hostedSessions.first(where: { $0.id == plannedSessionID })?.session.workoutPlanID
+            ?? invitations.first(where: { $0.id == plannedSessionID })?.session.workoutPlanID
+        let planID = workoutPlanID ?? linkedPlan ?? sessionPlan
+        await perform {
+            let started: Activity
+            if let planID {
+                started = try await self.repository.startWorkout(planID: planID, linkedActivityID: linked, sessionID: plannedSessionID)
+            } else {
+                started = try await self.repository.startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linked, plannedSessionID: plannedSessionID)
+            }
+            guard self.session?.userID == userID else { return }
+            self.myActivity = started
+            Haptics.impact(.heavy)
+            await self.analytics.track(linked == nil ? .activityStarted : .joinLiveFriend)
+            self.showsActivityComposer = false
+            await self.refresh()
+        }
     }
 
     func finish(distanceMeters: Int?) async {
@@ -191,6 +225,15 @@ final class AppStore {
             await self.analytics.track(.activityCompleted)
             await self.refresh()
             if wasBelowWeeklyGoal && self.goals.weeklyCount >= self.goals.weeklyGoal { await self.analytics.track(.weeklyGoalCompleted) }
+        }
+    }
+    func setPaused(_ paused: Bool) async {
+        guard let activity = myActivity, activity.status == .live, let userID = session?.userID else { return }
+        await perform {
+            let updated = try await self.repository.setActivityPaused(id: activity.id, paused: paused)
+            guard self.session?.userID == userID && self.myActivity?.id == activity.id else { return }
+            self.myActivity = updated
+            Haptics.impact(.light)
         }
     }
     func cancelCurrent() async { guard let id = myActivity?.id else { return }; await perform { try await self.repository.cancelActivity(id: id); self.myActivity = nil; await self.refresh() } }
@@ -206,11 +249,22 @@ final class AppStore {
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
     func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); await self.refresh() } }
     func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); await self.refresh() } }
-    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.route = .signedOut; self.session = nil; self.profile = nil } }
+    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
 
-    func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID]) async {
+    func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID], workoutPlanID: UUID? = nil) async {
         guard let userID = session?.userID else { return }
-        await perform { try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees); await self.analytics.track(.activityPlanned); if !invitees.isEmpty { await self.analytics.track(.inviteSent) }; self.showsActivityComposer = false; await self.refresh() }
+        await perform {
+            if let workoutPlanID {
+                try await self.repository.planWorkout(planID: workoutPlanID, startsAt: startsAt, duration: duration ?? 60, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees)
+            } else {
+                try await self.repository.planSession(userID: userID, sport: sport, subtype: subtype, startsAt: startsAt, duration: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, friendIDs: invitees)
+            }
+            guard self.session?.userID == userID else { return }
+            await self.analytics.track(.activityPlanned)
+            if !invitees.isEmpty { await self.analytics.track(.inviteSent) }
+            self.showsActivityComposer = false
+            await self.refresh()
+        }
     }
     func createTrainingGroup(name: String, memberIDs: [UUID]) async {
         await perform { try await self.repository.createTrainingGroup(name: name, memberIDs: memberIDs); await self.refresh() }
@@ -238,6 +292,7 @@ final class AppStore {
 
     private func loadProfileAndRoute() async throws {
         guard let userID = session?.userID else { route = .signedOut; return }
+        workouts.activate(userID: userID)
         profile = try await repository.profile(userID: userID)
         if profile == nil { route = .profileSetup }
         else if profile?.sports.isEmpty == true { route = .sportsSetup }
@@ -245,6 +300,7 @@ final class AppStore {
     }
 
     private func perform(_ operation: () async throws -> Void) async {
+        guard !isBusy else { return }
         errorMessage = nil
         isBusy = true; defer { isBusy = false }
         do { try await operation() } catch { present(error) }
@@ -260,6 +316,22 @@ private extension String {
 }
 
 private actor DemoRepositoryPlaceholder: AppRepository {
+    func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity { throw AppError.configuration }
+    func exercises() async throws -> [GymExercise] { throw AppError.configuration }
+    func saveExercise(_ exercise: GymExercise) async throws -> GymExercise { throw AppError.configuration }
+    func archiveExercise(id: UUID) async throws { throw AppError.configuration }
+    func favoriteExercise(id: UUID, favorite: Bool) async throws { throw AppError.configuration }
+    func exerciseFavorites() async throws -> [UUID] { throw AppError.configuration }
+    func workoutPlans(ownerID: UUID?) async throws -> [WorkoutPlan] { throw AppError.configuration }
+    func workoutPlan(id: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
+    func saveWorkoutPlan(_ plan: WorkoutPlan) async throws -> WorkoutPlan { throw AppError.configuration }
+    func archiveWorkoutPlan(id: UUID) async throws { throw AppError.configuration }
+    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
+    func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { throw AppError.configuration }
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity { throw AppError.configuration }
+    func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws { throw AppError.configuration }
+    func workoutLog(activityID: UUID) async throws -> WorkoutLog { throw AppError.configuration }
+    func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog { throw AppError.configuration }
     func restoreSession() async throws -> AuthSession? { nil }
     func signUp(email: String, password: String) async throws -> AuthSession? { nil }
     func signIn(email: String, password: String) async throws -> AuthSession { throw AppError.configuration }

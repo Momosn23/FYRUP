@@ -197,6 +197,18 @@ actor SupabaseRESTClient {
         if text.contains("friendship_exists") { return .conflict("Diese Freundschaftsanfrage gibt es bereits.") }
         if text.contains("start_in_past") { return .validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
         if text.contains("session_not_editable") { return .conflict("Dieses Training kann nicht mehr geändert werden.") }
+        if text.contains("plan_not_available") { return .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert.") }
+        if text.contains("not_friends") { return .conflict("Du kannst den Plan nur mit akzeptierten Freunden teilen.") }
+        if text.contains("forbidden") || code == "42501" { return .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr.") }
+        if text.contains("invalid_exercise") || text.contains("invalid_plan") || text.contains("invalid_prescription") || code == "23514" {
+            return .validation("Prüfe Name, Übungen, Sätze, Wiederholungen und optionale Gewichte.")
+        }
+        if text.contains("invalid_log") || text.contains("incomplete_log") || text.contains("invalid_sets") || text.contains("duplicate_set_number") {
+            return .validation("Das Protokoll konnte nicht gespeichert werden. Prüfe deine Satzangaben und versuche es erneut.")
+        }
+        if text.contains("invalid_session") || text.contains("invalid_link") { return .conflict("Dieses gemeinsame Training ist nicht mehr verfügbar. Aktualisiere deine Einladungen.") }
+        if text.contains("invalid_schedule") { return .validation("Prüfe Datum, Uhrzeit und geplante Dauer.") }
+        if text.contains("not_live") || text.contains("activity_not_live") { return .conflict("Dieses Training ist nicht mehr live. Aktualisiere die Ansicht.") }
         if status == 409 || code == "23505" { return .conflict("Diese Aktion wurde bereits ausgeführt.") }
         if status == 400 && (text.contains("provider") || text.contains("id_token") || text.contains("nonce")) {
             return .conflict("Die Apple-Anmeldung konnte nicht bestätigt werden. Versuche es erneut.")

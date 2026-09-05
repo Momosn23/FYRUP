@@ -1,6 +1,8 @@
 # FYRUP Master-Checkliste
 
-Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. Sie ist die verbindliche V1-Abnahme und wird nach jedem Build aktualisiert.
+Diese Checkliste bewahrt den ursprünglichen Masterauftrag und historische Bestandsnachweise. Die aktuelle Arbeits- und Abnahmeliste für die vier Erweiterungsaufträge ist die [zentrale Produkt-Checkliste](PRODUCT_CHECKLIST.md). Gültige bisherige Funktionen bleiben Pflicht; alte Haken belegen keine erneute Abnahme nach den Erweiterungen.
+
+Aktualisierung 05.09.2026: Helles Design, Trainingspläne, optionale Satzdaten, HealthKit-Schritte, Wochenziel 3–7/Flammen, Blind Workout und Call My Shot sind beauftragt. Widersprüchliche frühere Umfangsangaben sind unten ersetzt. Buildangaben bleiben historische Nachweise, keine Aussage über die aktuell installierte TestFlight-Version.
 
 **Status:** ✅ implementiert und automatisiert geprüft · 🧪 implementiert, Cloud-/Gerätetest offen · ⚠️ teilweise · ⬜ offen · 🚫 bewusst nicht Teil der V1
 
@@ -11,7 +13,7 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [x] ✅ Zentrale Fehlerdarstellung ohne technische Backend-Texte
 - [x] ✅ Produktions- und Demo-Konfiguration getrennt; keine Secrets im Repository
 - [x] ✅ Reproduzierbares XcodeGen-Projekt und Codemagic-Workflows
-- [x] ✅ Dark-Mode-Designsystem mit Karten, Akzentfarben, Haptics und SF Symbols
+- [ ] Helles Referenz-Designsystem mit Karten, Akzenten, Haptik und SF Symbols; jede Seite nach der [Storyboard-Abnahme](LIGHT_STORYBOARD_CHECKLIST.md) prüfen. Dunkler Modus nur optional.
 - [x] ✅ Nur iPhone als Zielplattform, Mindestversion iOS 17
 - [x] ✅ V2-Erweiterungen werden durch typisierte Models und Repository-Schicht nicht verbaut
 
@@ -127,8 +129,8 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 
 ## 11. Ziele und Profile
 
-- [x] ✅ Persönliches Wochenziel 1–7
-- [x] ✅ Wochenziel-Streak statt täglichem Zwang
+- [ ] Persönliches Wochenziel 3–7 bewusst bestätigen; Änderungen erst nächste Woche, siehe WEEK in der zentralen Liste.
+- [ ] Neues Flammen-/Wochen-Streak-System statt täglichem Zwang vollständig abnehmen; frühere Ziellogik reicht als Nachweis nicht aus.
 - [x] ✅ Automatisch berechnetes Crew-Ziel
 - [x] ✅ Eigenes Profil mit Name, Username, Sportarten, Ziel, Freunden und Statistiken
 - [x] ✅ Profilbearbeitung inklusive Foto
@@ -230,16 +232,16 @@ Diese Checkliste übersetzt den Masterauftrag in prüfbare Liefergegenstände. S
 - [ ] ⬜ App-Store-Screenshots in erforderlichen Größen erstellen
 - [ ] ⬜ Interne Beta mit zwei Konten, danach 5–20 externe Tester
 
-## 19. Bewusst nicht Teil der V1
+## 19. Aktualisierter Umfang nach den Erweiterungsaufträgen
 
 - [x] 🚫 Android, Web-App, öffentliche Community und öffentliche Gruppen
-- [x] 🚫 Karte, GPS-Live-Tracking, HealthKit, Apple Watch und Fitness-Import
-- [x] 🚫 Workout-Pläne, Sätze, Wiederholungen, Gewichte, Kalorien und Ernährung
+- [x] 🚫 Karte, GPS-Live-Tracking, eigenständige Apple-Watch-App und allgemeiner Fitness-Import bleiben ausgeschlossen. HealthKit-Schritte sind jetzt beauftragt.
+- [ ] Trainingspläne, eigene Übungen, optionales Satz-/Wiederholungs-/Gewichtstracking, Teilen und Kopieren gemäß zentraler Liste umsetzen und prüfen.
+- [ ] Optionale HealthKit-Schritte, Wochenziel/Flammen, Blind Workout und Call My Shot gemäß zentraler Liste umsetzen und prüfen.
+- [x] 🚫 Kalorien-/Ernährungstracking bleibt ausgeschlossen.
 - [x] 🚫 DMs, Chat, Videos, öffentliche Posts und Stories
 - [x] 🚫 Abos, Premium, Werbung und Payments
 
 ## Nächste Reihenfolge
 
-1. TestFlight Build 7 auf dem iPhone installieren und die neue Gestaltung abnehmen.
-2. APNs-Private-Key einmalig sicher in Supabase einfügen und Push-Zustellung verifizieren.
-3. Zwei-Konten-Endabnahme auf echten iPhones durchführen.
+Die aktuelle Reihenfolge und alle Release-Schranken stehen in Abschnitt 14 der [zentralen Produkt-Checkliste](PRODUCT_CHECKLIST.md). Vor einem iPhone-Test die tatsächliche TestFlight-Buildnummer bestätigen; Build 7 oben ist ein historischer Nachweis. Offene Bestands-Push-/Zwei-Konten-Tests bleiben erhalten.

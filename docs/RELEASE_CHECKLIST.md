@@ -1,5 +1,7 @@
 # Release- und Beta-Checkliste
 
+Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. Für den nächsten Release gelten zusätzlich alle Schranken der [zentralen Produkt-Checkliste](PRODUCT_CHECKLIST.md), insbesondere neue Features, Design, Animationen, Datenschutz und getrennte Simulator-/Gerätenachweise. Keine alte Buildnummer als aktuell installierte Version ausgeben. Gültige bisherige Gerätetests bleiben Pflicht.
+
 ## Automatisch
 
 - [x] `xcodegen generate` in Codemagic erfolgreich

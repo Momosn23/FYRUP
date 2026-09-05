@@ -121,16 +121,26 @@ struct Activity: Codable, Identifiable, Hashable, Sendable {
     var plannedDurationMinutes: Int?
     var note: String?
     var plannedSessionID: UUID?
+    var workoutPlanID: UUID? = nil
+    var exerciseCount: Int? = nil
+    var pausedAt: Date? = nil
+    var pausedSeconds: Int? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, sport, subtype, status, note
         case userID = "user_id", plannedAt = "planned_at", startedAt = "started_at", endedAt = "ended_at"
         case distanceMeters = "distance_meters", plannedDurationMinutes = "planned_duration_minutes", plannedSessionID = "planned_session_id"
+        case workoutPlanID = "workout_plan_id", exerciseCount = "exercise_count"
+        case pausedAt = "paused_at", pausedSeconds = "paused_seconds"
     }
 
     var duration: TimeInterval? {
+        duration(at: Date())
+    }
+
+    func duration(at date: Date) -> TimeInterval? {
         guard let startedAt else { return nil }
-        return (endedAt ?? Date()).timeIntervalSince(startedAt)
+        return max(0, (endedAt ?? pausedAt ?? date).timeIntervalSince(startedAt) - Double(pausedSeconds ?? 0))
     }
 }
 
@@ -160,10 +170,13 @@ struct PlannedSession: Codable, Identifiable, Sendable {
     var placeName: String?
     var friendsCanJoin: Bool
     var status: String
+    var workoutPlanID: UUID? = nil
+    var exerciseCount: Int? = nil
     enum CodingKeys: String, CodingKey {
         case id, sport, subtype, note, status
         case hostID = "host_id", startsAt = "starts_at", durationMinutes = "duration_minutes"
         case placeName = "place_name", friendsCanJoin = "friends_can_join"
+        case workoutPlanID = "workout_plan_id", exerciseCount = "exercise_count"
     }
 }
 
