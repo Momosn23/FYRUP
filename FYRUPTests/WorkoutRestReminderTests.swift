@@ -93,6 +93,28 @@ final class WorkoutRestReminderTests: XCTestCase {
         XCTAssertNil(WorkoutRestReminderTap(requestIdentifier: WorkoutRestReminder.requestIdentifier, userInfo: invalid))
         XCTAssertEqual(Set(reminder.userInfo.keys), ["fyrup_local_type", "owner_id", "activity_id", "rest_started"])
     }
+
+    func testIndependentDemoLaunchesDoNotShareRestPreferences() async {
+        let owner = UUID(), first = AppStore(repository: DemoRepository()), second = AppStore(repository: DemoRepository())
+        first.rest.activate(userID: owner); first.rest.selectDuration(123); first.rest.setReminderEnabled(true)
+        second.rest.activate(userID: owner)
+        XCTAssertEqual(second.rest.selectedDuration, 90); XCTAssertFalse(second.rest.reminderEnabled)
+        await first.rest.waitForReminderSynchronization(); await second.rest.waitForReminderSynchronization()
+    }
+
+    func testExplicitPersistentDemoUsesInjectedRestPreferences() async {
+        let suite = "app.fyrup.tests.rest-demo.\(UUID())", owner = UUID()
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = AppStore(repository: DemoRepository(), restDefaults: defaults)
+        first.rest.activate(userID: owner); first.rest.selectDuration(123); first.rest.setReminderEnabled(true)
+        await first.rest.waitForReminderSynchronization()
+        let restored = AppStore(repository: DemoRepository(), restDefaults: defaults)
+        restored.rest.activate(userID: owner)
+        XCTAssertEqual(restored.rest.selectedDuration, 123); XCTAssertTrue(restored.rest.reminderEnabled)
+        XCTAssertNil(restored.rest.clock)
+        await restored.rest.waitForReminderSynchronization()
+    }
 }
 
 @MainActor private final class RestReminderRecorder: WorkoutRestNotificationScheduling {

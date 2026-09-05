@@ -10,6 +10,7 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var activeCalorieGoal: Int?
     var energyRequested = false
     var liveActivityEnabled = false
+    var favoriteGymName: String?
 
     var validationMessage: String? {
         if version != 1 { return "Diese Einstellungen benötigen eine neuere App-Version." }
@@ -17,6 +18,9 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
         if let heightCM, !heightCM.isFinite || !(50...260).contains(heightCM) { return "Prüfe deine Körpergröße in cm (50–260)." }
         if let weightKG, !weightKG.isFinite || !(20...450).contains(weightKG) { return "Prüfe dein Gewicht in kg (20–450)." }
         if let activeCalorieGoal, !(50...5000).contains(activeCalorieGoal) { return "Prüfe dein frei gewähltes Bewegungsziel (50–5.000 kcal)." }
+        if let name = favoriteGymName, name.isEmpty || name.count > 120 || name != name.trimmingCharacters(in: .whitespacesAndNewlines) || name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) {
+            return "Gib einen Gym-Namen mit höchstens 120 Zeichen ohne Zeilenumbrüche ein."
+        }
         return nil
     }
 }

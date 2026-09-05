@@ -11,7 +11,7 @@ struct ActivityComposerView: View {
     @State private var startsAt = Date().addingTimeInterval(3600)
     @State private var duration = 60
     @State private var note = ""
-    @State private var placeName = ""
+    @State private var placeDraft = GymPlaceDraft()
     @State private var friendsCanJoin = true
     @State private var invitesEnabled = true
     @State private var invitees = Set<UUID>()
@@ -53,12 +53,12 @@ struct ActivityComposerView: View {
                     Button(mode == 0 ? (sport == .gym ? "WORKOUT STARTEN" : "JETZT LOS") : "SESSION PLANEN") {
                         Task {
                             if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID, workoutPlanID: workoutPlan?.id) }
-                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeName.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id) }
+                            else { await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeDraft.value.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id) }
                             if store.errorMessage == nil { dismiss() }
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(store.isBusy)
+                    .disabled(store.isBusy || (mode == 1 && placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120))
                     .accessibilityIdentifier("confirm-activity")
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(.ultraThinMaterial)
@@ -74,6 +74,9 @@ struct ActivityComposerView: View {
             }
         }
         .fullScreenCover(item: $creatingPlan) { draft in WorkoutPlanEditorView(plan: draft) { workoutPlan = $0 } }
+        .onAppear { placeDraft.synchronize(sport: sport, favorite: store.setup.value?.favoriteGymName) }
+        .onChange(of: sport) { _, value in placeDraft.synchronize(sport: value, favorite: store.setup.value?.favoriteGymName) }
+        .onChange(of: store.setup.value?.favoriteGymName) { _, value in placeDraft.synchronize(sport: sport, favorite: value) }
     }
     private var sportChooser: some View {
         VStack(spacing: 14) {
@@ -192,7 +195,15 @@ struct ActivityComposerView: View {
             Divider().overlay(FYColor.line).padding(.leading, 44)
             ComposerRow(symbol: "timer", title: "Dauer") { Stepper("\(duration) Minuten", value: $duration, in: 15...240, step: 15).fixedSize() }
             Divider().overlay(FYColor.line).padding(.leading, 44)
-            HStack(spacing: 12) { Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted); TextField("Ort (optional)", text: $placeName).multilineTextAlignment(.trailing) }.padding(14)
+            HStack(spacing: 12) { Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted); TextField("Ort (optional)", text: Binding(get: { placeDraft.value }, set: { placeDraft.edit($0) })).multilineTextAlignment(.trailing).accessibilityIdentifier("session-place") }.padding(14)
+            VStack(alignment: .leading, spacing: 8) {
+                if placeDraft.usesFavorite { Label("Aus deinem Stammgym vorausgefüllt", systemImage: "checkmark.circle").font(.caption).foregroundStyle(FYColor.lime) }
+                if sport == .gym, let favorite = store.setup.value?.favoriteGymName, !placeDraft.usesFavorite {
+                    Button("Stammgym übernehmen") { placeDraft.useFavorite(favorite) }.font(.caption.bold()).frame(minHeight: 44)
+                }
+                Text("Der Treffpunkt ist für berechtigte Teilnehmer dieser Session sichtbar. Leer lassen, wenn du keinen Ort teilen möchtest.").font(.caption2).foregroundStyle(FYColor.muted)
+                if placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120 { Text("Bitte kürze den Ort auf höchstens 120 Zeichen.").font(.caption).foregroundStyle(FYColor.coral) }
+            }.padding(.horizontal, 14).padding(.bottom, 14).frame(maxWidth: .infinity, alignment: .leading)
         }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
     }
 

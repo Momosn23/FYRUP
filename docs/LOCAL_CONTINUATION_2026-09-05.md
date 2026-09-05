@@ -28,8 +28,18 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 - Sechs neue Swift-Tests für Eingaben, Opt-in, verspätete Antworten, Konto-Wechsel, Fehler und Rückweg sowie zusätzlicher Bedientest vorbereitet. **Nicht nativ ausgeführt.** Kein Nachweis echter iPhone-Zustellung oder Sperrbildschirm-Funktion.
 - Sprachprüfung: 98 App-Textdateien grün. IPA-Prüfskript: 10/10 lokale Tests grün. Das ist kein gebautes neues IPA.
 
+## Stammgym – weiterer lokaler Code
+
+- Foto-Seite „Stammgym“ direkt im Profil und in der Einrichtungsübersicht, mit lesbarem Foto-Verlauf. Freiwilligen Namen speichern, bearbeiten, entfernen; ungespeicherte Änderungen bewusst verwerfen. Schutz vor versehentlichem Speichern eines alten Formulars in ein anderes Konto.
+- Kontogetrennt im vorhandenen privaten Keychain-Speicher, nicht im öffentlichen Profil oder Health. Optionales neues Feld bleibt mit älteren Einstellungsdaten kompatibel. Höchstens 120 Zeichen, keine Steuerzeichen/Zeilenumbrüche. Keine Standortberechtigung oder GPS-Zugriffe dafür.
+- Neue geplante Gym-Sessions füllen den Ort vor. Eigene Änderung oder bewusstes Leeren werden bei erneutem Anzeigen oder geändertem Stammgym nicht überschrieben. „Stammgym übernehmen“ setzt es nur auf ausdrücklichen Wunsch wieder ein; eine neue Session startet wieder mit der gespeicherten Vorgabe. Sichtbarkeit als Session-Treffpunkt wird vor dem Bestätigen erläutert.
+- Sieben neue Swift-Einzeltests für Alt-Daten, Werteprüfung, private Kontotrennung, Entfernen und Formularverhalten sowie ein neuer UI-Ablauf vorbereitet. **Nicht nativ ausgeführt.** Keine neuen Screenshots oder TestFlight-Auslieferung behauptet.
+- Zusätzlich Demo-Satzpausen-Einstellungen pro Teststart isoliert; ausdrücklich persistente Demo-Läufe verwenden ihren eigenen übergebenen Speicher. Zwei Regressionstests vorbereitet. Verhindert, dass etwa die 123-Sekunden-Eingabe einen späteren Test unbemerkt verändert.
+- Grenzen: noch kein Ort bei sofort gestarteten Aktivitäten, keine Koordinaten/Ortssuche und keine Ankunftserinnerung. Diese Punkte bleiben in der Standortliste offen.
+- Nach dieser Ergänzung: Sprachprüfung für 100 App-Textdateien bestanden, alle 10 lokalen Tests des IPA-Prüfskripts bestanden, keine Whitespace-Fehler in der Änderungsprüfung. Keine dieser Prüfungen ersetzt einen Swift-Build oder eine iPhone-Abnahme.
+
 ## Nächste Schritte
 
-Nach Guthabenfreigabe zuerst aktuellen lokalen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests ausführen, echte neue Screenshots prüfen und signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene Standort-/Stammgym-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorienformel-/KI- und vollständige Design-/Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
+Nach Guthabenfreigabe zuerst aktuellen lokalen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests ausführen, echte neue Screenshots prüfen und signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene vollständige Standort-/Stammgym-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorienformel-/KI- und Design-/Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
 
 Primärquellen für lokale Timer-Hinweise: [Apple: lokale Mitteilungen](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app), [Apple: Zeitintervall-Trigger](https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger).

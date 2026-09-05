@@ -1,8 +1,10 @@
 # Trainingsort, Stammgym, Ankunftserinnerung und Trainingstimer
 
-Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen. Noch nicht implementiert oder abgenommen; bestehende Standort-Textfelder allein erfüllen diese Anforderungen nicht.
+Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen. Teilweise lokal umgesetzt, noch nicht vollständig abgenommen; bestehende Standort-Textfelder allein erfüllen diese Anforderungen nicht.
 
 Nachtrag: [Lokale Umsetzung und getrennte Nachweise](LOCAL_CONTINUATION_2026-09-05.md). Live-Aktivität, gemeinsame Satzpause sowie eigene Dauer und freiwillige einmalige Ablauf-Mitteilung sind in Arbeit. Fehlendes Cloud-Guthaben blockiert die native Prüfung, nicht die lokale Weiterarbeit. Die Haken unten bleiben bis zur jeweiligen Abnahme offen.
+
+**Lokaler Stammgym-Stand:** Eigene Foto-Seite direkt im Profil und in der Einrichtung; freiwilliger Name, kontogetrennt im privaten Gerätespeicher, ändern/entfernen. Neue geplante Gym-Sessions übernehmen den Namen; bewusste Änderung oder Leeren bleiben erhalten. Das Planungsformular erklärt vor dem Bestätigen die Sichtbarkeit des Treffpunkts. Kein GPS, keine Koordinaten, noch keine Ankunftserinnerung und keine Standortangabe bei sofort gestarteten Aktivitäten. Sieben Einzeltests sowie ein Bedienablauf vorbereitet, wegen fehlender nativer Laufumgebung noch nicht ausgeführt. PLACE-02 und der Planungsanteil von PLACE-03/04/05 sind damit im Code vorhanden, nicht als ausgeliefert abgehakt.
 
 ## Trainingsort und Stammgym
 

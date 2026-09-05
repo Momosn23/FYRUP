@@ -75,12 +75,12 @@ final class AppStore {
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil, supplements: SupplementStore? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil, supplements: SupplementStore? = nil, restDefaults: UserDefaults? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
-        self.rest = WorkoutRestStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest") ?? .standard : .standard,
+        self.rest = WorkoutRestStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest.\(UUID().uuidString)") ?? .standard : .standard),
             notifications: repository is DemoRepository ? SilentWorkoutRestNotifications() : SystemWorkoutRestNotifications())
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
@@ -120,7 +120,7 @@ final class AppStore {
             let steps = arguments.contains("--steps-demo")
                 ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
                 : StepStore(repository: repository, defaults: localDefaults)
-            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults), workoutCopies: WorkoutCopyRequestStore(defaults: localDefaults), trackingDrafts: WorkoutTrackingDraftStore(defaults: localDefaults), supplements: SupplementStore(repository: repository, persistence: DemoSupplementPendingPersistence(defaults: localDefaults)))
+            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults), workoutCopies: WorkoutCopyRequestStore(defaults: localDefaults), trackingDrafts: WorkoutTrackingDraftStore(defaults: localDefaults), supplements: SupplementStore(repository: repository, persistence: DemoSupplementPendingPersistence(defaults: localDefaults)), restDefaults: localDefaults)
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))

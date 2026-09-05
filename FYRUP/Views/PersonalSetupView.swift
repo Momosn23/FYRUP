@@ -135,6 +135,7 @@ struct PersonalSetupView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Ziele, Erinnerungen und Privatsphäre sind jederzeit erreichbar – nichts ist in einem versteckten Menü verschwunden.").foregroundStyle(FYColor.muted)
             NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { setupLink("Mein Wochenplan", subtitle: "Sportarten, Dauer und freie Wochentage", symbol: "calendar") }.buttonStyle(FYPressStyle())
+            NavigationLink { FavoriteGymView() } label: { setupLink("Dein Stammgym", subtitle: "Privat speichern, beim Planen vorausfüllen", symbol: "mappin.and.ellipse") }.buttonStyle(FYPressStyle()).accessibilityIdentifier("open-favorite-gym")
             NavigationLink { SupplementsView() } label: { setupLink("Deine Supplements", subtitle: "Eigene Liste und freiwillige Erinnerungen", symbol: "pills.fill") }.buttonStyle(FYPressStyle())
             NavigationLink { PrivacyView() } label: { setupLink("Deine Privatsphäre", subtitle: "Wer sieht deine Aktivitäten?", symbol: "lock.shield.fill") }.buttonStyle(FYPressStyle())
             Label("Health-Freigaben kannst du zusätzlich jederzeit in Apple Health ändern.", systemImage: "heart.fill").font(.caption).foregroundStyle(FYColor.muted)

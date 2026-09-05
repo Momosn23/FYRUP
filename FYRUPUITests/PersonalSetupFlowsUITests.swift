@@ -89,4 +89,34 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["start-rest-timer"], in: app)
         XCTAssertTrue(app.staticTexts["rest-countdown"].waitForExistence(timeout: 4))
     }
+
+    func testFavoriteGymPrefillsNewSessionButCanBeClearedWithoutChangingPreference() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
+        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["profile-favorite-gym"], in: app)
+        let gym = app.textFields["favorite-gym-name"]
+        tap(gym, in: app); gym.typeText("Mein Gym Köln")
+        tap(app.toolbars.buttons["Fertig"], in: app)
+        tap(app.buttons["save-favorite-gym"], in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["favorite-gym-saved"].firstMatch.waitForExistence(timeout: 4))
+        capture("84-favorite-gym-private")
+        tap(app.navigationBars.buttons.element(boundBy: 0), in: app)
+        tap(app.tabBars.buttons["Heute"], in: app)
+        tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
+        let place = app.textFields["session-place"]
+        tap(place, in: app); XCTAssertEqual(place.value as? String, "Mein Gym Köln")
+        place.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Mein Gym Köln".count) + "Anderes Gym")
+        XCTAssertEqual(place.value as? String, "Anderes Gym")
+        place.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Anderes Gym".count))
+        XCTAssertEqual(place.value as? String, "Ort (optional)", "An empty field uses its placeholder, not the favorite")
+        tap(app.buttons["Schließen"], in: app)
+        tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
+        tap(place, in: app); XCTAssertEqual(place.value as? String, "Mein Gym Köln")
+        capture("85-favorite-gym-planned-session")
+        tap(app.buttons["Schließen"], in: app)
+        tap(app.tabBars.buttons["Profil"], in: app); tap(app.buttons["profile-favorite-gym"], in: app)
+        XCTAssertEqual(gym.value as? String, "Mein Gym Köln")
+        tap(app.buttons["remove-favorite-gym"], in: app)
+        XCTAssertFalse(app.buttons["remove-favorite-gym"].exists)
+    }
 }

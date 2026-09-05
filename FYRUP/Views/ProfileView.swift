@@ -47,6 +47,8 @@ struct ProfileView: View {
                 }
                 VStack(spacing: 0) {
                     PersonalSetupHomeCard()
+                    NavigationLink { FavoriteGymView() } label: { SettingsRow(title: "Stammgym", symbol: "mappin.and.ellipse") }
+                        .accessibilityIdentifier("profile-favorite-gym")
                     SystemNotificationSettingsRow()
                     Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
                     Divider(); NavigationLink { SupplementsView() } label: { SettingsRow(title: "Supplements", symbol: "pills") }
