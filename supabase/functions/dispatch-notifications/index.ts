@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
       activity_started: "friend_starts", joined_live: "friend_starts", fyrup: "fyrup",
       session_invite: "invitations", invite_response: "invitations", session_joined: "invitations",
       workout_plan_shared: "invitations",
-      session_started: "invitations", session_cancelled: "invitations", session_updated: "invitations", reaction: "reactions",
+      session_started: "invitations", session_cancelled: "invitations", session_updated: "invitations", reaction: "reactions", flame_reaction: "reactions",
       friend_request: "friend_requests", friend_accepted: "friend_requests",
       session_reminder: "reminders", weekly_goal: "weekly_goal", crew_goal: "crew_goal",
     };

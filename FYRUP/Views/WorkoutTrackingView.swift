@@ -109,6 +109,7 @@ struct WorkoutTrackingView: View {
         }
         .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Training" : "Geschafft")
         .navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout-tracking-screen")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -225,7 +226,7 @@ struct WorkoutTrackingView: View {
                     .background(exercise.completed ? FYColor.elevated : FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 12))
             }.buttonStyle(.plain).foregroundStyle(FYColor.ink).disabled(controlsDisabled)
                 .accessibilityIdentifier("complete-workout-exercise-\(index)")
-        }.fyCard().accessibilityIdentifier("workout-exercise-\(index)")
+        }.fyCard().accessibilityElement(children: .contain).accessibilityIdentifier("workout-exercise-\(index)")
     }
 
     private func load() async {
@@ -287,11 +288,11 @@ struct WorkoutTrackingView: View {
         guard let id = capturedID, let candidate = displayed, !controlsDisabled, store.myActivity?.id == id else { return }
         // Saving is deliberately awaited even without changes: completion never outruns persistence.
         guard await save(candidate), capturedOwnerID == store.profile?.id else { return }
-        await store.finish(distanceMeters: nil)
+        let finished = await store.finish(distanceMeters: nil)
         guard capturedOwnerID == store.profile?.id else { return }
-        let finished = store.myActivity?.id == id && store.myActivity?.status == .completed ? store.myActivity : store.recentActivities.first { $0.id == id && $0.status == .completed }
         if let finished {
             completedActivity = finished; activitySnapshot = finished; message = nil
+            await store.weekly.prepareCelebration()
         } else { message = store.errorMessage ?? "Der Abschluss wurde noch nicht bestätigt. Versuche es erneut." }
     }
 

@@ -3,6 +3,14 @@ import XCTest
 @MainActor
 final class WorkoutFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    override func tearDownWithError() throws {
+        if testRun?.hasSucceeded == false {
+            capture("failure-\(name.replacingOccurrences(of: "/", with: "-"))")
+            let hierarchy = XCTAttachment(string: XCUIApplication().debugDescription)
+            hierarchy.name = "Failed workout screen accessibility"; hierarchy.lifetime = .keepAlways; add(hierarchy)
+            print("WORKOUT_UI_FAILURE_HIERARCHY\n\(XCUIApplication().debugDescription)")
+        }
+    }
 
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()

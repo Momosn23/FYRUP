@@ -22,12 +22,12 @@ Die lokale PostgreSQL-Prüfung arbeitet mit minimalen Supabase-Auth-Fixtures, ni
 
 ## Noch auszuführen / zu ergänzen
 
-- Neue native Modell-, Repository-, State- und Eingabetests: **NICHT AUSGEFÜHRT**, bis ein echter Xcode-Lauf bestätigt ist.
-- Neue UI-Flows (Plan-Neustart, Inline-Custom, Einfach/Tracken/Pause) und sämtliche Bestands-UI-Flows im Cloud-Simulator.
+- Build22: alle117 nativen Unit-Tests der App bestanden, einschließlich13 WorkoutModel-,15 Repository-,19 Store-,14 Draft- und6 TrackingInput-Tests.
+- Vier neue Workout-UI-Flows tatsächlich ausgeführt: Inline-Custom plus Neustart und ungespeicherter Entwurf plus Neustart bestanden. Einfach/Tracken scheiterten an nicht erreichbaren Übungs-/Satzbuttons; werden korrigiert und erneut geprüft. Kein grüner Gesamt-UI-Lauf.
 - Screenshots/Animationen manuell prüfen, lange Texte, Dynamic Type, VoiceOver, kleine Displays und Fehlerzustände.
 - Produktive Migrationen/REST/RLS, echte Zwei-Konten-Endabnahme und Push-Zustellung.
 - Signierter TestFlight-Upload/Installation dieses Bausteins; bestehende TestFlight-Builds enthalten diese neuen Änderungen nicht.
-- Native Neustart-Abnahme der ungespeicherten Planeditor-Entwürfe.
+- Native Neustart-Prüfung der ungespeicherten Planeditor-Entwürfe in Build22 bestanden; echte Geräteabnahme weiterhin offen.
 - Die weiteren Auftragspakete HealthKit, neue Wochenflammen, Blind Workout und Call My Shot sind von diesem Baustein nicht als fertig abgedeckt.
 
 Cloud-Zwischenstand: Build 19 fand den Swift-Parserkonflikt `set.id` (durch `self.set.id` behoben); Build 20 fand einen Actor-/Autoclosure-Konflikt in DemoRepository (Crew-Prüfung vorab ausgewertet). Beide Builds haben die Featuretests **nicht ausgeführt**; nächster Lauf erforderlich.

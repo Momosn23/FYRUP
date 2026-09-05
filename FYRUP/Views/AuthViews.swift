@@ -1,11 +1,17 @@
 import AuthenticationServices
 import SwiftUI
 
+enum AuthMode: String, Identifiable {
+    case signIn, registration
+    var id: String { rawValue }
+}
+
 struct WelcomeView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page = 0
-    @State private var showsAuth = false
-    @State private var createsAccount = false
+    @State private var settledPage = -1
+    @State private var authMode: AuthMode?
 
     var body: some View {
         ZStack {
@@ -16,12 +22,23 @@ struct WelcomeView: View {
             default: loginChoice
             }
         }
-        .animation(.easeInOut(duration: 0.35), value: page)
-        .fullScreenCover(isPresented: $showsAuth) { AuthView(initiallyCreatesAccount: createsAccount) }
-        .task {
-            guard page == 0 else { return }
-            try? await Task.sleep(for: .seconds(1.4))
-            withAnimation { page = 1 }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: page)
+        .fullScreenCover(item: $authMode) { mode in AuthView(mode: mode).id(mode.id) }
+        .task(id: page) {
+            let displayedPage = page
+            if displayedPage == 0 {
+                do { try await Task.sleep(for: .seconds(1.4)) } catch { return }
+                guard !Task.isCancelled, page == 0 else { return }
+                page = 1
+            } else {
+                // A page is interactable only once its crossfade is finished. Snapshot tests
+                // wait for this enabled state instead of photographing a mid-transition overlay.
+                if !reduceMotion {
+                    do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
+                }
+                guard !Task.isCancelled, page == displayedPage else { return }
+                settledPage = displayedPage
+            }
         }
     }
 
@@ -39,7 +56,7 @@ struct WelcomeView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("FYRUP. Your friends make you move.")
-        .onTapGesture { withAnimation { page = 1 } }
+        .onTapGesture { page = 1 }
     }
 
     private var introOne: some View {
@@ -52,7 +69,8 @@ struct WelcomeView: View {
             Image("OnboardingCrewCollage").resizable().scaledToFill()
                 .frame(maxWidth: .infinity).frame(height: 390).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             PageDots(current: 0)
-            Button("Los geht's") { withAnimation { page = 2 } }.buttonStyle(SecondaryButtonStyle())
+            Button("Los geht's") { page = 2 }.buttonStyle(SecondaryButtonStyle())
+                .accessibilityIdentifier("welcome-intro-next").disabled(settledPage != 1)
         }
         .padding(.horizontal, 24).padding(.top, 54).padding(.bottom, 18)
         .background(Color.white.ignoresSafeArea())
@@ -68,7 +86,8 @@ struct WelcomeView: View {
                 .font(.body).foregroundStyle(FYColor.muted)
             Spacer(minLength: 4)
             PageDots(current: 1)
-            Button("Weiter") { withAnimation { page = 3 } }.buttonStyle(SecondaryButtonStyle())
+            Button("Weiter") { page = 3 }.buttonStyle(SecondaryButtonStyle())
+                .accessibilityIdentifier("welcome-crew-next").disabled(settledPage != 2)
         }
         .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 18)
         .background(Color.white.ignoresSafeArea())
@@ -92,9 +111,12 @@ struct WelcomeView: View {
                 }
                 .signInWithAppleButtonStyle(.black).frame(height: 50)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                Button("Mit E-Mail anmelden") { createsAccount = false; showsAuth = true }.buttonStyle(OutlineButtonStyle())
-                Button("Account erstellen") { createsAccount = true; showsAuth = true }
+                .disabled(settledPage != 3 || store.isBusy)
+                Button("Mit E-Mail anmelden") { authMode = .signIn }.buttonStyle(OutlineButtonStyle())
+                    .accessibilityIdentifier("welcome-email-login").disabled(settledPage != 3 || store.isBusy)
+                Button("Account erstellen") { authMode = .registration }
                     .font(.footnote.weight(.semibold)).foregroundStyle(FYColor.ink).underline()
+                    .accessibilityIdentifier("welcome-create-account").disabled(settledPage != 3 || store.isBusy)
                 Spacer()
                 Text("Mit der Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
                     .font(.caption2).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
@@ -120,9 +142,10 @@ struct AuthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var password = ""
-    @State private var createsAccount: Bool
+    @State private var mode: AuthMode
+    private var createsAccount: Bool { mode == .registration }
 
-    init(initiallyCreatesAccount: Bool = false) { _createsAccount = State(initialValue: initiallyCreatesAccount) }
+    init(mode: AuthMode = .signIn) { _mode = State(initialValue: mode) }
 
     var body: some View {
         NavigationStack {
@@ -130,25 +153,36 @@ struct AuthView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(createsAccount ? "Account erstellen" : "Willkommen zurück")
                         .font(.system(size: 29, weight: .black)).foregroundStyle(FYColor.ink)
+                        .accessibilityIdentifier("auth-title")
                     if createsAccount { Text("Erstelle dein FYRUP-Profil in wenigen Schritten.").font(.subheadline).foregroundStyle(FYColor.muted) }
                     Text("E-Mail-Adresse").onboardingLabel()
                     TextField("max@example.com", text: $email)
                         .textContentType(.emailAddress).textInputAutocapitalization(.never).keyboardType(.emailAddress).fyField()
+                        .accessibilityIdentifier("auth-email")
                     Text("Passwort").onboardingLabel()
                     SecureField("Mindestens 8 Zeichen", text: $password)
                         .textContentType(createsAccount ? .newPassword : .password).fyField()
+                        .accessibilityIdentifier("auth-password")
                     if createsAccount {
                         PasswordRule(text: "Mindestens 8 Zeichen", valid: password.count >= 8)
                         PasswordRule(text: "Ein Großbuchstabe", valid: password.contains(where: \.isUppercase))
                         PasswordRule(text: "Eine Zahl", valid: password.contains(where: \.isNumber))
                     }
                     Button(createsAccount ? "Weiter" : "Anmelden") {
-                        Task { createsAccount ? await store.signUp(email: email, password: password) : await store.signIn(email: email, password: password) }
-                    }.buttonStyle(SecondaryButtonStyle()).disabled(email.isEmpty || password.count < 8)
+                        let submittedMode = mode; let submittedEmail = email; let submittedPassword = password
+                        Task {
+                            if submittedMode == .registration { await store.signUp(email: submittedEmail, password: submittedPassword) }
+                            else { await store.signIn(email: submittedEmail, password: submittedPassword) }
+                        }
+                    }.buttonStyle(SecondaryButtonStyle()).disabled(email.isEmpty || password.count < 8 || store.isBusy)
+                        .accessibilityIdentifier("auth-submit")
                     SignInWithAppleButton(.continue) { store.configureAppleRequest($0) } onCompletion: { result in Task { await store.handleAppleResult(result) } }
                         .signInWithAppleButtonStyle(.black).frame(height: 50).clipShape(RoundedRectangle(cornerRadius: 12))
-                    Button(createsAccount ? "Schon dabei? Anmelden" : "Noch kein Konto? Registrieren") { createsAccount.toggle() }
+                    Button(createsAccount ? "Schon dabei? Anmelden" : "Noch kein Konto? Registrieren") {
+                        mode = createsAccount ? .signIn : .registration
+                    }
                         .foregroundStyle(FYColor.ink).frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("auth-switch-mode").disabled(store.isBusy)
                     if !createsAccount {
                         Button("Passwort vergessen") { Task { await store.resetPassword(email: email) } }
                             .font(.footnote).foregroundStyle(FYColor.muted).frame(maxWidth: .infinity)
@@ -156,7 +190,12 @@ struct AuthView: View {
                 }.padding(24)
             }
             .background(Color.white)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button { dismiss() } label: { Image(systemName: "chevron.left") } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Zurück zur Anmeldung").accessibilityIdentifier("auth-close")
+                }
+            }
         }
         .preferredColorScheme(.light)
     }
@@ -296,11 +335,12 @@ struct GymSetupView: View {
                 }
             }
             HStack(spacing: 10) {
-                Button("Überspringen") { store.route = .friendsSetup }.buttonStyle(OutlineButtonStyle())
-                Button("Weiter") { store.route = .friendsSetup }.buttonStyle(SecondaryButtonStyle())
+                Button("Überspringen") { Task { await store.saveOnboardingStep("weekly_goal", gymFocus: []) } }.buttonStyle(OutlineButtonStyle())
+                Button("Weiter") { Task { await store.saveOnboardingStep("weekly_goal", gymFocus: selected.sorted()) } }.buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(22).background(OnboardingBackground()).foregroundStyle(FYColor.ink)
+        .onAppear { if let saved = store.profile?.gymFocus { selected = Set(saved) } }
     }
 
     private func gymSymbol(_ item: String) -> String {
@@ -322,7 +362,7 @@ struct FriendsSetupView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            HStack { Button { store.route = store.profile?.sports.contains(.gym) == true ? .gymSetup : .sportsSetup } label: { Image(systemName: "chevron.left") }; Spacer() }
+            HStack { Button { store.route = .weeklyGoalSetup } label: { Image(systemName: "chevron.left") }; Spacer() }
             Text("Freunde hinzufügen").font(.system(size: 28, weight: .black))
             HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Username suchen …", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
                 .padding(.horizontal, 13).frame(height: 45).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
@@ -344,8 +384,8 @@ struct FriendsSetupView: View {
                 }
             }
             HStack(spacing: 10) {
-                Button("Später") { store.route = .onboardingComplete }.buttonStyle(OutlineButtonStyle())
-                Button("Fertig") { store.route = .onboardingComplete }.buttonStyle(SecondaryButtonStyle())
+                Button("Später") { Task { await store.saveOnboardingStep("complete") } }.buttonStyle(OutlineButtonStyle())
+                Button("Fertig") { Task { await store.saveOnboardingStep("complete") } }.buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(22).background(OnboardingBackground()).foregroundStyle(FYColor.ink)

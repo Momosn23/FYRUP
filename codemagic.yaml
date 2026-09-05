@@ -27,6 +27,8 @@ workflows:
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
           node supabase/tests/run_workout_tests.mjs
           node supabase/tests/run_step_tests.mjs
+          node supabase/tests/run_weekly_tests.mjs
+          node supabase/tests/run_onboarding_tests.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
@@ -83,6 +85,8 @@ workflows:
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
           node supabase/tests/run_workout_tests.mjs
           node supabase/tests/run_step_tests.mjs
+          node supabase/tests/run_weekly_tests.mjs
+          node supabase/tests/run_onboarding_tests.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist

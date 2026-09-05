@@ -12,6 +12,7 @@ struct RootView: View {
             case .profileSetup: ProfileSetupView()
             case .sportsSetup: SportsSetupView()
             case .gymSetup: GymSetupView()
+            case .weeklyGoalSetup: WeeklyGoalSelectionView(isOnboarding: true)
             case .friendsSetup: FriendsSetupView()
             case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()
@@ -21,6 +22,9 @@ struct RootView: View {
         .tint(FYColor.lime)
         .foregroundStyle(FYColor.ink)
         .preferredColorScheme(.light)
+        .sheet(item: Binding(get: { store.weekly.celebration }, set: { if $0 == nil { store.weekly.dismissCelebration() } })) { celebration in
+            FlameCelebrationView(celebration: celebration)
+        }
         .alert("Hinweis", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }

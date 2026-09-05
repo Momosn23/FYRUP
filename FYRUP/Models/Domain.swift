@@ -100,11 +100,14 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var sports: [SportKind]
     var weeklyGoal: Int
     var activityVisibility: String
+    var gymFocus: [String]? = nil
+    var onboardingStep: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, username, city, bio, sports
         case displayName = "display_name", avatarPath = "avatar_path", birthYear = "birth_year"
         case weeklyGoal = "weekly_goal", activityVisibility = "activity_visibility"
+        case gymFocus = "gym_focus", onboardingStep = "onboarding_step"
     }
 }
 
@@ -122,6 +125,7 @@ struct Activity: Codable, Identifiable, Hashable, Sendable {
     var note: String?
     var plannedSessionID: UUID?
     var workoutPlanID: UUID? = nil
+    var blindWorkoutID: UUID? = nil
     var exerciseCount: Int? = nil
     var pausedAt: Date? = nil
     var pausedSeconds: Int? = nil
@@ -131,6 +135,7 @@ struct Activity: Codable, Identifiable, Hashable, Sendable {
         case userID = "user_id", plannedAt = "planned_at", startedAt = "started_at", endedAt = "ended_at"
         case distanceMeters = "distance_meters", plannedDurationMinutes = "planned_duration_minutes", plannedSessionID = "planned_session_id"
         case workoutPlanID = "workout_plan_id", exerciseCount = "exercise_count"
+        case blindWorkoutID = "blind_workout_id"
         case pausedAt = "paused_at", pausedSeconds = "paused_seconds"
     }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AppRepository: WorkoutRepository, StepRepository {
+protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository {
     func restoreSession() async throws -> AuthSession?
     func signUp(email: String, password: String) async throws -> AuthSession?
     func signIn(email: String, password: String) async throws -> AuthSession
@@ -9,6 +9,7 @@ protocol AppRepository: WorkoutRepository, StepRepository {
     func signOut() async
     func profile(userID: UUID) async throws -> Profile?
     func saveProfile(_ profile: Profile) async throws
+    func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile
     func uploadAvatar(userID: UUID, data: Data) async throws -> String
     func avatarData(path: String) async throws -> Data
     func today(userID: UUID) async throws -> (Activity?, [CrewMember])
@@ -66,6 +67,14 @@ actor LiveAppRepository: AppRepository {
             enum CodingKeys: String, CodingKey { case pUsername = "p_username", pDisplayName = "p_display_name", pAvatarPath = "p_avatar_path", pBirthYear = "p_birth_year", pCity = "p_city", pBio = "p_bio", pSports = "p_sports", pWeeklyGoal = "p_weekly_goal", pActivityVisibility = "p_activity_visibility" }
         }
         let _: Profile = try await client.rpc("upsert_profile", body: Body(pUsername: profile.username, pDisplayName: profile.displayName, pAvatarPath: profile.avatarPath, pBirthYear: profile.birthYear, pCity: profile.city, pBio: profile.bio, pSports: profile.sports, pWeeklyGoal: profile.weeklyGoal, pActivityVisibility: profile.activityVisibility))
+    }
+
+    func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile {
+        struct Body: Encodable {
+            let pStep: String; let pGymFocus: [String]?
+            enum CodingKeys: String, CodingKey { case pStep = "p_step", pGymFocus = "p_gym_focus" }
+        }
+        return try await client.rpc("save_onboarding_state", body: Body(pStep: step, pGymFocus: gymFocus))
     }
 
     func uploadAvatar(userID: UUID, data: Data) async throws -> String {

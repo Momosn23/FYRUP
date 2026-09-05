@@ -15,6 +15,8 @@ struct NotificationCenterView: View {
                     Group {
                         if item.type == "workout_plan_shared", let value = item.data?["plan_id"], let planID = UUID(uuidString: value) {
                             NavigationLink { WorkoutPlanDetailView(planID: planID) } label: { notificationRow(item) }
+                        } else if item.type == "weekly_goal" || item.type == "flame_reaction" {
+                            NavigationLink { WeeklyFlameDetailView() } label: { notificationRow(item) }
                         } else if let value = item.data?["session_id"], let sessionID = UUID(uuidString: value), let invitation = store.invitations.first(where: { $0.sessionID == sessionID }) {
                             NavigationLink { InvitationDetailView(invitation: invitation) } label: { notificationRow(item) }
                         } else {

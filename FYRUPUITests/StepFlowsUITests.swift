@@ -4,6 +4,33 @@ import XCTest
 final class StepFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    override func tearDownWithError() throws {
+        if testRun?.hasSucceeded == false {
+            capture("failure-\(name.replacingOccurrences(of: "/", with: "-"))")
+            recordSharingDiagnostics(in: XCUIApplication(), name: "Failed step screen")
+        }
+    }
+
+    private func recordSharingDiagnostics(in app: XCUIApplication, name: String) {
+        let switches = app.switches.matching(identifier: "share-steps").allElementsBoundByIndex.enumerated().map { index, element in
+            "switch[\(index)] exists=\(element.exists) enabled=\(element.isEnabled) hittable=\(element.isHittable) value=\(String(describing: element.value)) frame=\(element.frame)"
+        }.joined(separator: "\n")
+        let details = "\(switches)\n\(app.debugDescription)"
+        let attachment = XCTAttachment(string: details)
+        attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        print("STEPS_UI_DIAGNOSTICS \(name)\n\(details)")
+    }
+
+    private func visibleSharingSwitch(in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        let query = app.switches.matching(identifier: "share-steps")
+        XCTAssertTrue(query.firstMatch.waitForExistence(timeout: 4), file: file, line: line)
+        // Profile and Home have independent navigation stacks. Select the visible
+        // settings screen again after navigation, never an inactive stack's row.
+        let visible = query.allElementsBoundByIndex.filter { $0.exists && $0.isHittable }
+        XCTAssertEqual(visible.count, 1, "Genau eine sichtbare Freigabe-Einstellung erwartet.", file: file, line: line)
+        return visible.first ?? query.firstMatch
+    }
+
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--steps-demo"]
@@ -24,7 +51,7 @@ final class StepFlowsUITests: XCTestCase {
 
     private func waitForSharing(_ element: XCUIElement, enabled: Bool, file: StaticString = #filePath, line: UInt = #line) {
         // Confirmed preferences replace the temporary loading row after each request.
-        let predicate = NSPredicate(format: "exists == true AND enabled == true AND value == %@", enabled ? "1" : "0")
+        let predicate = NSPredicate(format: "exists == true AND hittable == true AND enabled == true AND value == %@", enabled ? "1" : "0")
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 4), .completed, file: file, line: line)
     }
@@ -91,7 +118,7 @@ final class StepFlowsUITests: XCTestCase {
     func testConnectingShowsOwnStepsWithoutSharingAndCanRevokeSharing() {
         let app = launch()
         openSteps(app)
-        let sharing = app.switches["share-steps"].firstMatch
+        let sharing = visibleSharingSwitch(in: app)
         waitForSharing(sharing, enabled: false)
         tap(app.buttons["connect-health"], in: app)
         tap(app.buttons["confirm-connect-health"], in: app)
@@ -105,10 +132,16 @@ final class StepFlowsUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(count).firstMatch.waitForExistence(timeout: 3))
         capture("35-own-daily-steps")
         tap(app.buttons["own-steps-card"], in: app)
-        tap(sharing, in: app)
-        waitForSharing(sharing, enabled: true)
-        tap(sharing, in: app)
-        waitForSharing(sharing, enabled: false)
+        XCTAssertTrue(app.navigationBars["Schritte"].waitForExistence(timeout: 5))
+        let homeSharing = visibleSharingSwitch(in: app)
+        waitForSharing(homeSharing, enabled: false)
+        recordSharingDiagnostics(in: app, name: "Before explicit sharing consent")
+        tap(homeSharing, in: app)
+        waitForSharing(homeSharing, enabled: true)
+        XCTAssertFalse(app.staticTexts["Deine Schritte sind nicht für Freunde freigegeben."].isHittable)
+        tap(homeSharing, in: app)
+        waitForSharing(homeSharing, enabled: false)
+        XCTAssertTrue(app.staticTexts["Deine Schritte sind nicht für Freunde freigegeben."].isHittable)
         capture("36-step-privacy")
     }
 }

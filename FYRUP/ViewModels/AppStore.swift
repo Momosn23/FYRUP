@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 @Observable
 final class AppStore {
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, friendsSetup, onboardingComplete, main }
+    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, friendsSetup, onboardingComplete, main }
     var route: Route = .loading
     var profile: Profile?
     var myActivity: Activity?
@@ -36,15 +36,17 @@ final class AppStore {
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
     let steps: StepStore
+    let weekly: WeeklyFlameStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository)
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.steps = steps ?? StepStore(repository: repository)
+        self.weekly = weekly ?? WeeklyFlameStore(repository: repository)
     }
 
     static func make() -> AppStore {
@@ -57,11 +59,11 @@ final class AppStore {
                 ?? (arguments.contains("--persistent-demo") ? "app.fyrup.demo.workouts" : nil)
             let localDefaults = UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard
             let drafts = WorkoutDraftStore(defaults: localDefaults)
-            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite))
+            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite), weeklyStorage: DemoWeeklyFlameStorage(persistenceSuiteName: suite))
             let steps = arguments.contains("--steps-demo")
                 ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
                 : StepStore(repository: repository, defaults: localDefaults)
-            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps)
+            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults))
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -95,6 +97,7 @@ final class AppStore {
         workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount()
         steps.reset()
+        weekly.reset()
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
         goals = .empty; friendRequests = []; userSearchResults = []; errorMessage = nil
@@ -130,7 +133,7 @@ final class AppStore {
         guard let userID = session?.userID else { return }
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else { errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."; return }
-        var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "friends")
+        var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "friends", onboardingStep: "sports")
         value.username = normalized
         value.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if birthYear != nil { value.birthYear = birthYear }
@@ -157,7 +160,32 @@ final class AppStore {
             sports: sports
         )
         guard errorMessage == nil else { return }
-        route = sports.contains(.gym) ? .gymSetup : .friendsSetup
+        await saveOnboardingStep(sports.contains(.gym) ? "gym" : "weekly_goal")
+    }
+
+    func saveOnboardingStep(_ step: String, gymFocus: [String]? = nil) async {
+        await perform {
+            self.profile = try await self.repository.saveOnboardingState(step: step, gymFocus: gymFocus)
+            self.route = self.onboardingRoute(step)
+        }
+    }
+
+    func confirmOnboardingGoal(_ goal: Int) async {
+        guard let userID = session?.userID else { return }
+        await weekly.activate(userID: userID)
+        guard await weekly.confirmGoal(goal), session?.userID == userID else { return }
+        await saveOnboardingStep("friends")
+    }
+
+    private func onboardingRoute(_ step: String?) -> Route {
+        switch step {
+        case "sports": .sportsSetup
+        case "gym": .gymSetup
+        case "weekly_goal": .weeklyGoalSetup
+        case "friends": .friendsSetup
+        case "complete": .onboardingComplete
+        default: .main
+        }
     }
 
     func avatarImage(path: String) async -> UIImage? {
@@ -192,6 +220,11 @@ final class AppStore {
     }
 
     func finishOnboarding() async {
+        guard let userID = session?.userID else { return }
+        await weekly.activate(userID: userID)
+        guard weekly.needsGoalConfirmation == false else { route = .weeklyGoalSetup; return }
+        await saveOnboardingStep("done")
+        guard errorMessage == nil, session?.userID == userID else { return }
         workouts.activate(userID: session?.userID)
         workoutDrafts.activate(userID: session?.userID)
         route = .main
@@ -251,16 +284,23 @@ final class AppStore {
         }
     }
 
-    func finish(distanceMeters: Int?) async {
-        guard let id = myActivity?.id else { return }
+    @discardableResult
+    func finish(distanceMeters: Int?) async -> Activity? {
+        guard let id = myActivity?.id, let userID = session?.userID else { return nil }
+        var completed: Activity?
         let wasBelowWeeklyGoal = goals.weeklyCount < goals.weeklyGoal
         await perform {
-            self.myActivity = try await self.repository.completeActivity(id: id, distanceMeters: distanceMeters)
+            let result = try await self.repository.completeActivity(id: id, distanceMeters: distanceMeters)
+            guard self.session?.userID == userID, result.id == id, result.status == .completed else { return }
+            completed = result
+            self.myActivity = result
             Haptics.success()
             await self.analytics.track(.activityCompleted)
             await self.refresh()
+            await self.weekly.refresh(force: true)
             if wasBelowWeeklyGoal && self.goals.weeklyCount >= self.goals.weeklyGoal { await self.analytics.track(.weeklyGoalCompleted) }
         }
+        return completed
     }
     func setPaused(_ paused: Bool) async {
         guard let activity = myActivity, activity.status == .live, let userID = session?.userID else { return }
@@ -282,9 +322,23 @@ final class AppStore {
 
     func sendFriendRequest(to profile: Profile) async { await perform { try await self.repository.sendFriendRequest(to: profile.id); await self.analytics.track(.friendRequestSent); self.userSearchResults.removeAll { $0.id == profile.id } } }
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
-    func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); await self.refresh() } }
-    func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); await self.refresh() } }
-    func deleteAccount() async { await perform { let userID = self.session?.userID; try await self.repository.deleteAccount(); if let userID { FeedCache.clear(userID: userID) }; self.workouts.activate(userID: nil); self.workoutDrafts.clearCurrentAccount(); self.steps.reset(clearLocalPreferences: true); self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil; self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []; self.notifications = []; self.trainingGroups = []; self.avatarCache = [:] } }
+    func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); self.weekly.removeFriend(userID: profile.id); await self.refresh() } }
+    func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); self.weekly.removeFriend(userID: profile.id); await self.refresh() } }
+    func deleteAccount() async {
+        await perform {
+            let userID = self.session?.userID
+            try await self.repository.deleteAccount()
+            if let userID { FeedCache.clear(userID: userID) }
+            self.workouts.activate(userID: nil)
+            self.workoutDrafts.clearCurrentAccount()
+            self.steps.reset(clearLocalPreferences: true)
+            self.weekly.reset(clearLocalPreferences: true)
+            self.route = .signedOut; self.session = nil; self.profile = nil; self.myActivity = nil
+            self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []
+            self.notifications = []; self.trainingGroups = []; self.avatarCache = [:]
+            self.goals = .empty; self.friendRequests = []; self.userSearchResults = []
+        }
+    }
 
     func plan(sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, invitees: [UUID], workoutPlanID: UUID? = nil) async {
         guard let userID = session?.userID else { return }
@@ -330,9 +384,15 @@ final class AppStore {
         workouts.activate(userID: userID)
         workoutDrafts.activate(userID: userID)
         profile = try await repository.profile(userID: userID)
+        guard session?.userID == userID else { return }
         if profile == nil { route = .profileSetup }
         else if profile?.sports.isEmpty == true { route = .sportsSetup }
-        else { route = .main; await refresh() }
+        else {
+            await weekly.activate(userID: userID)
+            guard session?.userID == userID else { return }
+            route = onboardingRoute(profile?.onboardingStep)
+            if route == .main { await refresh() }
+        }
     }
 
     private func perform(_ operation: () async throws -> Void) async {
@@ -352,6 +412,13 @@ private extension String {
 }
 
 private actor DemoRepositoryPlaceholder: AppRepository {
+    func weeklyState(userID: UUID, timezone: String?) async throws -> WeeklyFlameState { throw AppError.configuration }
+    func confirmWeeklyGoal(_ goal: Int, timezone: String) async throws -> WeeklyFlameState { throw AppError.configuration }
+    func setNextWeeklyGoal(_ goal: Int) async throws -> WeeklyFlameState { throw AppError.configuration }
+    func friendsWeeklyState() async throws -> [WeeklyFlameState] { throw AppError.configuration }
+    func setFlameReaction(weekID: UUID, reaction: ReactionKind?) async throws -> Bool { throw AppError.configuration }
+    func claimFlameCelebration(weekID: UUID) async throws -> Bool { throw AppError.configuration }
+    func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile { throw AppError.configuration }
     func stepSharingPreference(userID: UUID) async throws -> StepSharingPreference { throw AppError.configuration }
     func setStepSharing(userID: UUID, enabled: Bool) async throws -> StepSharingPreference { throw AppError.configuration }
     func syncSteps(userID: UUID, localDate: String, timezone: String, steps: Int?, sharingRevision: Int, observedAt: Date) async throws -> Bool { throw AppError.configuration }

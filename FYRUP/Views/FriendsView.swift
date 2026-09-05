@@ -26,10 +26,11 @@ struct FriendsView: View {
                 }
                 Text("DEINE FREUNDE").sectionTitle()
                 if store.crew.isEmpty { ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2") }
-                ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); Text("\(member.weeklyCount) diese Woche").font(.caption).foregroundStyle(FYColor.muted) } } }.buttonStyle(.plain).accessibilityIdentifier("friend-\(member.profile.username)") }
+                ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); FriendWeeklyLine(userID: member.id) } } }.buttonStyle(.plain).accessibilityIdentifier("friend-\(member.profile.username)") }
                 }
             }.padding(20)
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
+            .task { await store.weekly.refreshFriends() }
     }
 }
 
@@ -51,7 +52,7 @@ struct FriendProfileView: View {
                 Text(member.profile.displayName.uppercased()).font(.largeTitle.weight(.black))
                 Text("@\(member.profile.username)").foregroundStyle(FYColor.muted)
                 if let bio = member.profile.bio { Text(bio).font(.subheadline).multilineTextAlignment(.center).foregroundStyle(FYColor.ink.opacity(0.8)) }
-                HStack { Label("\(member.weeklyCount) / \(member.profile.weeklyGoal)", systemImage: "target"); Spacer(); Label("Wochenziel", systemImage: "flame.fill") }.fyCard()
+                FriendWeeklyCard(userID: member.id)
                 FriendStepsLine(userID: member.id)
                 VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
                 WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
@@ -70,6 +71,7 @@ struct FriendProfileView: View {
         .background(FYColor.background)
         .task {
             await store.steps.refresh()
+            _ = await store.weekly.loadFriend(userID: member.id)
             recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? []
             sharedPlans = await store.workouts.sharedPlans(ownerID: member.id) ?? []
         }

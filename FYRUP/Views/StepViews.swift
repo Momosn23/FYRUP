@@ -19,8 +19,8 @@ struct StepSettingsView: View {
                     .accessibilityIdentifier("show-own-steps")
             } footer: { Text("Diese Einstellung gilt nur für deine eigene Ansicht auf diesem Gerät.") }
             Section {
-                if store.steps.isSharingPreferenceCurrent, let enabled = store.steps.sharingEnabled {
-                    Toggle("Schritte mit Freunden teilen", isOn: Binding(get: { enabled }, set: { value in Task { await store.steps.setSharing(value) } }))
+                if store.steps.isSharingPreferenceCurrent, store.steps.sharingEnabled != nil {
+                    Toggle("Schritte mit Freunden teilen", isOn: Binding(get: { store.steps.sharingEnabled == true }, set: { value in Task { await store.steps.setSharing(value) } }))
                         .disabled(store.steps.isChangingSharing).accessibilityIdentifier("share-steps")
                 } else {
                     Label(store.steps.isChangingSharing ? "Freigabe wird bestätigt …" : "Freigabe noch nicht bestätigt", systemImage: "lock.shield")

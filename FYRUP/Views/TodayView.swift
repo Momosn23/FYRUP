@@ -14,6 +14,7 @@ struct TodayView: View {
                     FeedSkeleton()
                 } else {
                     MyFeedCard(activity: store.myActivity)
+                    OwnWeeklyCard()
                     OwnStepsCard()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                     Text("Deine Crew").font(.headline).padding(.top, 4)
@@ -28,15 +29,20 @@ struct TodayView: View {
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh(); await store.steps.refresh(force: true) }
+        .refreshable { await store.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends() }
         .navigationBarHidden(true)
         .task {
             await store.steps.refresh()
+            await store.weekly.refresh()
+            await store.weekly.refreshFriends()
+            if !store.showsActivityComposer { await store.weekly.prepareCelebration() }
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
                 guard !Task.isCancelled else { break }
                 await store.refresh()
                 await store.steps.refresh()
+                await store.weekly.refresh()
+                await store.weekly.refreshFriends()
             }
         }
     }
@@ -241,6 +247,7 @@ private struct CrewFeedCard: View {
                     NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { Text("Details").font(.caption2).foregroundStyle(FYColor.cyan) }
                 } else { Text("Noch nichts heute").font(.caption).foregroundStyle(FYColor.muted) }
                 FriendStepsLine(userID: member.id)
+                FriendWeeklyLine(userID: member.id)
             }
             Spacer()
             action

@@ -331,17 +331,18 @@ private struct FreeActivityView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var confirmCancel = false
     @State private var distanceKM = ""
-    @State private var didComplete = false
+    @State private var completedActivity: Activity?
+    private var didComplete: Bool { completedActivity != nil }
     var body: some View {
         VStack(spacing: 24) {
             HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
             Spacer(minLength: 20)
-            if let activity = store.myActivity {
+            if let activity = completedActivity ?? store.myActivity {
                 if didComplete {
                     Image(systemName: "trophy.fill").font(.system(size: 70)).foregroundStyle(FYColor.planned)
                     Text("Workout geschafft!").font(.title.weight(.bold))
                     Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(FYColor.muted)
-                    if let duration = activity.duration { HStack { ResultMetric(value: "\(max(1, Int(duration / 60)))", label: "Minuten"); ResultMetric(value: "1", label: "Workout"); ResultMetric(value: "🔥", label: "Status") }.padding(.vertical, 8) }
+                    if let duration = activity.duration { HStack { ResultMetric(value: duration < 60 ? "\(max(0, Int(duration)))" : "\(Int(duration / 60))", label: duration < 60 ? "Sekunden" : "Minuten"); ResultMetric(value: "1", label: "Workout"); ResultMetric(value: "✓", label: "Gespeichert") }.padding(.vertical, 8) }
                     Text("„Stärker als gestern.\nGenau so.“").multilineTextAlignment(.center).foregroundStyle(FYColor.muted).fyCard()
                 } else {
                     StatusBadge(status: .live).font(.headline)
@@ -359,7 +360,8 @@ private struct FreeActivityView: View {
             }
             Spacer()
             if didComplete {
-                Button("Auf Feed teilen") { dismiss() }.buttonStyle(OutlineButtonStyle())
+                Text("Deine Aktivität erscheint entsprechend deiner Privatsphäre-Einstellung im Feed.").font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
+                Button("Im Feed ansehen") { store.selectedTab = 0; dismiss() }.buttonStyle(OutlineButtonStyle())
                 Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle())
             }
             else {
@@ -373,15 +375,15 @@ private struct FreeActivityView: View {
                         if !normalized.isEmpty && (kilometers == nil || kilometers?.isFinite != true || !(0...10000).contains(kilometers ?? -1)) {
                             store.errorMessage = "Prüfe die optionale Distanz."; return
                         }
-                        let activityID = store.myActivity?.id
-                        await store.finish(distanceMeters: kilometers.map { Int($0 * 1000) })
-                        didComplete = store.errorMessage == nil && (store.myActivity?.id == activityID && store.myActivity?.status == .completed)
+                        completedActivity = await store.finish(distanceMeters: kilometers.map { Int($0 * 1000) })
+                        if completedActivity != nil { await store.weekly.prepareCelebration() }
                     } } label: { Image(systemName: "stop.fill").font(.title2).frame(width: 68, height: 68).background(FYColor.coral, in: Circle()).shadow(color: FYColor.coral.opacity(0.35), radius: 14) }.foregroundStyle(.white).disabled(store.isBusy).accessibilityLabel("TRAINING BEENDEN")
                 }
                 Text("Du machst das stark! 🔥").font(.subheadline).foregroundStyle(FYColor.muted)
                 Button("Training abbrechen") { confirmCancel = true }.font(.caption).foregroundStyle(FYColor.coral)
             }
-        }.padding(24).background(FYColor.background).confirmationDialog("Training wirklich abbrechen?", isPresented: $confirmCancel) { Button("Training abbrechen", role: .destructive) { Task { await store.cancelCurrent(); if store.errorMessage == nil { dismiss() } } }; Button("Weiter trainieren", role: .cancel) {} }
+        }.padding(24).background(FYColor.background).navigationBarBackButtonHidden()
+            .confirmationDialog("Training wirklich abbrechen?", isPresented: $confirmCancel) { Button("Training abbrechen", role: .destructive) { Task { await store.cancelCurrent(); if store.errorMessage == nil { dismiss() } } }; Button("Weiter trainieren", role: .cancel) {} }
     }
 }
 
@@ -432,7 +434,7 @@ struct HostedSessionView: View {
                 }
                 Button("TRAINING STARTEN") { Task { await store.start(sport: hosted.session.sport, subtype: hosted.session.subtype, plannedSessionID: hosted.id); if store.errorMessage == nil { dismiss() } } }.buttonStyle(PrimaryButtonStyle()).disabled(store.isBusy)
                 Button("Training absagen", role: .destructive) { confirmCancel = true }.frame(maxWidth: .infinity).padding(.top, 4)
-            }.padding(20)
+            }.padding(20).padding(.bottom, 44)
         }
         .background(FYColor.background)
         .navigationTitle("Training planen")
@@ -445,7 +447,7 @@ struct HostedSessionView: View {
             friendsCanJoin = hosted.session.friendsCanJoin
         }
         .confirmationDialog("Training wirklich absagen?", isPresented: $confirmCancel) {
-            Button("Training absagen", role: .destructive) { Task { await store.cancelPlannedSession(hosted.id); dismiss() } }
+            Button("Training absagen", role: .destructive) { Task { await store.cancelPlannedSession(hosted.id); if store.errorMessage == nil { dismiss() } } }
             Button("Behalten", role: .cancel) {}
         } message: { Text("Alle eingeladenen Freunde erhalten eine neutrale Absage.") }
     }

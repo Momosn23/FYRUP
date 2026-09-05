@@ -4,6 +4,16 @@ import XCTest
 final class CriticalFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    override func tearDownWithError() throws {
+        if testRun?.hasSucceeded == false {
+            capture("failure-\(name.replacingOccurrences(of: "/", with: "-"))")
+            let details = XCUIApplication().debugDescription
+            let attachment = XCTAttachment(string: details)
+            attachment.name = "Failed critical screen accessibility"; attachment.lifetime = .keepAlways; add(attachment)
+            print("CRITICAL_UI_FAILURE_HIERARCHY\n\(details)")
+        }
+    }
+
     private func capture(_ name: String) {
         let screenshot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
@@ -28,6 +38,23 @@ final class CriticalFlowsUITests: XCTestCase {
         for _ in 0..<6 where !element.isHittable { app.swipeUp() }
         XCTAssertTrue(element.isHittable)
         element.tap()
+    }
+
+    private func waitUntilReady(_ element: XCUIElement, timeout: TimeInterval = 4) {
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND hittable == true AND enabled == true"), object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: timeout), .completed)
+    }
+
+    private func assertRegistration(in app: XCUIApplication) {
+        let title = app.staticTexts["auth-title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 4))
+        XCTAssertEqual(title.label, "Account erstellen")
+        XCTAssertTrue(app.staticTexts["Erstelle dein FYRUP-Profil in wenigen Schritten."].exists)
+        XCTAssertTrue(app.staticTexts["Mindestens 8 Zeichen"].exists)
+        XCTAssertTrue(app.staticTexts["Ein Großbuchstabe"].exists)
+        XCTAssertTrue(app.staticTexts["Eine Zahl"].exists)
+        XCTAssertEqual(app.buttons["auth-submit"].label, "Weiter")
+        XCTAssertFalse(app.buttons["Passwort vergessen"].exists)
     }
 
     func testTodayStartAndCompleteFlow() {
@@ -81,6 +108,11 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["JETZT LOS"].tap()
         app.buttons["Gym"].tap()
         app.buttons["Push"].tap()
+        // Saved plans and split choices precede the lazy body-area grid. Reveal
+        // the actual controls before checking them, as a person would scroll.
+        let chest = app.buttons["gym-area-chest"]
+        for _ in 0..<6 where !chest.isHittable { app.swipeUp() }
+        XCTAssertTrue(chest.isHittable)
         XCTAssertTrue(app.buttons["gym-area-chest"].exists)
         XCTAssertTrue(app.buttons["gym-area-shoulders"].exists)
         XCTAssertTrue(app.buttons["gym-area-triceps"].exists)
@@ -149,15 +181,39 @@ final class CriticalFlowsUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
         XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))
+        waitUntilReady(app.buttons["welcome-intro-next"])
         capture("02-onboarding-intro")
-        app.buttons["Los geht's"].tap()
+        app.buttons["welcome-intro-next"].tap()
+        XCTAssertTrue(app.staticTexts["Mehr als Training.\nEine stärkere Crew."].waitForExistence(timeout: 3))
+        waitUntilReady(app.buttons["welcome-crew-next"])
         capture("03-onboarding-crew")
-        app.buttons["Weiter"].tap()
-        XCTAssertTrue(app.buttons["Mit E-Mail anmelden"].waitForExistence(timeout: 3))
+        app.buttons["welcome-crew-next"].tap()
+        waitUntilReady(app.buttons["welcome-email-login"])
         capture("00-welcome")
-        app.buttons["Account erstellen"].tap()
-        XCTAssertTrue(app.textFields["max@example.com"].waitForExistence(timeout: 3))
+        app.buttons["welcome-create-account"].tap()
+        assertRegistration(in: app)
+        waitUntilReady(app.buttons["auth-close"])
         capture("06-email-registration")
+
+        // Exercise both fresh sheet items, not merely the form's internal toggle.
+        app.buttons["auth-close"].tap()
+        waitUntilReady(app.buttons["welcome-email-login"])
+        app.buttons["welcome-email-login"].tap()
+        XCTAssertTrue(app.staticTexts["auth-title"].waitForExistence(timeout: 4))
+        XCTAssertEqual(app.staticTexts["auth-title"].label, "Willkommen zurück")
+        XCTAssertEqual(app.buttons["auth-submit"].label, "Anmelden")
+        XCTAssertFalse(app.staticTexts["Ein Großbuchstabe"].exists)
+        XCTAssertTrue(app.buttons["Passwort vergessen"].exists)
+        waitUntilReady(app.buttons["auth-close"])
+        capture("06-email-login")
+        app.buttons["auth-close"].tap()
+        waitUntilReady(app.buttons["welcome-create-account"])
+        app.buttons["welcome-create-account"].tap()
+        assertRegistration(in: app)
+        app.buttons["auth-switch-mode"].tap()
+        XCTAssertEqual(app.staticTexts["auth-title"].label, "Willkommen zurück")
+        app.buttons["auth-switch-mode"].tap()
+        assertRegistration(in: app)
     }
 
     func testCrewGoalReferenceScreen() {
@@ -234,6 +290,15 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Was genau trainierst du?"].waitForExistence(timeout: 3))
         capture("onboarding-03-gym")
         app.buttons["Weiter"].tap()
+
+        let weeklyGoal = app.buttons["weekly-goal-4"]
+        XCTAssertTrue(weeklyGoal.waitForExistence(timeout: 4))
+        weeklyGoal.tap()
+        let confirmWeeklyGoal = app.buttons["confirm-weekly-goal"]
+        waitUntilReady(confirmWeeklyGoal)
+        XCTAssertEqual(confirmWeeklyGoal.label, "Ziel festlegen")
+        capture("37-weekly-goal")
+        confirmWeeklyGoal.tap()
 
         XCTAssertTrue(app.staticTexts["Freunde hinzufügen"].waitForExistence(timeout: 3))
         let friendSearch = app.textFields["Username suchen …"]

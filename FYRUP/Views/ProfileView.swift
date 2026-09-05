@@ -7,6 +7,7 @@ struct ProfileView: View {
     @State private var showsDelete = false
     @State private var showsEdit = false
     @State private var notificationsEnabled = false
+    @State private var statisticsPeriod = 0
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -22,19 +23,20 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(FYColor.ink.opacity(0.78)).padding(.top, 3) } }
                         Spacer()
                     }
-                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts"); Metric(value: "\(store.goals.streak)", label: "Wochenstreak") }
-                    Text("🔥 \(store.goals.streak) Wochen Streak").font(.subheadline.weight(.bold)).foregroundStyle(FYColor.coral).frame(maxWidth: .infinity).fyCard()
+                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts / Monat"); Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak") }
+                    OwnWeeklyCard()
                     WeekActivityStrip(activities: store.recentActivities + [store.myActivity].compactMap { $0 })
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
-                        HStack { Text("Woche").foregroundStyle(.white).padding(.horizontal, 22).padding(.vertical, 7).background(FYColor.lime, in: Capsule()); Spacer(); Text("Monat").foregroundStyle(FYColor.muted); Spacer(); Text("Jahr").foregroundStyle(FYColor.muted) }.font(.caption.bold())
-                        HStack { Text("Workouts"); Spacer(); Text("\(store.goals.weeklyCount) / \(profile.weeklyGoal)").bold() }
-                        HStack { Text("Aktive Wochen"); Spacer(); Text("\(store.goals.streak)").bold() }
+                        Picker("Zeitraum", selection: $statisticsPeriod) { Text("Woche").tag(0); Text("Monat").tag(1); Text("Jahr").tag(2) }.pickerStyle(.segmented)
+                        HStack { Text("Abgeschlossene Workouts"); Spacer(); Text("\(periodActivities.count)").bold() }
+                        HStack { Text("Aktive Zeit"); Spacer(); Text("\(Int(periodActivities.compactMap(\.duration).reduce(0, +) / 60)) min").bold() }
+                        Text("Aus deinem geladenen Trainingsverlauf.").font(.caption2).foregroundStyle(FYColor.muted)
                     }.fyCard()
                     VStack(alignment: .leading, spacing: 16) {
                         Label("Sportarten", systemImage: "figure.run").bold()
                         Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
-                        Stepper("Wochenziel: \(profile.weeklyGoal)", value: weeklyGoalBinding, in: 1...7)
+                        if let focus = profile.gymFocus, !focus.isEmpty { Text(focus.joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted) }
                     }.fyCard()
                     NavigationLink { WorkoutPlansView() } label: {
                         HStack { Label("Meine Trainingspläne", systemImage: "list.clipboard").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
@@ -53,11 +55,21 @@ struct ProfileView: View {
         }
         .background(FYColor.background)
         .navigationBarHidden(true)
-        .task { let settings = await UNUserNotificationCenter.current().notificationSettings(); notificationsEnabled = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional }
+        .task { await store.weekly.refresh(); let settings = await UNUserNotificationCenter.current().notificationSettings(); notificationsEnabled = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional }
         .sheet(isPresented: $showsEdit) { ProfileEditView() }
         .confirmationDialog("Account dauerhaft löschen?", isPresented: $showsDelete, titleVisibility: .visible) { Button("Account löschen", role: .destructive) { Task { await store.deleteAccount() } }; Button("Abbrechen", role: .cancel) {} } message: { Text("Deine personenbezogenen Daten und Verknüpfungen werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.") }
     }
-    private var weeklyGoalBinding: Binding<Int> { Binding(get: { store.profile?.weeklyGoal ?? 4 }, set: { value in guard var profile = store.profile else { return }; profile.weeklyGoal = value; Task { try? await store.repository.saveProfile(profile); await MainActor.run { store.profile = profile } } }) }
+    private var periodActivities: [Activity] {
+        var calendar = Calendar(identifier: .gregorian); calendar.firstWeekday = 2
+        let component: Calendar.Component = statisticsPeriod == 0 ? .weekOfYear : statisticsPeriod == 1 ? .month : .year
+        guard let interval = calendar.dateInterval(of: component, for: Date()) else { return [] }
+        var seen = Set<UUID>()
+        return (store.recentActivities + [store.myActivity].compactMap { $0 }).filter { activity in
+            guard activity.userID == store.profile?.id, activity.status == .completed, let ended = activity.endedAt,
+                  interval.start <= ended, ended < interval.end else { return false }
+            return seen.insert(activity.id).inserted
+        }
+    }
 }
 
 private struct ProfileEditView: View {
