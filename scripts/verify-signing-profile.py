@@ -4,7 +4,14 @@ import plistlib
 import sys
 
 
-def validate_profile(data: bytes) -> None:
+APP_GROUP = "group.app.fyrup.shared"
+TARGET_IDENTIFIERS = {
+    "main": "6379AH75GK.app.fyrup.ios",
+    "live": "6379AH75GK.app.fyrup.ios.live",
+}
+
+
+def validate_profile(data: bytes, target: str = "main") -> None:
     # plistlib.load attempts to seek when detecting XML/binary formats. A shell
     # pipe cannot seek; loads safely detects the format from buffered bytes.
     try:
@@ -16,16 +23,23 @@ def validate_profile(data: bytes) -> None:
     entitlements = profile.get("Entitlements")
     if not isinstance(entitlements, dict):
         raise ValueError("Profile entitlements are missing")
-    checks = (
-        (entitlements.get("application-identifier") == "6379AH75GK.app.fyrup.ios", "Unexpected signing target"),
-        (entitlements.get("com.apple.developer.healthkit") is True, "HealthKit missing from profile"),
-        (entitlements.get("aps-environment") == "production", "Production push missing"),
-        (
-            isinstance(entitlements.get("com.apple.developer.applesignin"), list)
-            and "Default" in entitlements["com.apple.developer.applesignin"],
-            "Apple sign-in missing",
-        ),
-    )
+    if target not in TARGET_IDENTIFIERS:
+        raise ValueError("Unknown signing target")
+    groups = entitlements.get("com.apple.security.application-groups")
+    checks = [
+        (entitlements.get("application-identifier") == TARGET_IDENTIFIERS[target], "Unexpected signing target"),
+        (isinstance(groups, list) and APP_GROUP in groups, "FYRUP App Group missing from profile"),
+    ]
+    if target == "main":
+        checks.extend((
+            (entitlements.get("com.apple.developer.healthkit") is True, "HealthKit missing from profile"),
+            (entitlements.get("aps-environment") == "production", "Production push missing"),
+            (
+                isinstance(entitlements.get("com.apple.developer.applesignin"), list)
+                and "Default" in entitlements["com.apple.developer.applesignin"],
+                "Apple sign-in missing",
+            ),
+        ))
     for valid, message in checks:
         if not valid:
             raise ValueError(message)
@@ -33,11 +47,14 @@ def validate_profile(data: bytes) -> None:
 
 def main() -> int:
     try:
-        validate_profile(sys.stdin.buffer.read())
+        if len(sys.argv) > 2:
+            raise ValueError("Provide at most one signing target")
+        target = sys.argv[1] if len(sys.argv) == 2 else "main"
+        validate_profile(sys.stdin.buffer.read(), target)
     except ValueError as error:
         print(f"Signing profile validation failed: {error}", file=sys.stderr)
         return 1
-    print("Verified FYRUP profile: HealthKit, Apple sign-in and production push")
+    print(f"Verified FYRUP {target} profile and shared App Group")
     return 0
 
 

@@ -2,9 +2,11 @@ import ActivityKit
 import AppIntents
 import Foundation
 @preconcurrency import UserNotifications
+import WidgetKit
 
 enum FYRUPWidgetState {
     static let appGroup = "group.app.fyrup.shared"
+    static let homeKind = "FYRUPHomeWidget"
     static let snapshotKey = "fyrup.widget.live.snapshot"
 
     nonisolated(unsafe) static let defaults: UserDefaults = UserDefaults(suiteName: appGroup) ?? .standard
@@ -78,6 +80,7 @@ struct ToggleFYRUPRestIntent: LiveActivityIntent {
               let before = FYRUPWidgetState.snapshot(), before.sessionID == activity,
               before.ownerID == owner, before.state.isGym,
               let snapshot = FYRUPWidgetState.toggleRest(activityID: activity, ownerID: owner) else { return .result() }
+        WidgetCenter.shared.reloadTimelines(ofKind: FYRUPWidgetState.homeKind)
 
         let defaults = FYRUPWidgetState.defaults
         if before.activeRest != nil {

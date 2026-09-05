@@ -101,11 +101,12 @@ workflows:
           plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
       - name: Generate Xcode project
         script: xcodegen generate
-      - name: Verify renewed HealthKit signing profile
+      - name: Verify renewed App Group signing profiles
         script: |
           set -o pipefail
           python3 scripts/test_signing_profile.py
-          security cms -D -i "$FYRUP_SIGNING_PROFILE" | python3 scripts/verify-signing-profile.py
+          security cms -D -i "$FYRUP_SIGNING_PROFILE" | python3 scripts/verify-signing-profile.py main
+          security cms -D -i "$FYRUP_LIVE_SIGNING_PROFILE" | python3 scripts/verify-signing-profile.py live
       - name: Run unit and UI tests
         script: |
           set -o pipefail

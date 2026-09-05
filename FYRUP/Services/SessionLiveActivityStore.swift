@@ -2,6 +2,7 @@ import ActivityKit
 import Foundation
 import Observation
 import UIKit
+import WidgetKit
 
 @MainActor @Observable
 final class SessionLiveActivityStore {
@@ -31,7 +32,11 @@ final class SessionLiveActivityStore {
                 restStartedAt: ownRest?.startedAt, restEndsAt: ownRest?.endsAt, isGym: activity.sport == .gym))
             if retry { defaults.removeObject(forKey: attemptedKey(activity.id)) }
         }
-        FYRUPWidgetState.save(next.map { FYRUPWidgetSnapshot(ownerID: $0.ownerID, sessionID: $0.sessionID, state: $0.state) }, to: defaults)
+        let widgetSnapshot = next.map { FYRUPWidgetSnapshot(ownerID: $0.ownerID, sessionID: $0.sessionID, state: $0.state) }
+        if FYRUPWidgetState.snapshot(from: defaults) != widgetSnapshot {
+            FYRUPWidgetState.save(widgetSnapshot, to: defaults)
+            WidgetCenter.shared.reloadTimelines(ofKind: FYRUPWidgetState.homeKind)
+        }
         if next == desired, !retry, worker != nil { return }
         desired = next; revision += 1
         guard worker == nil else { return }

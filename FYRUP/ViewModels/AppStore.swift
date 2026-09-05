@@ -90,7 +90,7 @@ final class AppStore {
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
-        self.rest = WorkoutRestStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest.\(UUID().uuidString)") ?? .standard : .standard),
+        self.rest = WorkoutRestStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest.\(UUID().uuidString)") ?? .standard : FYRUPWidgetState.defaults),
             notifications: repository is DemoRepository ? SilentWorkoutRestNotifications() : SystemWorkoutRestNotifications())
         self.intervals = SessionIntervalStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.intervals.\(UUID().uuidString)") ?? .standard : .standard))
         self.arrival = ArrivalReminderStore(defaults: restDefaults ?? (repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.arrival.\(UUID().uuidString)") ?? .standard : .standard),
@@ -98,7 +98,7 @@ final class AppStore {
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
         self.energy = ActiveEnergyStore(setup: setup)
-        self.liveSurface = SessionLiveActivityStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.live") ?? .standard : .standard)
+        self.liveSurface = SessionLiveActivityStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.live") ?? .standard : FYRUPWidgetState.defaults)
         self.personal = PersonalTrainingStore(repository: repository)
         self.supplements = supplements ?? SupplementStore(repository: repository, persistence: repository is DemoRepository ? MemorySupplementPendingPersistence() : nil)
         self.steps = steps ?? StepStore(repository: repository)

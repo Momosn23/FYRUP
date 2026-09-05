@@ -24,7 +24,8 @@
 - [x] Ort bei sofort gestarteten Aktivitäten im Quellstand ergänzt: Stammgym-Vorauswahl, Änderung/Leeren, Freitext/Kartensuche und serverseitig begrenzter Ortsname; Kartenkoordinaten bleiben lokal.
 - [x] Atomare Wegwerf-Datenbankprüfung für Migration 015, Rücksetzung, Wiederholungssperre, Rechte, Kürzung und Längengrenze bestanden; produktive Anwendung bleibt getrennt offen.
 - [x] Echte App-Intent-Satzpause und kleines Homescreen-Widget im Quellstand ergänzt; gemeinsamer privater Timerzustand und freiwillige Ablauf-Mitteilung verdrahtet.
-- [ ] Apple App Group beiden Kennungen zuordnen, Profile erneuern sowie Widget/Live-Aktion nativ und auf dem iPhone prüfen.
+- [x] Apple App Group `group.app.fyrup.shared` registriert, beiden Kennungen (`app.fyrup.ios`, `app.fyrup.ios.live`) zugeordnet und beide App-Store-Profile am 05.09.2026 erneuert.
+- [ ] Erneuerte Profile in Codemagic aktualisieren sowie Widget/Live-Aktion nativ und auf dem iPhone prüfen.
 - [ ] Gebündelten Stand erst nach weiteren offenen lokalen Punkten gemeinsam hochladen und bauen. Seit der Guthabenaktivierung wurde durch diesen Block kein neuer Build ausgelöst.
 
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.

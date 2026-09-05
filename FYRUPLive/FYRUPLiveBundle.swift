@@ -138,7 +138,7 @@ private struct FYRUPHomeWidgetView: View {
 
 struct FYRUPHomeWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "FYRUPHomeWidget", provider: FYRUPHomeProvider()) { entry in FYRUPHomeWidgetView(entry: entry) }
+        StaticConfiguration(kind: FYRUPWidgetState.homeKind, provider: FYRUPHomeProvider()) { entry in FYRUPHomeWidgetView(entry: entry) }
             .configurationDisplayName("FYRUP LIVE")
             .description("Aktive Zeit und Satzpause direkt auf deinem Homescreen.")
             .supportedFamilies([.systemSmall])

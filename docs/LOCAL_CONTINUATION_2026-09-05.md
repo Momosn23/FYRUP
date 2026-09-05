@@ -96,7 +96,9 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 - Ein kleines Homescreen-Widget zeigt laufende Sessionzeit beziehungsweise Satzpause und bietet bei Gym dieselbe Start-/Beenden-Aktion; ohne LIVE-Session bleibt es neutral.
 - App, Widget und Live-Anzeige teilen ausschließlich den aktuellen privaten Timerzustand über `group.app.fyrup.shared`. Bestehende lokale Dauer-/Erinnerungseinstellungen werden beim ersten Aktivieren übernommen. Keine Satzwerte, Übungsnamen, Gewichte, Health-Daten oder Fotos gelangen in den Widget-Zustand.
 - Eine freiwillig bereits aktivierte Ablauf-Mitteilung wird auch bei einer im Widget gestarteten Satzpause eingeplant; ohne vorhandene Mitteilungsfreigabe wird keine Freigabe erzwungen.
-- Zwei Speicher-/Rückkehrtests sind vorbereitet. Für eine echte Auslieferung fehlen noch die Apple-App-Group-Registrierung, Zuordnung zu beiden App-Kennungen, erneuerte Profile, nativer Swift-6-Lauf und Prüfung auf einem iPhone.
+- App und Widget greifen im Produktionspfad nun tatsächlich auf denselben App-Group-Speicher zu. Start, Pausenwechsel und Ende fordern nur bei einer echten Zustandsänderung eine sofortige Aktualisierung des Homescreen-Widgets an; unveränderte Abgleiche lösen keine unnötigen Neuladungen aus.
+- Die signierte Pipeline prüft vor dem App-Bau nun beide echten Profile getrennt: korrekte Haupt-/Erweiterungskennung und gemeinsame App Group für beide sowie HealthKit, Apple-Anmeldung und Production-Push zusätzlich für die Haupt-App. Neun synthetische Parser-/Pipe-Tests sind lokal grün; echte erneuerte Profile werden erst im nächsten gebündelten Mac-Lauf geprüft.
+- Zwei Speicher-/Rückkehrtests sind vorbereitet. Die Apple-App-Gruppe `group.app.fyrup.shared` ist registriert und den Kennungen `app.fyrup.ios` sowie `app.fyrup.ios.live` zugeordnet. Die Profile „FYRUP App Store 2026“ und „FYRUP Live App Store 2026“ wurden danach am 05.09.2026 neu erzeugt und sind bei Apple wieder gültig. Für eine echte Auslieferung fehlen noch deren Aktualisierung in Codemagic, ein nativer Swift-6-Lauf und die Prüfung auf einem iPhone.
 
 ## Nächste Schritte
 

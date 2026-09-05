@@ -14,9 +14,10 @@ validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
 
 
-def valid_profile():
+def valid_profile(target="main"):
     return {"Entitlements": {
-        "application-identifier": "6379AH75GK.app.fyrup.ios",
+        "application-identifier": validator.TARGET_IDENTIFIERS[target],
+        "com.apple.security.application-groups": [validator.APP_GROUP],
         "com.apple.developer.healthkit": True,
         "aps-environment": "production",
         "com.apple.developer.applesignin": ["Default"],
@@ -32,12 +33,23 @@ class SigningProfileTests(unittest.TestCase):
     def test_nonseekable_stdin_pipe_accepts_both_formats(self):
         for fmt in (plistlib.FMT_XML, plistlib.FMT_BINARY):
             result = subprocess.run(
-                [sys.executable, str(SCRIPT)],
+                [sys.executable, str(SCRIPT), "main"],
                 input=plistlib.dumps(valid_profile(), fmt=fmt),
                 capture_output=True, check=False, timeout=10,
             )
             self.assertEqual(result.returncode, 0, result.stderr.decode())
-            self.assertIn(b"Verified FYRUP profile", result.stdout)
+            self.assertIn(b"Verified FYRUP main profile", result.stdout)
+
+    def test_live_profile_requires_its_identifier_and_shared_group(self):
+        validator.validate_profile(plistlib.dumps(valid_profile("live")), "live")
+        for name, value in (
+            ("application-identifier", validator.TARGET_IDENTIFIERS["main"]),
+            ("com.apple.security.application-groups", []),
+        ):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                profile = valid_profile("live")
+                profile["Entitlements"][name] = value
+                validator.validate_profile(plistlib.dumps(profile), "live")
 
     def test_empty_or_corrupt_input_fails_closed(self):
         for data in (b"", b"not a plist", b"<?xml version='1.0'?><broken>"):
@@ -57,6 +69,7 @@ class SigningProfileTests(unittest.TestCase):
             "com.apple.developer.healthkit": [False, "true", 1],
             "aps-environment": ["development", ""],
             "com.apple.developer.applesignin": [[], ["Other"], "Default"],
+            "com.apple.security.application-groups": [[], ["group.other"], validator.APP_GROUP],
         }
         for name, values in invalid_values.items():
             for value in values:
@@ -84,6 +97,10 @@ class SigningProfileTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(result.stdout, b"")
         self.assertIn(b"Production push missing", result.stderr)
+
+    def test_unknown_target_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Unknown signing target"):
+            validator.validate_profile(plistlib.dumps(valid_profile()), "other")
 
 
 if __name__ == "__main__":
