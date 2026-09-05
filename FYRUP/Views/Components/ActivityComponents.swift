@@ -14,7 +14,7 @@ struct StatusBadge: View {
 struct ActivityLabel: View {
     let activity: Activity
     var body: some View {
-        HStack { Image(systemName: activity.sport.symbol).foregroundStyle(activity.sport.accentColor); Text(activity.sport.title).bold(); if let subtype = activity.subtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
+        HStack { Image(systemName: activity.sport.symbol).foregroundStyle(activity.sport.accentColor); Text(activity.sport.title).bold(); if let subtype = activity.displaySubtype { Text("· \(subtype)").foregroundStyle(FYColor.muted) } }
     }
 }
 

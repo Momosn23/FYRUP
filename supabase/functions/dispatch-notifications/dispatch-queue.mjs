@@ -16,11 +16,35 @@ const shotTypes = new Set(["shot_called", "shot_achieved", "shot_reaction"]);
 const isUUID = (value) => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
+/** Display only: typed, exact historical system templates; never change user-authored bodies. */
+export function notificationCopy(note) {
+  let { title, body } = note;
+  switch (note.type) {
+    case "activity_started": title = title.replace(/ trainiert gerade 🔥$/, " ist gerade LIVE 🔥"); break;
+    case "session_invite":
+      if (title === "Trainingseinladung 🔥") title = "Session-Einladung 🔥";
+      title = title.replace(/ lädt dich zum Training ein\.$/, " lädt dich zu einer Session ein."); break;
+    case "session_updated": if (title === "Training wurde aktualisiert") title = "Session aktualisiert"; break;
+    case "session_started": if (title === "Training wurde gestartet 🔥") title = "Die Session ist jetzt LIVE 🔥"; break;
+    case "session_cancelled":
+      if (title === "Training abgesagt") title = "Session abgesagt";
+      if (body === "Der Host hat das Training abgesagt.") body = "Der Host hat die Session abgesagt."; break;
+    case "session_joined": if (body === "Ein Freund hat sich deinem Training angeschlossen.") body = "Ein Freund ist bei deiner Session dabei."; break;
+    case "session_reminder": if (title === "Training in 30 Minuten 🔥") title = "Deine Session startet in 30 Minuten 🔥"; break;
+    case "workout_plan_shared":
+      if (title === "Ein Trainingsplan für dich") title = "Ein Workout-Plan für dich";
+      title = title.replace(/ teilt einen Trainingsplan\.$/, " teilt einen Workout-Plan."); break;
+    case "weekly_goal": body = body.replace(/^([0-9]+ \/ [0-9]+) Trainings\. Wochenziel geschafft\.$/, "$1 Einheiten. Wochenziel geschafft."); break;
+    case "shot_called": body = body.replace(/^([3-7]) Trainings diese Woche\.$/, "$1 Einheiten diese Woche."); break;
+  }
+  return { title, body };
+}
+
 /** Reserved routing fields always come from the authorized row, never its data bag. */
 export function notificationPayload(note) {
   return {
     ...note.data,
-    aps: { alert: { title: note.title, body: note.body }, sound: "default", "mutable-content": 1 },
+    aps: { alert: notificationCopy(note), sound: "default", "mutable-content": 1 },
     fyrup_type: note.type,
     fyrup_notification_id: note.id,
     fyrup_recipient_id: note.recipient_id,

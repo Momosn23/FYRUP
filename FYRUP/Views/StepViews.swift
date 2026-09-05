@@ -51,7 +51,7 @@ struct StepSettingsView: View {
                     Button("Schrittziel übernehmen") { if let count = Int(customGoal) { store.steps.setGoal(count) } }
                         .disabled(Int(customGoal).map { !(1000...100000).contains($0) } ?? true)
                 }
-            } header: { Text("Dein persönliches Ziel · optional") } footer: { Text("Das Schrittziel bleibt privat. Schritte ersetzen keine Trainings und geben keine Wochenflammen.") }
+            } header: { Text("Dein persönliches Ziel · optional") } footer: { Text("Das Schrittziel bleibt privat. Schritte ersetzen keine Einheiten und geben keine Wochenflammen.") }
             if let message = store.steps.message {
                 Section { Text(message).foregroundStyle(FYColor.coral); Button("Erneut versuchen") { Task { await store.steps.refresh(force: true) } } }
             }

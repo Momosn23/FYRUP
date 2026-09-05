@@ -20,7 +20,7 @@ struct OwnShotCard: View {
                 if let commitment = week.commitment {
                     ShotStatusBadge(commitment: commitment).accessibilityIdentifier("own-shot-status")
                     Text(commitment.achieved ? "Gesagt. Gemacht." : "Diese Woche hole ich mein Ziel.").font(.title3.bold())
-                    Text("Dein Call: \(commitment.weeklyGoal) Trainings · Stand: \(week.progressText)")
+                    Text("Dein Call: \(commitment.weeklyGoal) Einheiten · Stand: \(week.progressText)")
                         .font(.subheadline).foregroundStyle(FYColor.muted).accessibilityIdentifier("own-shot-progress")
                     Text(commitment.statusText).font(.footnote).foregroundStyle(FYColor.muted)
                     if !commitment.reactionCounts.isEmpty {
@@ -62,7 +62,7 @@ private struct ShotConfirmationView: View {
                     Text("Willst du dich festlegen?").font(.largeTitle.weight(.black))
                     if let week = store.weekly.currentWeek {
                         Text("Dein Wochenziel").font(.subheadline).foregroundStyle(FYColor.muted)
-                        Text("\(week.weeklyGoal) Trainings").font(.system(size: 38, weight: .black, design: .rounded))
+                        Text("\(week.weeklyGoal) Einheiten").font(.system(size: 38, weight: .black, design: .rounded))
                         Text("Deine Freunde sehen, dass du diese Woche dein Ziel angekündigt hast.").font(.title3)
                         Text("Einmal pro Woche. Dein aktuelles Wochenziel lässt sich dadurch nicht ändern. Pausen gehören dazu – keine Minuspunkte, wenn es diese Woche nicht klappt.")
                             .font(.subheadline).foregroundStyle(FYColor.muted)
@@ -99,7 +99,7 @@ struct FriendShotContent: View {
         if let commitment = week.commitment {
             VStack(alignment: .leading, spacing: 12) {
                 ShotStatusBadge(commitment: commitment).accessibilityIdentifier("friend-shot-status")
-                Text("Angekündigt: \(commitment.weeklyGoal) Trainings · Aktuell: \(week.progressText)")
+                Text("Angekündigt: \(commitment.weeklyGoal) Einheiten · Aktuell: \(week.progressText)")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
                 HStack(spacing: 10) {
                     ForEach(ShotReaction.allCases) { reaction in

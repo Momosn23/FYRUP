@@ -45,7 +45,7 @@ struct WorkoutFeedbackButton: View {
     @State private var showsReview = false
     var body: some View {
         Button { showsReview = true } label: {
-            Label(store.personal.feedback[activityID]?.feeling.map { "\($0.emoji) \($0.title) · Bewertung ändern" } ?? "Wie war dein Training?", systemImage: "bubble.left")
+            Label(store.personal.feedback[activityID]?.feeling.map { "\($0.emoji) \($0.title) · Bewertung ändern" } ?? "Wie war deine Aktivität?", systemImage: "bubble.left")
         }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("review-completed-workout")
             .sheet(isPresented: $showsReview) { WorkoutFeedbackEditor(activityID: activityID) }
             .task(id: activityID) { await store.personal.loadFeedback(activityID: activityID) }
@@ -65,7 +65,7 @@ private struct WorkoutFeedbackEditor: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Wie war dein Training?").font(.title2.bold())
+                    Text("Wie war deine Aktivität?").font(.title2.bold())
                     Text("Dein persönlicher Rückblick. Wird nicht im Feed oder beim Teilen veröffentlicht.").font(.subheadline).foregroundStyle(FYColor.muted)
                     HStack(spacing: 8) {
                         ForEach(TrainingFeeling.allCases) { item in

@@ -29,7 +29,7 @@ extension DemoRepository {
     func saveWorkoutFeedback(_ feedback: PersonalWorkoutFeedback) async throws -> PersonalWorkoutFeedback {
         try await restoreWorkoutActivities()
         guard let activity = activities.first(where: { $0.id == feedback.activityID && $0.userID == meID }), [.live, .completed].contains(activity.status) else { throw AppError.authentication }
-        guard activity.status == .completed || (feedback.feeling == nil && WorkoutLimits.optionalText(feedback.note) == nil) else { throw AppError.validation("Beende das Training vor der Abschlussbewertung.") }
+        guard activity.status == .completed || (feedback.feeling == nil && WorkoutLimits.optionalText(feedback.note) == nil) else { throw AppError.validation("Schließe die Aktivität vor deinem Rückblick ab.") }
         if !feedback.exercises.isEmpty {
             let visible = try await workoutLog(activityID: activity.id)
             guard Set(feedback.exercises.map(\.exerciseID)).isSubset(of: Set(visible.exercises.map(\.id))) else { throw AppError.authentication }

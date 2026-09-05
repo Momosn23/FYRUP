@@ -6,7 +6,7 @@ extension LiveAppRepository {
     }
 
     func confirmWeeklyGoal(_ goal: Int, timezone: String) async throws -> WeeklyFlameState {
-        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Trainings.") }
+        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Einheiten.") }
         struct Body: Encodable {
             let goal: Int; let timezone: String
             enum CodingKeys: String, CodingKey { case goal = "p_goal", timezone = "p_timezone" }
@@ -15,7 +15,7 @@ extension LiveAppRepository {
     }
 
     func setNextWeeklyGoal(_ goal: Int) async throws -> WeeklyFlameState {
-        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Trainings.") }
+        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Einheiten.") }
         return try await client.rpc("set_next_weekly_goal", body: ["p_goal": goal])
     }
 

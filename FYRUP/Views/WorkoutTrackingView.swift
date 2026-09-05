@@ -105,32 +105,32 @@ struct WorkoutTrackingView: View {
                     if hasLocalInputs || draftConflict { localDraftBanner }
                     if let error = store.trackingDrafts.errorMessage { errorBanner(error) }
                     if let message { errorBanner(message) }
-                    Picker("Trainingsmodus", selection: $mode) {
+                    Picker("Workout-Modus", selection: $mode) {
                         ForEach(TrackingMode.allCases) { Text($0.title).tag($0) }
                     }.pickerStyle(.segmented).accessibilityIdentifier("tracking-mode").disabled(controlsDisabled)
-                    Text(mode == .easy ? "Einfach trainieren und Übungen abhaken. Gewichte und Wiederholungen musst du nicht eintragen." : "Halte deine tatsächlichen Sätze fest. Alle Werte sind freiwillig und bleiben privat.")
+                    Text(mode == .easy ? "Einfach loslegen und Übungen abhaken. Gewichte und Wiederholungen musst du nicht eintragen." : "Halte deine tatsächlichen Sätze fest. Alle Werte sind freiwillig und bleiben privat.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
                     ForEach(Array(log.exercises.enumerated()), id: \.element.id) { index, exercise in
                         exerciseCard(exercise, index: index)
                     }
                     if let activity = currentActivity, activity.status == .live {
-                        Button(activity.pausedAt == nil ? "Training pausieren" : "Training fortsetzen") {
+                        Button(activity.pausedAt == nil ? "Workout pausieren" : "Workout fortsetzen") {
                             Task {
                                 await store.setPaused(activity.pausedAt == nil)
                                 if let error = store.errorMessage { message = error }
                             }
                         }.buttonStyle(OutlineButtonStyle()).disabled(controlsDisabled)
                             .accessibilityIdentifier("pause-plan-workout")
-                        Button("Training beenden") { confirmsFinish = true }
+                        Button("Workout abschließen") { confirmsFinish = true }
                             .buttonStyle(PrimaryButtonStyle()).disabled(controlsDisabled || hasLocalInputs || draftConflict)
                             .accessibilityIdentifier("finish-plan-workout")
-                        Button("Training abbrechen") { confirmsCancel = true }
+                        Button("Workout abbrechen") { confirmsCancel = true }
                             .font(.footnote).foregroundStyle(FYColor.coral).frame(maxWidth: .infinity, minHeight: 44).disabled(controlsDisabled)
                     }
                 } else if isLoading {
-                    ProgressView("Dein Training wird geladen …").frame(maxWidth: .infinity, minHeight: 240)
+                    ProgressView("Dein Workout wird geladen …").frame(maxWidth: .infinity, minHeight: 240)
                 } else {
-                    ContentUnavailableView("Training nicht geladen", systemImage: "arrow.clockwise", description: Text("Dein Training ist nicht verloren. Lade das Protokoll erneut."))
+                    ContentUnavailableView("Workout nicht geladen", systemImage: "arrow.clockwise", description: Text("Dein Workout ist nicht verloren. Lade das Protokoll erneut."))
                     if let message { errorBanner(message) }
                     Button("Erneut laden") { Task { await load() } }.buttonStyle(PrimaryButtonStyle())
                 }
@@ -151,7 +151,7 @@ struct WorkoutTrackingView: View {
                 .background(FYColor.background)
             }
         }
-        .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Training" : "Geschafft")
+        .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Workout" : "Geschafft")
         .overlay { TrainingConfetti(trigger: completionCelebration) }
         .navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden()
         .accessibilityElement(children: .contain)
@@ -173,16 +173,16 @@ struct WorkoutTrackingView: View {
             WorkoutSetEntrySheet(selection: selection) { updated in await saveSet(updated, exerciseID: selection.exerciseID) }
         }
         .sheet(item: $shareSummary) { summary in WorkoutSharePreviewView(summary: summary) }
-        .confirmationDialog("Training beenden?", isPresented: $confirmsFinish, titleVisibility: .visible) {
-            Button("Training beenden") { Task { await finish() } }
-            Button("Weiter trainieren", role: .cancel) {}
+        .confirmationDialog("Workout abschließen?", isPresented: $confirmsFinish, titleVisibility: .visible) {
+            Button("Workout abschließen") { Task { await finish() } }
+            Button("Weitermachen", role: .cancel) {}
         } message: {
             Text("\(displayed?.completedExercises ?? 0) von \(displayed?.exercises.count ?? 0) Übungen abgehakt. Deine bestätigten Eingaben bleiben gespeichert. Nicht abgehakte Übungen werden nicht automatisch als erledigt markiert.")
         }
-        .confirmationDialog("Training abbrechen?", isPresented: $confirmsCancel, titleVisibility: .visible) {
-            Button("Training abbrechen", role: .destructive) { Task { await cancel() } }
-            Button("Weiter trainieren", role: .cancel) {}
-        } message: { Text("Das ist okay. Ein abgebrochenes Training zählt nicht als abgeschlossenes Workout. Lokale, noch nicht gespeicherte Satzentwürfe werden beim Abbruch verworfen.") }
+        .confirmationDialog("Workout abbrechen?", isPresented: $confirmsCancel, titleVisibility: .visible) {
+            Button("Workout abbrechen", role: .destructive) { Task { await cancel() } }
+            Button("Weitermachen", role: .cancel) {}
+        } message: { Text("Das ist okay. Ein abgebrochenes Workout zählt nicht zum Wochenziel. Lokale, noch nicht gespeicherte Satzentwürfe werden beim Abbruch verworfen.") }
         .confirmationDialog("Noch nicht gespeicherte Eingaben", isPresented: $confirmsLeave, titleVisibility: .visible) {
             Button("Speichern und schließen") { Task { if let pending, await save(pending) { dismiss() } } }
             Button("Hier bleiben", role: .cancel) {}
@@ -206,7 +206,7 @@ struct WorkoutTrackingView: View {
             }
             Text("Gym · \(log.planName)").font(.title2.bold()).foregroundStyle(FYColor.ink)
             LiveActivityTimer(activity: activity).font(.system(size: 42, weight: .bold, design: .monospaced))
-                .minimumScaleFactor(0.65).lineLimit(1).accessibilityLabel("Trainingsdauer")
+                .minimumScaleFactor(0.65).lineLimit(1).accessibilityLabel("Aktive Zeit")
             HStack {
                 Text("\(confirmed?.completedExercises ?? 0) / \(confirmed?.exercises.count ?? 0) Übungen").font(.subheadline.bold())
                 Spacer()
@@ -214,7 +214,7 @@ struct WorkoutTrackingView: View {
             }
             ProgressView(value: confirmed?.progress ?? 0).tint(FYColor.lime)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: confirmed?.progress)
-                .accessibilityLabel("Gespeicherter Trainingsfortschritt")
+                .accessibilityLabel("Gespeicherter Workout-Fortschritt")
             if let next = confirmed?.currentExercise {
                 Text("Als Nächstes: \(next.exercise.name)").font(.footnote).foregroundStyle(FYColor.muted)
             }
@@ -234,7 +234,7 @@ struct WorkoutTrackingView: View {
     private var localDraftBanner: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Lokale Eingaben vorhanden", systemImage: "square.and.pencil").font(.subheadline.bold())
-            Text(draftConflict ? "Das gespeicherte Protokoll hat sich inzwischen geändert. Dein lokaler Entwurf wird nicht darübergeschrieben. Prüfe den aktuellen Stand oder verwirf den Entwurf." : "Öffne den zugehörigen Satz im Tracking-Modus. Deine noch nicht gespeicherten Texte werden dort wiederhergestellt. Vor dem Trainingsabschluss kannst du sie speichern oder verwerfen.")
+            Text(draftConflict ? "Das gespeicherte Protokoll hat sich inzwischen geändert. Dein lokaler Entwurf wird nicht darübergeschrieben. Prüfe den aktuellen Stand oder verwirf den Entwurf." : "Öffne den zugehörigen Satz im Tracking-Modus. Deine noch nicht gespeicherten Texte werden dort wiederhergestellt. Vor dem Abschluss kannst du sie speichern oder verwerfen.")
                 .font(.footnote)
             Button("Lokale Eingaben verwerfen") { confirmsDiscardDrafts = true }.font(.caption.bold()).disabled(controlsDisabled)
         }.fyCard().accessibilityIdentifier("restored-tracking-draft")
@@ -306,7 +306,7 @@ struct WorkoutTrackingView: View {
         let owner = capturedOwnerID
         let id = capturedID ?? activityID ?? store.myActivity?.id
         capturedID = id
-        guard let id else { isLoading = false; message = "Es ist gerade kein Training geöffnet."; return }
+        guard let id else { isLoading = false; message = "Es ist gerade kein Workout geöffnet."; return }
         isLoading = true
         if store.myActivity?.id == id { activitySnapshot = store.myActivity }
         else { activitySnapshot = store.recentActivities.first { $0.id == id } }
@@ -548,7 +548,7 @@ struct WorkoutHistoryView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let log {
                     Text(log.planName).font(.title.bold())
-                    Label("Dein privates Trainingsprotokoll", systemImage: "lock.fill").font(.footnote).foregroundStyle(FYColor.muted)
+                    Label("Dein privates Workout-Protokoll", systemImage: "lock.fill").font(.footnote).foregroundStyle(FYColor.muted)
                     WorkoutFeedbackButton(activityID: activityID)
                     HStack { WorkoutSummaryMetric(value: "\(log.completedExercises)/\(log.exercises.count)", title: "Übungen"); WorkoutSummaryMetric(value: "\(log.completedSets)", title: "Erfasste Sätze") }.fyCard()
                     WorkoutRecordedExercises(log: log)
@@ -558,7 +558,7 @@ struct WorkoutHistoryView: View {
                     Button("Erneut laden") { Task { await load() } }.buttonStyle(OutlineButtonStyle())
                 }
             }.padding(20).padding(.bottom, 72)
-        }.background(FYColor.background).navigationTitle("Trainingsprotokoll").navigationBarTitleDisplayMode(.inline)
+        }.background(FYColor.background).navigationTitle("Workout-Protokoll").navigationBarTitleDisplayMode(.inline)
             .task(id: activityID) { await load() }
             .onChange(of: store.profile?.id) { _, _ in log = nil; message = nil }
     }

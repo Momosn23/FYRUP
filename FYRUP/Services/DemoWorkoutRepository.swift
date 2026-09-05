@@ -45,7 +45,7 @@ actor DemoWorkoutStorage {
     }
 
     private func checkLoaded() throws {
-        if failedToLoad { throw AppError.conflict("Die gespeicherten Demo-Trainings konnten nicht geladen werden. Deine Daten wurden nicht überschrieben.") }
+        if failedToLoad { throw AppError.conflict("Die gespeicherten Demo-Workouts konnten nicht geladen werden. Deine Daten wurden nicht überschrieben.") }
     }
 
     func routine(userID: UUID) throws -> TrainingRoutine {
@@ -107,7 +107,7 @@ actor DemoWorkoutStorage {
     private func readablePlan(_ id: UUID, userID: UUID, friends: Set<UUID>, includeArchived: Bool = true) throws -> WorkoutPlan {
         try checkLoaded()
         guard var plan = state.plans[id], includeArchived || !state.archivedPlans.contains(id) else {
-            throw AppError.conflict("Dieser Trainingsplan ist nicht mehr verfügbar.")
+            throw AppError.conflict("Dieser Workout-Plan ist nicht mehr verfügbar.")
         }
         if plan.ownerID != userID {
             let invited = state.sessions.values.contains { entry in
@@ -257,7 +257,7 @@ actor DemoWorkoutStorage {
         for recipient in Set(recipients) {
             guard state.shares[id, default: []].insert(recipient).inserted else { continue }
             state.notifications[recipient, default: []].insert(AppNotification(
-                id: UUID(), type: "workout_plan_shared", title: "\(sender.displayName) teilt einen Trainingsplan.", body: plan.name,
+                id: UUID(), type: "workout_plan_shared", title: "\(sender.displayName) teilt einen Workout-Plan.", body: plan.name,
                 data: ["plan_id": id.uuidString], createdAt: Date(), readAt: nil
             ), at: 0)
         }
@@ -267,19 +267,19 @@ actor DemoWorkoutStorage {
     func startWorkout(planID: UUID, userID: UUID, friends: Set<UUID>, linkedActivityID: UUID?, sessionID: UUID?, alreadyLive: Bool) throws -> Activity {
         let plan = try readablePlan(planID, userID: userID, friends: friends, includeArchived: false)
         guard !alreadyLive && !state.activities.values.contains(where: { $0.userID == userID && $0.status == .live }) else {
-            throw AppError.conflict("Du hast bereits ein LIVE-Training.")
+            throw AppError.conflict("Du bist bereits LIVE.")
         }
         if let linkedActivityID {
             guard let linked = state.activities[linkedActivityID], linked.workoutPlanID == planID,
                   linked.status == .live, areFriends(linked.userID, userID, friends: friends) else {
-                throw AppError.conflict("Dieses gemeinsame Training ist nicht mehr verfügbar.")
+                throw AppError.conflict("Diese gemeinsame Session ist nicht mehr verfügbar.")
             }
         }
         if let sessionID {
             guard let session = state.sessions[sessionID]?.hosted, session.session.workoutPlanID == planID,
                   session.session.status != "cancelled", session.session.hostID == userID ||
                     session.participants.contains(where: { $0.id == userID && $0.status == .accepted }) else {
-                throw AppError.conflict("Nimm zuerst die Einladung für dieses Training an.")
+                throw AppError.conflict("Nimm zuerst die Einladung zu dieser Session an.")
             }
         }
         let planned = state.activities.values.first { $0.userID == userID && sessionID != nil && $0.plannedSessionID == sessionID && [.planned, .ready].contains($0.status) }
@@ -319,7 +319,7 @@ actor DemoWorkoutStorage {
         state.activities[activity.id] = activity
         for invitee in invitees {
             state.notifications[invitee.id, default: []].insert(AppNotification(
-                id: UUID(), type: "session_invite", title: "\(host.displayName) lädt dich zum Training ein.", body: "Gym · \(plan.name)",
+                id: UUID(), type: "session_invite", title: "\(host.displayName) lädt dich zu einer Session ein.", body: "Gym · \(plan.name)",
                 data: ["session_id": session.id.uuidString, "plan_id": plan.id.uuidString], createdAt: Date(), readAt: nil
             ), at: 0)
         }
@@ -329,7 +329,7 @@ actor DemoWorkoutStorage {
     func workoutLog(activityID: UUID, userID: UUID) throws -> WorkoutLog {
         try checkLoaded()
         guard state.activities[activityID]?.userID == userID, let log = state.logs[activityID] else {
-            throw AppError.conflict("Trainingsprotokolle sind nur für das eigene Konto sichtbar.")
+            throw AppError.conflict("Workout-Protokolle sind nur für das eigene Konto sichtbar.")
         }
         return log
     }
@@ -337,12 +337,12 @@ actor DemoWorkoutStorage {
     func saveLog(_ input: WorkoutLog, userID: UUID) throws -> WorkoutLog {
         var saved = try workoutLog(activityID: input.activityID, userID: userID)
         guard let activity = state.activities[input.activityID], [.live, .completed].contains(activity.status) else {
-            throw AppError.conflict("Dieses Training kann nicht mehr bearbeitet werden.")
+            throw AppError.conflict("Dieses Workout kann nicht mehr bearbeitet werden.")
         }
         if let message = input.validationMessage { throw AppError.validation(message) }
         guard input.exercises.count == saved.exercises.count,
               Set(input.exercises.map(\.id)) == Set(saved.exercises.map(\.id)),
-              Set(input.exercises.map(\.id)).count == input.exercises.count else { throw AppError.validation("Die Übungen passen nicht zu diesem Training.") }
+              Set(input.exercises.map(\.id)).count == input.exercises.count else { throw AppError.validation("Die Übungen passen nicht zu diesem Workout.") }
         let now = Date()
         for index in saved.exercises.indices {
             guard let incoming = input.exercises.first(where: { $0.id == saved.exercises[index].id }) else { throw AppError.server }
@@ -431,7 +431,7 @@ actor DemoWorkoutStorage {
 
     func updateSession(_ input: PlannedSession, userID: UUID) throws -> PlannedSession {
         try checkLoaded()
-        guard var saved = state.sessions[input.id], saved.host.id == userID, saved.hosted.session.status == "planned" else { throw AppError.conflict("Dieses Training kann nicht mehr geändert werden.") }
+        guard var saved = state.sessions[input.id], saved.host.id == userID, saved.hosted.session.status == "planned" else { throw AppError.conflict("Diese Session kann nicht mehr geändert werden.") }
         guard input.startsAt > Date(), (5...600).contains(input.durationMinutes ?? 60), (input.note?.count ?? 0) <= 500, (input.placeName?.count ?? 0) <= 120 else { throw AppError.validation("Prüfe Zeitpunkt, Dauer, Nachricht und Ort.") }
         saved.hosted.session.startsAt = input.startsAt; saved.hosted.session.durationMinutes = input.durationMinutes
         saved.hosted.session.note = input.note; saved.hosted.session.placeName = input.placeName; saved.hosted.session.friendsCanJoin = input.friendsCanJoin

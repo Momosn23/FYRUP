@@ -21,7 +21,7 @@ final class DemoFlowTests: XCTestCase {
         do {
             _ = try await repository.startActivity(userID: session.userID, sport: .running, subtype: nil, linkedActivityID: nil, plannedSessionID: nil)
             XCTFail("Second live activity must fail")
-        } catch { XCTAssertEqual(error as? AppError, .conflict("Du hast bereits ein LIVE-Training.")) }
+        } catch { XCTAssertEqual(error as? AppError, .conflict("Du bist bereits LIVE.")) }
         let completed = try await repository.completeActivity(id: activity.id, distanceMeters: nil)
         XCTAssertEqual(completed.status, .completed)
         XCTAssertNotNil(completed.endedAt)

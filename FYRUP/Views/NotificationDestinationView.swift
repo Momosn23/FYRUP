@@ -33,7 +33,7 @@ struct NotificationDestinationView: View {
         ContentUnavailableView {
             Label("Nicht mehr verfügbar", systemImage: "bell.slash")
         } description: {
-            Text("Das Training oder die Mitteilung ist nicht mehr aktuell, oder der Zugriff wurde geändert.")
+            Text("Die Aktivität oder Mitteilung ist nicht mehr aktuell, oder der Zugriff wurde geändert.")
         } actions: {
             Button("Erneut prüfen") { Task { await load() } }.buttonStyle(OutlineButtonStyle())
         }

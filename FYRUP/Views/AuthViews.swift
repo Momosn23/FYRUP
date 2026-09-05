@@ -63,7 +63,7 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Gemeinsam\nmehr erreichen.")
                 .font(.system(size: 34, weight: .black)).foregroundStyle(FYColor.ink)
-            Text("Sieh, wer heute aktiv ist, plane Training mit Freunden und motiviert euch gegenseitig.")
+            Text("Sieh, wer heute aktiv ist, plane Sessions mit Freunden und motiviert euch gegenseitig.")
                 .font(.body).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
             Image("OnboardingCrewCollage").resizable().scaledToFill()
@@ -80,7 +80,7 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             Image("OnboardingCrewCollage").resizable().scaledToFill()
                 .frame(maxWidth: .infinity).frame(height: 360).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            Text("Mehr als Training.\nEine stärkere Crew.")
+            Text("Gemeinsam aktiv.\nEine stärkere Crew.")
                 .font(.system(size: 31, weight: .black)).foregroundStyle(FYColor.ink)
             Text("Gym, Laufen, Fußball und mehr – alles in einer App.")
                 .font(.body).foregroundStyle(FYColor.muted)
@@ -320,7 +320,7 @@ struct GymSetupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack { Button { store.route = .sportsSetup } label: { Image(systemName: "chevron.left") }; Spacer() }
-            Text("Was genau trainierst du?").font(.system(size: 28, weight: .black))
+            Text("Was ist dein Fokus?").font(.system(size: 28, weight: .black))
             Label("Gym", systemImage: SportKind.gym.symbol).font(.headline)
             ScrollView {
                 VStack(spacing: 9) {
@@ -329,7 +329,7 @@ struct GymSetupView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: gymSymbol(item)).frame(width: 28).foregroundStyle(selected.contains(item) ? FYColor.ink : FYColor.muted)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(item).font(.subheadline.bold())
+                                    Text(FyrupLanguage.subtype(item, sport: .gym) ?? item).font(.subheadline.bold())
                                     Text(gymSubtitle(item)).font(.caption2).foregroundStyle(FYColor.muted)
                                 }
                                 Spacer()
@@ -411,7 +411,7 @@ struct OnboardingCompleteView: View {
                 Image(systemName: "flame.fill").font(.system(size: 64)).foregroundStyle(FYColor.lime)
             }
             Text("Du bist startklar.").font(.system(size: 32, weight: .black)).foregroundStyle(FYColor.ink)
-            Text("Deine Crew, deine Trainings, dein Antrieb.\nAb jetzt beginnt FYRUP direkt im Heute-Feed.")
+            Text("Deine Crew, deine Aktivitäten, dein Antrieb.\nAb jetzt beginnt FYRUP direkt im Heute-Feed.")
                 .foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
             Spacer()
             Button("FYRUP STARTEN") { Task { await store.finishOnboarding() } }.buttonStyle(SecondaryButtonStyle())

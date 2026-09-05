@@ -1,0 +1,30 @@
+# Sprachüberarbeitung – Umsetzung und Abnahme
+
+Neuer kumulativer Auftrag vom 05.09.2026. Dauerhafte Regeln: [TERMINOLOGY.md](TERMINOLOGY.md). Noch in Bearbeitung; nicht als neuer TestFlight-Stand ausgegeben.
+
+- [x] TERM-01 Nutzerauftrag vollständig lesen und die neue Sprachlogik dauerhaft für zukünftige Arbeit im Projekt verankern (`AGENTS.md`, `TERMINOLOGY.md`).
+- [ ] TERM-02 Allgemeine Aktivitäten, gemeinsame/geplante Sessions, Wochenziel-Einheiten und Gym-Workouts je Kontext unterscheiden.
+- [ ] TERM-03 Heute, eigener Status, Plus-Flow, Öffnen/Start/Abschluss und soziale Aktionen prüfen.
+- [ ] TERM-04 Gym-Auswahl und Workout-Plan-Bibliothek/-Editor/-Teilen/-Kopieren/-Historie vollständig überarbeiten.
+- [ ] TERM-05 Onboarding, Wochenrhythmus und Wochenziel auf neue Sprache abstimmen.
+- [ ] TERM-06 Wochenfortschritt, Flammenabschluss und Call My Shot konsequent mit Einheiten beschriften.
+- [ ] TERM-07 Profil, Freundesprofil, Crews und Einladungen sprachlich prüfen.
+- [ ] TERM-08 LIVE-Ablauf, Pause, Abbruch, Abschluss und privater Rückblick prüfen.
+- [ ] TERM-09 Fehlermeldungen, leere Listen, Ladezustände, Einstellungen und VoiceOver berücksichtigen.
+- [ ] TERM-10 Blind Workout, Call My Shot und Markenbegriffe erhalten; Schrittzahlen/-ziel nicht mit Wochenziel vermischen.
+- [ ] TERM-11 Alle deutschen Localization-Strings inklusive früherer Schlüssel prüfen.
+- [ ] TERM-12 Push-Texte einschließlich bereits wartender eigener Vorlagen prüfen; Nutzertexte nicht umschreiben.
+- [ ] TERM-13 Persistierte Katalogwerte, Models, APIs und angewendete Migrationen stabil halten; alte Anzeigevorlagen sicher darstellen.
+- [ ] TERM-14 Resttreffer projektweit prüfen und technische/historische/fachliche Ausnahmen dokumentieren.
+- [ ] TERM-15 Vollständigen nativen Build sowie verfügbare Datenbank-, Logik- und UI-Tests ausführen und Ergebnisse festhalten.
+- [ ] TERM-16 Tatsächliche Bildschirmaufnahmen aller betroffenen Seiten kontrollieren; keine abgeschnittenen neuen Labels.
+- [ ] TERM-17 Neue Version signieren, Apple-Upload prüfen und TestFlight-Zuordnung verifizieren.
+- [ ] TERM-18 Kurze Abschlussübersicht der Ersetzungen, bewussten Ausnahmen, geänderten Dateien und Testergebnisse liefern.
+
+## Aktueller Zwischenstand
+
+Kontextbezogene sichtbare Texte, VoiceOver, Fehler, deutsche Localization und UI-Test-Erwartungen überarbeitet. Technische Bezeichner und Datenfelder unangetastet. App-Inbox und Push verwenden dieselben 16 geprüften Beispielvorlagen; 47 Node-Prüfungen bestehen. Drei neue native Terminologietests sind vorbereitet. Die laufende Quelltextprüfung (`scripts/audit-terminology.mjs`) prüft 80 App-Textdateien und besteht. Beide CI-Workflows führen sie künftig mit aus.
+
+Bewusste Resttreffer: neun Apple-Symbolnamen, sieben persistierte Katalogwerte, zwanzig Eingaben des getesteten Anzeige-Adapters, zwei alte Localization-Schlüssel mit neuen Ausgabewerten, neun stabile API-/Accessibility-IDs und ein reiner Katalogvergleich. Technische Typen/Testnamen und bereits angewendete SQL-Migrationen bleiben historische bzw. stabile Schnittstellen. Nutzertexte werden nicht verändert. Gespeicherte Benachrichtigungsvorlagen werden zur Anzeige modernisiert, nicht massenweise in Nutzerdaten umgeschrieben. Der geänderte Push-Adapter ist noch nicht produktiv bereitgestellt.
+
+Neuer nativer Build, Layoutkontrolle und TestFlight stehen aus. Vorheriger Build29 (`073b933`) bestand 365 Einzeltests und 26 UI-Abläufe; **er enthält diese Sprachüberarbeitung nicht**. Der noch nicht gestartete TestFlight-Dialog wurde geschlossen, damit der nächste Upload die neuen Begriffe berücksichtigen kann.

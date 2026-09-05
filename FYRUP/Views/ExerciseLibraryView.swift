@@ -37,7 +37,7 @@ struct ExerciseLibraryView: View {
                     }.buttonStyle(.plain).accessibilityIdentifier("open-library-muscles")
                     if !muscles.isEmpty {
                         HStack {
-                            Text("\(filteredExercises.count) passende Übungen").font(.caption).foregroundStyle(FYColor.muted)
+                            Text(filteredExercises.count == 1 ? "1 passende Übung" : "\(filteredExercises.count) passende Übungen").font(.caption).foregroundStyle(FYColor.muted)
                             Spacer()
                             Button("Alle Muskeln") { muscles = [] }.font(.caption.bold()).frame(minHeight: 44)
                                 .accessibilityIdentifier("clear-library-muscles")
@@ -73,7 +73,7 @@ struct ExerciseLibraryView: View {
                         }.background(FYColor.background).navigationTitle("Muskelgruppen").navigationBarTitleDisplayMode(.inline)
                             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { showsMuscles = false }.accessibilityIdentifier("apply-library-muscles") } }
                             .safeAreaInset(edge: .bottom) {
-                                Button("\(filteredExercises.count) Übungen ansehen") { showsMuscles = false }
+                                Button(filteredExercises.count == 1 ? "1 Übung ansehen" : "\(filteredExercises.count) Übungen ansehen") { showsMuscles = false }
                                     .buttonStyle(PrimaryButtonStyle()).padding(16).background(.ultraThinMaterial)
                                     .accessibilityIdentifier("show-muscle-exercises")
                             }
@@ -84,7 +84,7 @@ struct ExerciseLibraryView: View {
                         if let exercise = archivingExercise { Task { _ = await store.workouts.archiveExercise(id: exercise.id); archivingExercise = nil } }
                     }
                     Button("Behalten", role: .cancel) { archivingExercise = nil }
-                } message: { Text("Die Übung verschwindet aus der normalen Auswahl. Bestehende Pläne und abgeschlossene Trainings bleiben erhalten.") }
+                } message: { Text("Die Übung verschwindet aus der normalen Auswahl. Bestehende Workout-Pläne und abgeschlossene Workouts bleiben erhalten.") }
         }.tint(FYColor.lime).preferredColorScheme(.light)
     }
 

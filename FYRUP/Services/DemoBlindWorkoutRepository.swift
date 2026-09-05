@@ -265,7 +265,7 @@ actor DemoBlindWorkoutStorage {
     func requireCompletionAllowed(activityID: UUID, userID: UUID, friends: Set<UUID>, markedBlind: Bool) throws {
         try checkLoaded()
         if markedBlind || saved.entries.values.contains(where: { $0.activity?.id == activityID }) {
-            throw AppError.conflict("Beende dieses Training über das Blind Workout oder brich es ab.")
+            throw AppError.conflict("Schließe dieses Blind Workout dort ab oder brich es ab.")
         }
     }
 

@@ -16,7 +16,7 @@ struct TrainingGroupEditorView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Image(systemName: "person.3.fill").font(.title2).foregroundStyle(FYColor.lime)
                             Text(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Deine Crew" : name).font(.title2.weight(.black))
-                            Text("Private Trainingsgruppe").font(.caption).foregroundStyle(.white.opacity(0.8))
+                            Text("Deine private Crew").font(.caption).foregroundStyle(.white.opacity(0.8))
                         }.padding(16).foregroundStyle(.white)
                     }.frame(height: 154).clipShape(RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(FYColor.line))
 
@@ -42,7 +42,7 @@ struct TrainingGroupEditorView: View {
                 }.padding(20)
             }
             .background(FYColor.background)
-            .navigationTitle("Neue Trainingsgruppe")
+            .navigationTitle("Neue Crew")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
@@ -114,9 +114,9 @@ struct TrainingGroupDetailView: View {
             if let message = store.errorMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral).padding() }
         }
         .background(FYColor.background)
-        .navigationTitle(currentGroup?.name ?? "Trainingsgruppe")
+        .navigationTitle(currentGroup?.name ?? "Crew")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Trainingsgruppe löschen?", isPresented: $confirmsDelete) {
+        .confirmationDialog("Crew löschen?", isPresented: $confirmsDelete) {
             Button("Gruppe löschen", role: .destructive) { Task { await deleteGroup() } }
             Button("Behalten", role: .cancel) {}
         }

@@ -192,7 +192,7 @@ actor SupabaseRESTClient {
         if text.contains("username") && (text.contains("duplicate") || code == "23505") { return .conflict("Dieser Username ist bereits vergeben.") }
         if text.contains("invalid_group_name") { return .validation("Der Gruppenname braucht 2–40 Zeichen.") }
         if text.contains("group_name_exists") { return .conflict("Du hast bereits eine Gruppe mit diesem Namen.") }
-        if text.contains("already_live") { return .conflict("Du hast bereits ein LIVE-Training.") }
+        if text.contains("already_live") { return .conflict("Du bist bereits LIVE.") }
         if text.contains("weekly_commitment_exists") { return .conflict("Dein Shot für diese Woche ist bereits gespeichert.") }
         if text.contains("notification_preferences_conflict") { return .conflict("Die Einstellungen wurden inzwischen geändert. Bitte prüfe den aktuellen Stand, bevor du speicherst.") }
         if text.contains("invalid_notification_preferences") { return .validation("Bitte lade deine Mitteilungseinstellungen erneut und prüfe alle Kategorien.") }
@@ -202,7 +202,7 @@ actor SupabaseRESTClient {
         if text.contains("already_sent_today") { return .conflict("Diesen Freund hast du heute bereits motiviert.") }
         if text.contains("friendship_exists") { return .conflict("Diese Freundschaftsanfrage gibt es bereits.") }
         if text.contains("start_in_past") { return .validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
-        if text.contains("session_not_editable") { return .conflict("Dieses Training kann nicht mehr geändert werden.") }
+        if text.contains("session_not_editable") { return .conflict("Diese Session kann nicht mehr geändert werden.") }
         if text.contains("plan_not_available") { return .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert.") }
         if text.contains("copy_request_mismatch") { return .conflict("Diese Kopieranfrage gehört zu einem anderen Plan.") }
         if text.contains("copy_result_unavailable") { return .conflict("Deine zuvor erstellte Kopie wurde archiviert oder gelöscht. Es wurde keine weitere Kopie angelegt.") }
@@ -215,9 +215,9 @@ actor SupabaseRESTClient {
         if text.contains("invalid_log") || text.contains("incomplete_log") || text.contains("invalid_sets") || text.contains("duplicate_set_number") {
             return .validation("Das Protokoll konnte nicht gespeichert werden. Prüfe deine Satzangaben und versuche es erneut.")
         }
-        if text.contains("invalid_session") || text.contains("invalid_link") { return .conflict("Dieses gemeinsame Training ist nicht mehr verfügbar. Aktualisiere deine Einladungen.") }
+        if text.contains("invalid_session") || text.contains("invalid_link") { return .conflict("Diese gemeinsame Session ist nicht mehr verfügbar. Aktualisiere deine Einladungen.") }
         if text.contains("invalid_schedule") { return .validation("Prüfe Datum, Uhrzeit und geplante Dauer.") }
-        if text.contains("not_live") || text.contains("activity_not_live") { return .conflict("Dieses Training ist nicht mehr live. Aktualisiere die Ansicht.") }
+        if text.contains("not_live") || text.contains("activity_not_live") { return .conflict("Diese Aktivität ist nicht mehr LIVE. Aktualisiere die Ansicht.") }
         if status == 409 || code == "23505" { return .conflict("Diese Aktion wurde bereits ausgeführt.") }
         if status == 400 && (text.contains("provider") || text.contains("id_token") || text.contains("nonce")) {
             return .conflict("Die Apple-Anmeldung konnte nicht bestätigt werden. Versuche es erneut.")

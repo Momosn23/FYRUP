@@ -175,7 +175,7 @@ final class WorkoutTrackingDraftStore {
     private func key(_ userID: UUID) -> String { "app.fyrup.tracking-drafts.v1.\(userID.uuidString)" }
     private func markUnreadable() {
         storageBlocked = true
-        errorMessage = "Lokale Trainingseingaben konnten nicht gelesen werden. Die ursprünglichen Daten bleiben erhalten; neue Entwürfe können gerade nicht gesichert werden."
+        errorMessage = "Lokale Workout-Eingaben konnten nicht gelesen werden. Die ursprünglichen Daten bleiben erhalten; neue Entwürfe können gerade nicht gesichert werden."
     }
 
     private func remapInputs(candidate: WorkoutLog, receipt: WorkoutLog) -> [InputDraft] {

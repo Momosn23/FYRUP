@@ -1,0 +1,18 @@
+[
+  {"type":"activity_started","title":"Max trainiert gerade 🔥","body":"gym · Push","expectedTitle":"Max ist gerade LIVE 🔥","expectedBody":"gym · Push"},
+  {"type":"session_invite","title":"Trainingseinladung 🔥","body":"Training mit Momo","expectedTitle":"Session-Einladung 🔥","expectedBody":"Training mit Momo"},
+  {"type":"session_invite","title":"Momo lädt dich zum Training ein.","body":"Gym · Push","expectedTitle":"Momo lädt dich zu einer Session ein.","expectedBody":"Gym · Push"},
+  {"type":"session_updated","title":"Training wurde aktualisiert","body":"Neue Zeit: 19:00","expectedTitle":"Session aktualisiert","expectedBody":"Neue Zeit: 19:00"},
+  {"type":"session_started","title":"Training wurde gestartet 🔥","body":"Du kannst jetzt ebenfalls starten.","expectedTitle":"Die Session ist jetzt LIVE 🔥","expectedBody":"Du kannst jetzt ebenfalls starten."},
+  {"type":"session_cancelled","title":"Training abgesagt","body":"Der Host hat das Training abgesagt.","expectedTitle":"Session abgesagt","expectedBody":"Der Host hat die Session abgesagt."},
+  {"type":"session_joined","title":"Jemand macht mit 🔥","body":"Ein Freund hat sich deinem Training angeschlossen.","expectedTitle":"Jemand macht mit 🔥","expectedBody":"Ein Freund ist bei deiner Session dabei."},
+  {"type":"session_reminder","title":"Training in 30 Minuten 🔥","body":"Gym · Training mit Max","expectedTitle":"Deine Session startet in 30 Minuten 🔥","expectedBody":"Gym · Training mit Max"},
+  {"type":"workout_plan_shared","title":"Ein Trainingsplan für dich","body":"Training in 30 Minuten 🔥","expectedTitle":"Ein Workout-Plan für dich","expectedBody":"Training in 30 Minuten 🔥"},
+  {"type":"workout_plan_shared","title":"Training Tom teilt einen Trainingsplan.","body":"Unser Training","expectedTitle":"Training Tom teilt einen Workout-Plan.","expectedBody":"Unser Training"},
+  {"type":"weekly_goal","title":"Wochenziel geschafft 🔥","body":"4 / 4 Trainings. Wochenziel geschafft.","expectedTitle":"Wochenziel geschafft 🔥","expectedBody":"4 / 4 Einheiten. Wochenziel geschafft."},
+  {"type":"shot_called","title":"CALLED IT: 4/4 🎯","body":"4 Trainings diese Woche.","expectedTitle":"CALLED IT: 4/4 🎯","expectedBody":"4 Einheiten diese Woche."},
+  {"type":"blind_workout_received","title":"Blind Workout 👀","body":"Freies Training – mein eigener Planname","expectedTitle":"Blind Workout 👀","expectedBody":"Freies Training – mein eigener Planname"},
+  {"type":"unknown","title":"Training abgesagt","body":"4 Trainings diese Woche.","expectedTitle":"Training abgesagt","expectedBody":"4 Trainings diese Woche."},
+  {"type":"session_cancelled","title":"Schon modern","body":"Mein eigenes Training wurde nicht abgesagt.","expectedTitle":"Schon modern","expectedBody":"Mein eigenes Training wurde nicht abgesagt."},
+  {"type":"supplement_reminder","title":"Deine Erinnerung","body":"Ein Eintrag auf deiner heutigen Liste ist noch offen.","expectedTitle":"Deine Erinnerung","expectedBody":"Ein Eintrag auf deiner heutigen Liste ist noch offen."}
+]

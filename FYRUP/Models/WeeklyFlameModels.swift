@@ -53,7 +53,7 @@ struct WeeklyProgress: Codable, Identifiable, Equatable, Sendable {
     var progressText: String { "\(completedWorkouts) / \(weeklyGoal)" }
     var motivationText: String {
         if flameEarned { return aboveGoal > 0 ? "+\(aboveGoal) über deinem Ziel" : "Wochenziel geschafft" }
-        return remaining == 1 ? "Noch 1 Training bis zu deiner Flamme" : "Noch \(remaining) Trainings bis zu deiner Flamme"
+        return remaining == 1 ? "Noch 1 Einheit bis zur Flamme 🔥" : "Noch \(remaining) Einheiten bis zur Flamme 🔥"
     }
     /// The natural owner/week key also prevents duplicate presentation if a row is restored with a different UUID.
     var celebrationID: String { "\(userID.uuidString.lowercased()):\(weekStartDate)" }

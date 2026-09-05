@@ -22,18 +22,18 @@ struct WeeklyGoalSelectionView: View {
                     Text(firstConfirmation ? "Dein Wochenziel" : "Dein Ziel steht")
                         .font(.system(size: 30, weight: .black))
                 }
-                Text("Wie oft willst du pro Woche trainieren?").font(.title3.bold())
-                Text("Setze dir ein realistisches Ziel. Wenn du es erreichst, verdienst du deine Flamme. Pausen gehören dazu – es gibt kein Tagesziel.")
+                Text("Wie oft willst du pro Woche aktiv sein?").font(.title3.bold())
+                Text("Setze dein Wochenziel und hol dir deine Flamme 🔥 Pausen gehören dazu – es gibt kein Tagesziel.")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
                 if let current = store.weekly.currentWeek {
-                    Label("Aktuell: \(current.weeklyGoal) Trainings pro Woche", systemImage: "calendar").font(.subheadline.bold())
+                    Label("Aktuell: \(current.weeklyGoal) Einheiten pro Woche", systemImage: "calendar").font(.subheadline.bold())
                 }
                 VStack(spacing: 10) {
                     ForEach(WeeklyGoal.options, id: \.self) { goal in
                         Button { selection = goal; Haptics.impact(.light) } label: {
                             HStack {
-                                Text("\(goal)×").font(.title2.weight(.bold)).frame(width: 48, alignment: .leading)
-                                Text("pro Woche").font(.subheadline)
+                                Text("\(goal)").font(.title2.weight(.bold)).frame(width: 32, alignment: .leading)
+                                Text("Einheiten pro Woche").font(.subheadline)
                                 Spacer()
                                 Image(systemName: selection == goal ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(selection == goal ? FYColor.lime : FYColor.line)
@@ -93,7 +93,7 @@ struct OwnWeeklyCard: View {
                         if compact {
                             HStack(spacing: 10) {
                                 Text(week.progressText).font(.title2.weight(.black)).monospacedDigit().contentTransition(.numericText())
-                                Text("Trainings").font(.subheadline).foregroundStyle(FYColor.muted)
+                                Text("Einheiten").font(.subheadline).foregroundStyle(FYColor.muted)
                                 Spacer()
                                 Image(systemName: week.flameEarned ? "flame.fill" : "flame").font(.title2)
                                     .foregroundStyle(week.flameEarned ? FYColor.coral : FYColor.muted)
@@ -124,7 +124,7 @@ struct WeeklyProgressContent: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(week.progressText).font(.system(size: 32, weight: .black, design: .rounded)).monospacedDigit()
                     .contentTransition(.numericText())
-                Text("Trainings").font(.subheadline).foregroundStyle(FYColor.muted)
+                Text("Einheiten").font(.subheadline).foregroundStyle(FYColor.muted)
                 Spacer(minLength: 0)
                 Image(systemName: week.flameEarned ? "flame.fill" : "flame")
                     .font(.title).foregroundStyle(week.flameEarned ? FYColor.coral : FYColor.muted)
@@ -153,7 +153,7 @@ struct WeeklyFlameDetailView: View {
                     }.fyCard()
                     Text("Der Streak zählt erfolgreich abgeschlossene Wochen. Deine aktuelle Flamme gehört dir schon, sobald du dein Ziel erreicht hast.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
-                    if let goal = state.nextWeeklyGoal { Label("Ab nächster Woche: \(goal) Trainings", systemImage: "calendar.badge.clock").font(.subheadline).fyCard() }
+                    if let goal = state.nextWeeklyGoal { Label("Ab nächster Woche: \(goal) Einheiten", systemImage: "calendar.badge.clock").font(.subheadline).fyCard() }
                 }
                 NavigationLink { WeeklyGoalSelectionView(isOnboarding: false) } label: {
                     Label(store.weekly.needsGoalConfirmation == true ? "Wochenziel festlegen" : "Wochenziel ändern", systemImage: "target")
@@ -177,7 +177,7 @@ struct WeeklyFlameDetailView: View {
                         Text(week.progressText).font(.subheadline.bold()).monospacedDigit()
                     }.fyCard()
                 }
-                Text("Nur abgeschlossene FYRUP-Trainings zählen. Schritte, geplante und abgebrochene Trainings zählen nicht. Sehr kurze Einheiten unter einer aktiven Minute werden gespeichert, geben aber keinen Wochen-Credit.")
+                Text("Nur abgeschlossene FYRUP-Aktivitäten zählen als Einheiten. Schritte, geplante Sessions und abgebrochene Aktivitäten zählen nicht. Unter einer aktiven Minute bleibt die Aktivität gespeichert, zählt aber nicht zum Wochenziel.")
                     .font(.caption).foregroundStyle(FYColor.muted)
             }.padding(20).padding(.bottom, 72)
         }.background(FYColor.background).foregroundStyle(FYColor.ink)
@@ -272,7 +272,7 @@ struct FlameCelebrationView: View {
                     .shadow(color: FYColor.coral.opacity(0.24), radius: 24)
             }.scaleEffect(appeared ? 1 : 0.82).opacity(appeared ? 1 : 0)
             Text(celebration.week.commitment?.achieved == true ? "CALLED IT. 🎯🔥" : "WOCHENZIEL GESCHAFFT").font(.title2.weight(.black)).multilineTextAlignment(.center)
-            Text("\(celebration.week.progressText) Trainings").font(.title.weight(.bold)).monospacedDigit()
+            Text("\(celebration.week.progressText) Einheiten").font(.title.weight(.bold)).monospacedDigit()
             Text("Deine Flamme gehört dir.").font(.title3).foregroundStyle(FYColor.muted)
             if celebration.week.commitment?.achieved == true {
                 Text("Du hast gesagt, du ziehst durch. Du hast es gemacht.").font(.headline).multilineTextAlignment(.center)

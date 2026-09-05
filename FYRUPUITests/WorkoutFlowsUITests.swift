@@ -69,7 +69,7 @@ final class WorkoutFlowsUITests: XCTestCase {
     private func openPlans(_ app: XCUIApplication) {
         tap(app.tabBars.buttons["Profil"], in: app)
         tap(app.buttons["profile-workout-plans"], in: app)
-        XCTAssertTrue(app.navigationBars["Meine Pläne"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meine Workout-Pläne"].waitForExistence(timeout: 5))
     }
 
     private func createPlan(_ app: XCUIApplication, name: String, custom: Bool = false) {
@@ -106,7 +106,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         capture("25-workout-plan-editor")
         tap(app.buttons["save-workout-plan"], in: app)
         waitUntilDismissed(field)
-        XCTAssertTrue(app.navigationBars["Meine Pläne"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meine Workout-Pläne"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons[name].exists)
     }
 
@@ -125,7 +125,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 / 1 Übungen"].waitForExistence(timeout: 5))
         capture("29-workout-easy-live")
         tap(app.buttons["finish-plan-workout"], in: app)
-        let confirm = app.sheets.buttons["Training beenden"]
+        let confirm = app.sheets.buttons["Workout abschließen"]
         tap(confirm, in: app)
         XCTAssertTrue(container("workout-completed-summary", in: app).waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["Workout geschafft!"].exists)
@@ -164,7 +164,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["Ohne Änderung schließen"], in: app)
         waitUntilDismissed(feeling)
         tap(done, in: app)
-        XCTAssertTrue(app.navigationBars["Trainingsplan"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.navigationBars["Workout-Plan"].waitForExistence(timeout: 4))
     }
 
     func testCustomExerciseAddsDirectlyAndPersists() {
@@ -312,7 +312,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         // No save button, no Back, no graceful sheet dismissal before termination.
         app.terminate(); app.launch()
         XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
-        tap(app.buttons["TRAINING ÖFFNEN"], in: app)
+        tap(app.buttons["open-live-activity"], in: app)
         XCTAssertTrue(container("workout-tracking-screen", in: app).waitForExistence(timeout: 6))
         XCTAssertTrue(container("restored-tracking-draft", in: app).exists)
         tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)

@@ -4,6 +4,10 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 ## 1. Status und Abnahmeregel
 
+Neuester Zusatzauftrag: [gesamte sichtbare Sprache überarbeiten](TERMINOLOGY_CHECKLIST.md). Die [neue Terminologie](TERMINOLOGY.md) ist ab sofort auch für zukünftige Features verbindlich: Aktivität / Session / Workout / Einheit nach Kontext. Technische Namen und Daten nicht blind ersetzen.
+
+Aktualisierung: Build29 (`073b933`) bestand 365 Einzeltests und alle26 UI-Abläufe; Muskel-Taps, Listen-Synchronisation und tatsächlicher Übungsfilter bestanden. Neue Bilder lokal geprüft. Backend001–012 ist ausgerollt. Noch kein neuer signierter TestFlight-Stand. Supplements befinden sich in Implementierung (113 neue lokale DB-Prüfungen plus836 Regressionen bestanden), die aktuelle Sprachüberarbeitung ist noch nicht nativ getestet. Die nachfolgenden älteren Build-Angaben bleiben als Historie erhalten.
+
 **Aktuell: Build27 (`63047cb`), am05.09.2026 nach21m22s erfolgreich beendet; alle24 UI-Abläufe bestanden, einschließlich korrigierter Teilen-Vorschau.** Build26 hatte zuvor346 Unit-Tests und23/24 UI-Abläufe bestanden. Der neue Wochenrhythmus-/Bewertungsblock ist noch nicht Teil von Build27; sein [separater Prüfstand](PERSONAL_TRAINING_IMPLEMENTATION_STATUS.md) weist836 lokale Datenbankprüfungen aus. Produktive Migrationen001–011 und Benachrichtigungsdienst ausgerollt und separat überprüft: [Deploymentnachweis](DEPLOYMENT_2026-09-05.md). Kein echter HealthKit-/APNs-/neuer TestFlight-Nachweis. Ältere Bereichstabellen unten sind historische Zwischenstände.
 
 Neu hinzugekommen am 05.09.: sichtbare Bezeichnung „Deine Streak“; freiwilliger sportbezogener Trainingsrhythmus mit Häufigkeit, Dauer, frei gewählten Wochentagen und einer Wochenleiste auf Heute. Die zusätzlichen Anforderungen werden in [WEEKLY_ROUTINE_CHECKLIST.md](WEEKLY_ROUTINE_CHECKLIST.md) separat geführt und ersetzen nicht die Abnahmeregeln dieser Liste.

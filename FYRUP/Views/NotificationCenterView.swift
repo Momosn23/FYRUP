@@ -27,8 +27,8 @@ struct NotificationCenterView: View {
         HStack(spacing: 12) {
             ZStack { Circle().fill(iconColor(item).opacity(0.16)); Image(systemName: icon(item)).foregroundStyle(iconColor(item)) }.frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.title).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
-                Text(item.body).font(.caption).foregroundStyle(FYColor.muted).lineLimit(2)
+                Text(item.displayTitle).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
+                Text(item.displayBody).font(.caption).foregroundStyle(FYColor.muted).lineLimit(2)
                 Text(item.createdAt, style: .relative).font(.caption2).foregroundStyle(FYColor.muted)
             }
             Spacer()

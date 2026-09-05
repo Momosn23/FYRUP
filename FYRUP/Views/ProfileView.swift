@@ -22,7 +22,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(FYColor.ink.opacity(0.78)).padding(.top, 3) } }
                         Spacer()
                     }
-                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Workouts / Monat"); Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak") }
+                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat"); Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak") }
                     OwnWeeklyCard()
                     NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: {
                         HStack { Label("Mein Wochenplan", systemImage: "calendar").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
@@ -31,17 +31,17 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Meine Statistiken").font(.headline)
                         Picker("Zeitraum", selection: $statisticsPeriod) { Text("Woche").tag(0); Text("Monat").tag(1); Text("Jahr").tag(2) }.pickerStyle(.segmented)
-                        HStack { Text("Abgeschlossene Workouts"); Spacer(); Text("\(periodActivities.count)").bold() }
+                        HStack { Text("Abgeschlossene Einheiten"); Spacer(); Text("\(periodActivities.count)").bold() }
                         HStack { Text("Aktive Zeit"); Spacer(); Text("\(Int(periodActivities.compactMap(\.duration).reduce(0, +) / 60)) min").bold() }
-                        Text("Aus deinem geladenen Trainingsverlauf.").font(.caption2).foregroundStyle(FYColor.muted)
+                        Text("Aus deinen geladenen Aktivitäten.").font(.caption2).foregroundStyle(FYColor.muted)
                     }.fyCard()
                     VStack(alignment: .leading, spacing: 16) {
                         Label("Sportarten", systemImage: "figure.run").bold()
                         Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
-                        if let focus = profile.gymFocus, !focus.isEmpty { Text(focus.joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted) }
+                        if let focus = profile.gymFocus, !focus.isEmpty { Text(focus.map { FyrupLanguage.subtype($0, sport: .gym) ?? $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted) }
                     }.fyCard()
                     NavigationLink { WorkoutPlansView() } label: {
-                        HStack { Label("Meine Trainingspläne", systemImage: "list.clipboard").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
+                        HStack { Label("Meine Workout-Pläne", systemImage: "list.clipboard").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
                     }.buttonStyle(.plain).accessibilityIdentifier("profile-workout-plans")
                     RecentActivitiesCard(activities: store.recentActivities, profile: profile)
                 }
@@ -195,7 +195,7 @@ private struct RecentActivitiesCard: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Letzte Aktivitäten").font(.headline).padding(.bottom, 8)
             if activities.isEmpty {
-                Text("Dein erstes abgeschlossenes Training erscheint hier.")
+                Text("Deine erste abgeschlossene Aktivität erscheint hier.")
                     .font(.subheadline).foregroundStyle(FYColor.muted).padding(.vertical, 10)
             } else {
                 ForEach(Array(activities.prefix(4).enumerated()), id: \.offset) { index, activity in
@@ -205,7 +205,7 @@ private struct RecentActivitiesCard: View {
                             Image(systemName: activity.sport.symbol).foregroundStyle(activity.sport.accentColor)
                                 .frame(width: 36, height: 36).background(activity.sport.accentColor.opacity(0.12), in: Circle())
                             VStack(alignment: .leading, spacing: 3) {
-                                Text([activity.sport.title, activity.subtype].compactMap { $0 }.joined(separator: " · ")).font(.subheadline.bold())
+                                Text([activity.sport.title, activity.displaySubtype].compactMap { $0 }.joined(separator: " · ")).font(.subheadline.bold())
                                 Text(detail(activity)).font(.caption).foregroundStyle(FYColor.muted)
                             }
                             Spacer()
@@ -388,16 +388,16 @@ private struct NotificationPreferenceFields: View {
     var body: some View {
         Group {
             Section {
-                Toggle("Freund startet Training", isOn: $draft.friendStarts)
+                Toggle("Freund ist jetzt LIVE", isOn: $draft.friendStarts)
                 Toggle("FYR UP", isOn: $draft.fyrup)
-                Toggle("Trainingseinladungen", isOn: $draft.invitations)
+                Toggle("Session-Einladungen", isOn: $draft.invitations)
                 Toggle("Reaktionen", isOn: $draft.reactions)
                 Toggle("Freundschaftsanfragen", isOn: $draft.friendRequests)
             } footer: {
-                Text("Normale Trainingsstarts sind standardmäßig aus, damit deine Crew nicht mit Pushs überladen wird.")
+                Text("Meldungen zu LIVE-Starts sind standardmäßig aus, damit deine Crew nicht zu viele Pushs bekommt.")
             }
             Section("Ziele und Erinnerungen") {
-                Toggle("Trainingserinnerungen", isOn: $draft.reminders)
+                Toggle("Erinnerungen", isOn: $draft.reminders)
                 Toggle("Wochenziel", isOn: $draft.weeklyGoal)
                 Toggle("Crew-Ziel", isOn: $draft.crewGoal)
             }

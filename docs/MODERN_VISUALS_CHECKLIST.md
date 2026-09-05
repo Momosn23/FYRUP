@@ -4,13 +4,13 @@ Zusatzauftrag vom 05.09.2026 anhand des Nutzerfotos. Die neue Referenz zeigt die
 
 ## Arbeitsstand – Körperauswahl
 
-Im Code vorbereitet, noch nicht nativ/visuell abgenommen oder auf TestFlight ausgeliefert:
+Build29 (`073b933`) besteht mit 365 Einzeltests und 26 UI-Abläufen. Die tatsächlichen Simulatorbilder der Körperauswahl wurden geprüft; ein TestFlight-/iPhone-Nachweis steht noch aus. Details: [VISUAL_QA_BUILD29.md](VISUAL_QA_BUILD29.md).
 
 - Eigene skalierbare Vorder-/Rückansicht mit getrennten Muskelbereichen, grüner Auswahl und kurzem Übergang. Keine Bildkopie und keine externen Bildabrufe.
 - Gemeinsame Auswahl für Figur, beschriftete Schaltflächen und vier Bereichsvorgaben; gezielte Mehrfachauswahl und Zurücksetzen. Große Schrift erhält eine einspaltige Listenalternative; reduzierte Bewegung schaltet den Übergang aus.
 - Im Gym-Dialog an den gespeicherten Trainingsfokus gebunden; die bisher zehn Körpergruppen sind um Adduktoren, Trapez und Unterarme ergänzt. Nach freier Änderung wird ein unpassender Push-/Pull-Titel zu „Individuell“ korrigiert.
 - Die Übungsbibliothek bietet alle 13 anatomischen Muskeln sowie die klar getrennten Kategorien Ganzkörper/Sonstiges. Haupt- und zusätzliche Muskeln fließen in den tatsächlichen Filter ein; mehrere gewählte Muskeln gelten als Alternativen.
-- Fünf neue Logik-/Grafikzuordnungstests und ein durchgehender Bildschirmtest vorbereitet. Der bisherige Gym-Bedientest wurde auf die neue Oberfläche angepasst. Echte Simulatorbilder und die Prüfung kleiner Displays/VoiceOver stehen noch aus.
+- Fünf neue Logik-/Grafikzuordnungstests und ein durchgehender Bildschirmtest bestehen. Der bisherige Gym-Bedientest besteht ebenfalls. Echte Simulatorbilder sind geprüft; kleine Displays, große Schrift, VoiceOver und iPhone bleiben gesondert offen.
 
 Die folgenden Kästchen bleiben bis zur jeweiligen vollständigen Abnahme offen. Die übrigen Seiten und Bildwünsche sind nicht durch diesen Teilblock erledigt.
 

@@ -78,7 +78,7 @@ private struct DiscoverView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Entdecken").font(.largeTitle.weight(.black))
-                Text("Was möchtest du heute machen?").foregroundStyle(FYColor.muted)
+                Text("Was hast du vor?").foregroundStyle(FYColor.muted)
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(SportKind.allCases) { sport in
                         Button {

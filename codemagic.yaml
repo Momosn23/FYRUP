@@ -25,10 +25,11 @@ workflows:
         script: |
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
-          node supabase/tests/run_personal_training_tests.mjs
+          node scripts/audit-terminology.mjs
+          node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
-          node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs
+          node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
@@ -86,10 +87,11 @@ workflows:
         script: |
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
-          node supabase/tests/run_personal_training_tests.mjs
+          node scripts/audit-terminology.mjs
+          node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
-          node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs
+          node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist

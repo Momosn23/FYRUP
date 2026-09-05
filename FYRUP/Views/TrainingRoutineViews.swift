@@ -16,10 +16,10 @@ struct TrainingRoutineEditor: View {
             VStack(alignment: .leading, spacing: 20) {
                 if isOnboarding {
                     Button { store.route = .weeklyGoalSetup } label: { Image(systemName: "chevron.left").frame(width: 36, height: 36) }.accessibilityLabel("Zurück")
-                    Text("Dein Trainingsrhythmus").font(.largeTitle.weight(.black))
+                    Text("Dein Wochenrhythmus").font(.largeTitle.weight(.black))
                 }
                 Text("Was möchtest du diese Woche machen?").font(.title3.bold())
-                Text("Laufen, Gym oder beides: Setze dir eigene Ziele. Feste Tage und Dauer sind freiwillig – du kannst jederzeit spontan trainieren.")
+                Text("Laufen, Gym oder beides: Setze dir eigene Ziele. Tage und Dauer sind freiwillig – du kannst jederzeit spontan loslegen.")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
                 if let value = draft {
                     ForEach(value.goals) { goal in goalCard(goal) }
@@ -36,7 +36,7 @@ struct TrainingRoutineEditor: View {
                                 .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("routine-add-sport")
                         }.fyCard()
                     }
-                    if value.goals.isEmpty { Text("Noch keine Vorgaben. Dein Training bleibt frei planbar.").font(.footnote).foregroundStyle(FYColor.muted) }
+                    if value.goals.isEmpty { Text("Noch keine Vorgaben. Du bleibst flexibel.").font(.footnote).foregroundStyle(FYColor.muted) }
                     if let message = value.validationMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral) }
                     Button(isOnboarding ? "Speichern & weiter" : "Wochenplan speichern") {
                         Task {
@@ -53,7 +53,7 @@ struct TrainingRoutineEditor: View {
                         if hasEdits { confirmsReload = true } else { Task { await reload() } }
                     }.disabled(store.personal.isSavingRoutine)
                 }
-                Text("Dieser Rhythmus ist nur für dich. Er erstellt keine Einladungen. Dein Streak-Wochenziel bleibt unverändert und zählt ausschließlich abgeschlossene Trainings.")
+                Text("Dieser Rhythmus ist nur für dich und verschickt keine Einladungen. Dein Streak-Wochenziel bleibt unverändert: Dafür zählen nur abgeschlossene Einheiten.")
                     .font(.caption).foregroundStyle(FYColor.muted)
                 if isOnboarding {
                     Button("Später festlegen") { Task { await store.saveOnboardingStep("friends") } }
@@ -210,7 +210,7 @@ private struct TrainingDayView: View {
                             Text("Dein Wunsch für diesen Tag" + (goal.minutes.map { " · \($0) Min." } ?? "")).font(.subheadline).foregroundStyle(FYColor.muted)
                         }.fyCard()
                     }
-                    if done.isEmpty && sessions.isEmpty && desires.isEmpty { Text("Hier steht noch nichts an. Zeit für eine Pause oder spontanes Training.").foregroundStyle(FYColor.muted).fyCard() }
+                    if done.isEmpty && sessions.isEmpty && desires.isEmpty { Text("Hier steht noch nichts an. Zeit für eine Pause oder spontan loszulegen.").foregroundStyle(FYColor.muted).fyCard() }
                     if let routine = store.personal.routine, !routine.goals.isEmpty {
                         Text("Deine Wochenziele").font(.headline).padding(.top, 8)
                         ForEach(routine.goals) { goal in

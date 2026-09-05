@@ -9,6 +9,7 @@ actor DemoRepository: AppRepository {
     let stepStorage: DemoStepStorage
     let weeklyStorage: DemoWeeklyFlameStorage
     let blindStorage: DemoBlindWorkoutStorage
+    let supplementStorage: DemoSupplementStorage
     let hasConfirmedDemoWeeklyGoal: Bool
     private let now: @Sendable () -> Date
     private var avatarObjects: [String: Data] = [:]
@@ -21,12 +22,13 @@ actor DemoRepository: AppRepository {
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
 
-    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), blindStorage: DemoBlindWorkoutStorage = DemoBlindWorkoutStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
+    init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), blindStorage: DemoBlindWorkoutStorage = DemoBlindWorkoutStorage(), supplementStorage: DemoSupplementStorage = DemoSupplementStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
         meID = userID
         self.workoutStorage = workoutStorage
         self.stepStorage = stepStorage
         self.weeklyStorage = weeklyStorage
         self.blindStorage = blindStorage
+        self.supplementStorage = supplementStorage
         self.pushPreferences = weeklyStorage.notificationPreferenceStorage.joined(with: blindStorage.notificationPreferenceStorage)
         self.hasConfirmedDemoWeeklyGoal = !startsWithoutProfile
         self.now = now
@@ -50,9 +52,9 @@ actor DemoRepository: AppRepository {
             let session = PlannedSession(id: UUID(), hostID: crew[0].id, sport: .gym, subtype: "Push", startsAt: now.addingTimeInterval(3600), durationMinutes: 60, note: "Brust / Schulter / Trizeps 💪", placeName: "Fitness First", friendsCanJoin: true, status: "planned")
             demoInvitations = [SessionInvitation(sessionID: session.id, status: .pending, session: session, host: crew[0])]
             demoNotifications = [
-                AppNotification(id: UUID(), type: "reaction", title: "Sarah hat dein Training geliked.", body: "Stark gemacht! 🔥", data: nil, createdAt: now.addingTimeInterval(-600), readAt: nil),
+                AppNotification(id: UUID(), type: "reaction", title: "Sarah hat deine Aktivität gefeiert.", body: "Stark gemacht! 🔥", data: nil, createdAt: now.addingTimeInterval(-600), readAt: nil),
                 AppNotification(id: UUID(), type: "fyrup", title: "Leon hat dich gepusht!", body: "Deine Crew motiviert dich. 🔥", data: nil, createdAt: now.addingTimeInterval(-1800), readAt: nil),
-                AppNotification(id: UUID(), type: "session_invite", title: "Max lädt dich zum Training ein.", body: "Gym · Push · Heute", data: nil, createdAt: now.addingTimeInterval(-2400), readAt: nil)
+                AppNotification(id: UUID(), type: "session_invite", title: "Max lädt dich zu einer Session ein.", body: "Gym · Push · Heute", data: nil, createdAt: now.addingTimeInterval(-2400), readAt: nil)
             ]
         }
         let belongsToCrewFixture = crew.contains { $0.id == userID }
@@ -70,6 +72,7 @@ actor DemoRepository: AppRepository {
     }
 
     func restoreSession() async throws -> AuthSession? { AuthSession(accessToken: "demo", refreshToken: "demo", expiresAt: .distantFuture, userID: meID) }
+    func currentDemoTime() -> Date { now() }
     func signUp(email: String, password: String) async throws -> AuthSession? { try await restoreSession() }
     func signIn(email: String, password: String) async throws -> AuthSession { guard let value = try await restoreSession() else { throw AppError.authentication }; return value }
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { try await signIn(email: "", password: "") }
@@ -127,7 +130,7 @@ actor DemoRepository: AppRepository {
         if let linkedActivityID, let planID = try await workoutStorage.planID(activityID: linkedActivityID, userID: meID, friends: Set(crew.map(\.id))) {
             return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID)
         }
-        guard !activities.contains(where: { $0.userID == meID && $0.status == .live }) else { throw AppError.conflict("Du hast bereits ein LIVE-Training.") }
+        guard !activities.contains(where: { $0.userID == meID && $0.status == .live }) else { throw AppError.conflict("Du bist bereits LIVE.") }
         let activity = Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .live, plannedAt: nil, startedAt: now(), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
         activities.append(activity); return activity
     }
@@ -184,7 +187,7 @@ actor DemoRepository: AppRepository {
     func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity {
         try await restoreWorkoutActivities()
         guard let index = activities.firstIndex(where: { $0.id == id && $0.userID == meID && $0.status == .live }) else {
-            throw AppError.conflict("Nur dein laufendes Training kann pausiert werden.")
+            throw AppError.conflict("Nur deine laufende Aktivität kann pausiert werden.")
         }
         let now = now()
         if paused && activities[index].pausedAt == nil { activities[index].pausedAt = now }

@@ -54,13 +54,13 @@ final class CriticalFlowsUITests: XCTestCase {
         waitUntilReady(app.buttons["Gym"])
         capture("04-activity-categories")
         app.buttons["Gym"].tap()
-        app.buttons["Push"].tap()
+        revealAndTap(app.buttons["Push"], in: app)
         app.buttons.matching(identifier: "confirm-activity").element.tap()
-        app.buttons["TRAINING ÖFFNEN"].tap()
-        XCTAssertTrue(app.buttons["TRAINING BEENDEN"].exists)
+        app.buttons["open-live-activity"].tap()
+        XCTAssertTrue(app.buttons["ABSCHLIESSEN"].exists)
         capture("07-live-training")
-        app.buttons["TRAINING BEENDEN"].tap()
-        XCTAssertTrue(app.staticTexts["Workout geschafft!"].waitForExistence(timeout: 3))
+        app.buttons["ABSCHLIESSEN"].tap()
+        XCTAssertTrue(app.staticTexts["Heute geschafft 🔥"].waitForExistence(timeout: 3))
         capture("08-workout-complete")
         app.buttons["Im Feed ansehen"].tap()
         XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
@@ -72,9 +72,9 @@ final class CriticalFlowsUITests: XCTestCase {
         waitUntilReady(app.buttons["Laufen"])
         app.buttons["Laufen"].tap()
         waitUntilReady(app.buttons["confirm-activity"])
-        XCTAssertTrue(app.staticTexts["Training starten"].exists)
+        XCTAssertTrue(app.staticTexts["Loslegen"].exists)
         XCTAssertTrue(app.staticTexts["Laufen"].exists)
-        XCTAssertFalse(app.staticTexts["Was möchtest du machen?"].exists)
+        XCTAssertFalse(app.staticTexts["Was hast du vor?"].exists)
         capture("56-discover-selected-sport")
     }
 
@@ -90,18 +90,18 @@ final class CriticalFlowsUITests: XCTestCase {
     func testPlanWorkoutFlow() {
         let app = launchDemo()
         app.buttons["Planen"].tap()
-        XCTAssertTrue(app.staticTexts["Was möchtest du machen?"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Was hast du vor?"].waitForExistence(timeout: 2))
         capture("12-plus-menu")
         app.buttons["Laufen"].tap()
-        app.buttons["PLANEN"].tap()
+        app.segmentedControls.buttons["SESSION PLANEN"].tap()
         capture("05-plan-workout")
         let joinToggle = app.switches["Freunde dürfen sich anschließen"]
         XCTAssertTrue(joinToggle.exists)
         let confirm = app.buttons.matching(identifier: "confirm-activity").element
         revealAndTap(confirm, in: app)
         XCTAssertTrue(app.staticTexts["PLANNED"].waitForExistence(timeout: 3))
-        app.buttons["TRAINING ÖFFNEN"].firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Training planen"].waitForExistence(timeout: 3))
+        app.buttons["SESSION ÖFFNEN"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Session planen"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["TEILNEHMER"].exists)
         capture("06-hosted-session")
     }
@@ -110,7 +110,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         app.buttons["JETZT LOS"].tap()
         app.buttons["Gym"].tap()
-        app.buttons["Push"].tap()
+        revealAndTap(app.buttons["Push"], in: app)
         // Saved plans and split choices precede the lazy body-area grid. Reveal
         // the actual controls before checking them, as a person would scroll.
         let chest = app.buttons["gym-area-list-chest"]
@@ -127,8 +127,8 @@ final class CriticalFlowsUITests: XCTestCase {
     func testCreateTrainingGroup() {
         let app = launchDemo()
         app.tabBars.buttons["Freunde"].tap()
-        app.buttons["Gruppe erstellen"].tap()
-        XCTAssertTrue(app.navigationBars["Neue Trainingsgruppe"].waitForExistence(timeout: 3))
+        app.buttons["Crew erstellen"].tap()
+        XCTAssertTrue(app.navigationBars["Neue Crew"].waitForExistence(timeout: 3))
         let name = app.textFields["group-name"]
         name.tap()
         name.typeText("Weekend Crew")
@@ -142,11 +142,11 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         app.buttons["JETZT LOS"].tap()
         app.buttons["Gym"].tap()
-        app.buttons["Push"].tap()
+        revealAndTap(app.buttons["Push"], in: app)
         app.buttons.matching(identifier: "confirm-activity").element.tap()
-        app.buttons["TRAINING ÖFFNEN"].tap()
-        app.buttons["Training abbrechen"].tap()
-        let destructiveAction = app.sheets.buttons["Training abbrechen"]
+        app.buttons["open-live-activity"].tap()
+        app.buttons["Aktivität abbrechen"].tap()
+        let destructiveAction = app.sheets.buttons["Aktivität abbrechen"]
         XCTAssertTrue(destructiveAction.waitForExistence(timeout: 2))
         destructiveAction.tap()
         XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 3))
@@ -188,7 +188,7 @@ final class CriticalFlowsUITests: XCTestCase {
         waitUntilReady(app.buttons["welcome-intro-next"])
         capture("02-onboarding-intro")
         app.buttons["welcome-intro-next"].tap()
-        XCTAssertTrue(app.staticTexts["Mehr als Training.\nEine stärkere Crew."].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Gemeinsam aktiv.\nEine stärkere Crew."].waitForExistence(timeout: 3))
         waitUntilReady(app.buttons["welcome-crew-next"])
         capture("03-onboarding-crew")
         app.buttons["welcome-crew-next"].tap()
@@ -234,7 +234,7 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 4))
         app.buttons["Mitteilungen"].tap()
         XCTAssertTrue(app.navigationBars["Mitteilungen"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Sarah hat dein Training geliked."].exists)
+        XCTAssertTrue(app.staticTexts["Sarah hat deine Aktivität gefeiert."].exists)
         capture("10-notifications")
     }
 
@@ -294,7 +294,7 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("onboarding-02-sports")
         app.buttons["Weiter"].tap()
 
-        XCTAssertTrue(app.staticTexts["Was genau trainierst du?"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Was ist dein Fokus?"].waitForExistence(timeout: 3))
         capture("onboarding-03-gym")
         app.buttons["Weiter"].tap()
 
@@ -307,7 +307,7 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("37-weekly-goal")
         confirmWeeklyGoal.tap()
 
-        XCTAssertTrue(app.staticTexts["Dein Trainingsrhythmus"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Dein Wochenrhythmus"].waitForExistence(timeout: 4))
         capture("57-onboarding-training-routine")
         let skipRoutine = app.buttons["skip-training-routine"]
         waitUntilReady(skipRoutine)

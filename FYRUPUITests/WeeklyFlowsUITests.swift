@@ -11,13 +11,13 @@ final class WeeklyFlowsUITests: XCTestCase {
         app.launch()
         openWeeklyDetail(in: app)
         XCTAssertTrue(app.staticTexts["0 / 4"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Ab nächster Woche: 5 Trainings"].exists)
+        XCTAssertFalse(app.staticTexts["Ab nächster Woche: 5 Einheiten"].exists)
         capture("38-weekly-flames")
 
         revealAndTap(app.buttons["edit-weekly-goal"], in: app)
         let five = app.buttons["weekly-goal-5"]
         waitUntilReady(five)
-        XCTAssertTrue(app.staticTexts["Aktuell: 4 Trainings pro Woche"].exists)
+        XCTAssertTrue(app.staticTexts["Aktuell: 4 Einheiten pro Woche"].exists)
         five.tap()
         let save = app.buttons["confirm-weekly-goal"]
         reveal(save, in: app)
@@ -43,7 +43,7 @@ final class WeeklyFlowsUITests: XCTestCase {
 
     private func assertFourCurrentFivePending(in app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["Deine Streak"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Ab nächster Woche: 5 Trainings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Ab nächster Woche: 5 Einheiten"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["0 / 4"].exists, "A pending goal must not mutate this week's frozen target.")
         XCTAssertFalse(app.staticTexts["0 / 5"].exists)
         XCTAssertFalse(app.alerts["Hinweis"].exists)

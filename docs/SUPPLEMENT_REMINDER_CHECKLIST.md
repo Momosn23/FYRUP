@@ -1,6 +1,10 @@
 # Freiwillige Supplement-Erinnerungen
 
-Zusatzauftrag vom 05.09.2026: in die zentrale Checkliste aufnehmen. Noch nicht implementiert oder abgenommen. Dies ist eine persönliche Erinnerungsfunktion, keine Empfehlung für bestimmte Produkte, Dosierungen oder Einnahmehäufigkeiten.
+Zusatzauftrag vom 05.09.2026. In Bearbeitung, noch nicht ausgeliefert. Dies ist eine persönliche Erinnerungsfunktion, keine Empfehlung für bestimmte Produkte, Dosierungen oder Einnahmehäufigkeiten.
+
+## Nachweisstand
+
+Private Datenmodelle, vier Backend-Schnittstellen, kontogebundene Offline-Vormerkungen, Demo-Speicherung und begrenzte Erinnerungswarteschlange sind vorbereitet. 113 neue lokale Datenbankprüfungen plus 836 bestehende Regressionen bestehen. Elf native Einzeltests sind geschrieben, aber noch nicht ausgeführt. Migration 013 ist **nicht** produktiv angewendet. Startseiten-Karte, Eingabemasken, App-Anbindung, Push-Versand/-Aktionen und Gerätekontrolle fehlen noch; deshalb bleiben die vollständigen Abnahmepunkte offen.
 
 ## Persönliche Auswahl und Startseite
 

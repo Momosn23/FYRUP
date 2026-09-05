@@ -19,9 +19,9 @@ struct FriendsView: View {
                     ForEach(store.friendRequests) { profile in PersonRow(profile: profile) { HStack { Button("Annehmen") { Task { await store.answerRequest(from: profile, accept: true) } }.foregroundStyle(FYColor.lime); Button("Ablehnen") { Task { await store.answerRequest(from: profile, accept: false) } }.foregroundStyle(FYColor.muted) }.font(.caption.bold()) } }
                 }
                 if segment == 0 {
-                HStack { Text("TRAININGSGRUPPEN").sectionTitle(); Spacer(); Button { showsGroupEditor = true } label: { Label("Gruppe erstellen", systemImage: "plus.circle.fill").font(.caption.bold()) }.foregroundStyle(FYColor.lime).padding(.top, 10) }
+                HStack { Text("DEINE CREWS").sectionTitle(); Spacer(); Button { showsGroupEditor = true } label: { Label("Crew erstellen", systemImage: "plus.circle.fill").font(.caption.bold()) }.foregroundStyle(FYColor.lime).padding(.top, 10) }
                 if store.trainingGroups.isEmpty {
-                    Button { showsGroupEditor = true } label: { HStack(spacing: 12) { Image(systemName: "person.3.fill").font(.title2).foregroundStyle(FYColor.lime); VStack(alignment: .leading, spacing: 3) { Text("Deine erste Crew erstellen").bold(); Text("Freunde gemeinsam zu Trainings einladen").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "chevron.right") }.padding(15).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line)) }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
+                    Button { showsGroupEditor = true } label: { HStack(spacing: 12) { Image(systemName: "person.3.fill").font(.title2).foregroundStyle(FYColor.lime); VStack(alignment: .leading, spacing: 3) { Text("Deine erste Crew erstellen").bold(); Text("Freunde gemeinsam zu Sessions einladen").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "chevron.right") }.padding(15).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line)) }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 11) { ForEach(store.trainingGroups) { group in NavigationLink { TrainingGroupDetailView(group: group) } label: { TrainingGroupCard(group: group) }.buttonStyle(.plain).foregroundStyle(FYColor.ink) } } }
                 }
@@ -67,7 +67,7 @@ struct FriendProfileView: View {
                 if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
                 if !sharedPlans.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Freigegebene Trainingspläne").font(.headline)
+                        Text("Freigegebene Workout-Pläne").font(.headline)
                         ForEach(sharedPlans) { plan in
                             NavigationLink { WorkoutPlanDetailView(planID: plan.id) } label: { WorkoutPlanCard(plan: plan) }.buttonStyle(.plain)
                         }

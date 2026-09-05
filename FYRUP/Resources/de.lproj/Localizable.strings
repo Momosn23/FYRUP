@@ -3,11 +3,20 @@
 "Profil" = "Profil";
 "Start" = "Start";
 "LOS GEHT'S" = "LOS GEHT'S";
-"JETZT STARTEN" = "JETZT STARTEN";
-"TRAINING PLANEN" = "TRAINING PLANEN";
-"TRAINING BEENDEN" = "TRAINING BEENDEN";
+"JETZT STARTEN" = "JETZT LOS";
+/* Legacy localization keys retained for compatibility; no legacy display text. */
+"TRAINING PLANEN" = "SESSION PLANEN";
+"TRAINING BEENDEN" = "ABSCHLIESSEN";
+"SESSION PLANEN" = "SESSION PLANEN";
+"ABSCHLIESSEN" = "ABSCHLIESSEN";
+"JETZT LOS" = "JETZT LOS";
+"ÖFFNEN" = "ÖFFNEN";
+"SESSION ÖFFNEN" = "SESSION ÖFFNEN";
+"Workout starten" = "Workout starten";
+"Workout abschließen" = "Workout abschließen";
+"Meine Workout-Pläne" = "Meine Workout-Pläne";
+"Deine Streak" = "Deine Streak";
 "Abbrechen" = "Abbrechen";
 "Schließen" = "Schließen";
 "Mitteilungen" = "Mitteilungen";
 "Datenschutz" = "Datenschutz";
-

@@ -85,7 +85,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
         expect(badge.label.contains("CALL MY SHOT"), in: app, message: "Der angekündigte, noch offene Shot muss sichtbar sein.")
         let progress = element("own-shot-progress", in: app)
         expectExists(progress, in: app)
-        expect(progress.label.hasPrefix("Dein Call: 4 Trainings"), in: app, message: "Der Shot bleibt an das aktuelle Ziel 4 gebunden.")
+        expect(progress.label.hasPrefix("Dein Call: 4 Einheiten"), in: app, message: "Der Shot bleibt an das aktuelle Ziel 4 gebunden.")
         expect(progress.label.hasSuffix("/ 4"), in: app, message: "Der aktuelle Fortschritt darf nicht zum ausstehenden Ziel wechseln.")
     }
 
@@ -105,7 +105,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
         tap(open, in: app)
         let confirmation = element("shot-confirmation-screen", in: app)
         expectExists(confirmation, in: app)
-        expectExists(app.staticTexts["4 Trainings"], in: app)
+        expectExists(app.staticTexts["4 Einheiten"], in: app)
         reveal(app.buttons["Abbrechen"], in: app)
         capture("48-shot-explicit-confirmation")
         tap(app.buttons["Abbrechen"], in: app)
@@ -125,7 +125,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
         tap(app.buttons["weekly-goal-5"], in: app)
         tap(app.buttons["confirm-weekly-goal"], in: app)
         expectExists(app.staticTexts["Deine Streak"], in: app)
-        expectExists(app.staticTexts["Ab nächster Woche: 5 Trainings"], in: app)
+        expectExists(app.staticTexts["Ab nächster Woche: 5 Einheiten"], in: app)
         assertOwnFourTrainingShot(app)
         capture("50-shot-current-four-next-five")
 
@@ -133,7 +133,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
         // owner-shaped fixture. This verifies the actual friend profile surface.
         app.terminate(); launch(app, suite: suite, user: max)
         openMomosWeekAsFriend(app)
-        let friendProgress = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Angekündigt: 4 Trainings")).firstMatch
+        let friendProgress = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Angekündigt: 4 Einheiten")).firstMatch
         expectExists(friendProgress, in: app)
         let reaction = app.buttons["reaction-shot-target"]
         reveal(reaction, in: app)

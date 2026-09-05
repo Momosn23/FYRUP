@@ -137,7 +137,7 @@ final class WeeklyFlameStore {
     }
 
     private func saveGoal(_ goal: Int, firstConfirmation: Bool) async -> Bool {
-        guard WeeklyGoal.isValid(goal) else { present("Wähle ein Wochenziel zwischen 3 und 7 Trainings."); return false }
+        guard WeeklyGoal.isValid(goal) else { present("Wähle ein Wochenziel zwischen 3 und 7 Einheiten."); return false }
         guard let owner = userID, !isSavingGoal else { return false }
         guard firstConfirmation || state?.goalConfirmed == true else {
             present("Bestätige zuerst dein persönliches Wochenziel."); return false

@@ -230,7 +230,7 @@ actor DemoWeeklyFlameStorage {
 
     func confirmGoal(userID: UUID, goal: Int, timezone: String) throws -> WeeklyFlameState {
         try checkLoaded()
-        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Trainings.") }
+        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Einheiten.") }
         _ = try calendar(timezone)
         let receipt = now()
         try bootstrap(userID: userID, suggestedGoal: goal, confirmedFixture: false, timezone: timezone, receipt: receipt)
@@ -255,7 +255,7 @@ actor DemoWeeklyFlameStorage {
 
     func setNextGoal(userID: UUID, goal: Int) throws -> WeeklyFlameState {
         try checkLoaded()
-        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Trainings.") }
+        guard WeeklyGoal.isValid(goal) else { throw AppError.validation("Wähle ein Wochenziel zwischen 3 und 7 Einheiten.") }
         let receipt = now()
         try advance(userID: userID, receipt: receipt)
         guard var account = state.accounts[userID], let current = account.weeks.last, account.confirmedAt != nil else {
@@ -334,7 +334,7 @@ actor DemoWeeklyFlameStorage {
         for friend in audience {
             appendNotification(owner: userID, recipient: friend, actor: userID, commitmentID: commitment.id,
                                type: "shot_called", title: "CALL MY SHOT",
-                               body: "\(displayName) kündigt \(current.goal) Trainings für diese Woche an.", receipt: receipt)
+                               body: "\(displayName) nimmt sich \(current.goal) Einheiten für diese Woche vor.", receipt: receipt)
         }
         try persist()
         guard let result = commitmentDocument(account.weeks[index], owner: userID, viewer: userID) else { throw AppError.server }

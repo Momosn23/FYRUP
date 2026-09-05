@@ -68,7 +68,7 @@ struct BlindWorkoutDraft: Codable, Equatable, Sendable {
                 return row.exercise.isTimed ? "Nutze 1–6 Sätze und 1–300 Sekunden pro Vorgabe." : "Nutze 1–6 Sätze und 1–30 Wiederholungen pro Vorgabe."
             }
             if let weight = row.targetWeight, !weight.isFinite || !BlindWorkoutLimits.targetWeight.contains(weight) {
-                return "Prüfe die optionale Gewichtsvorgabe. Sie ist kein gemessener Trainingswert."
+                return "Prüfe die optionale Gewichtsvorgabe. Sie ist kein tatsächlich verwendetes Gewicht."
             }
         }
         return nil

@@ -16,10 +16,10 @@ struct WorkoutPlansView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                SportHeroCard(sport: .gym, title: "Deine Trainingspläne", subtitle: "Dein Training. Deine Reihenfolge. Deine Crew.")
+                SportHeroCard(sport: .gym, title: "Meine Workout-Pläne", subtitle: "Dein Workout. Deine Reihenfolge. Deine Crew.")
                 Button {
                     if let userID = store.profile?.id { newPlan = WorkoutPlan(ownerID: userID) }
-                } label: { Label("Neuen Trainingsplan erstellen", systemImage: "plus") }
+                } label: { Label("Workout-Plan erstellen", systemImage: "plus") }
                     .buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("create-workout-plan")
                 ForEach(store.workoutDrafts.drafts) { savedDraft in
                     Button { newPlan = savedDraft.original } label: {
@@ -48,7 +48,7 @@ struct WorkoutPlansView: View {
                 }
             }.padding(20)
         }
-        .background(FYColor.background).navigationTitle("Meine Pläne").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        .background(FYColor.background).navigationTitle("Meine Workout-Pläne").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
         .task { await store.workouts.loadPlans() }
         .refreshable { await store.workouts.loadPlans() }
         .fullScreenCover(item: $newPlan) { plan in
@@ -107,7 +107,7 @@ struct WorkoutPlanEditorView: View {
                         ForEach(Self.categories, id: \.self) { Text($0).tag($0) }
                     }
                     TextField("Beschreibung (optional)", text: description, axis: .vertical).lineLimit(2...4)
-                } header: { Text("Dein Plan") } footer: { Text("Sätze und Wiederholungen sind Vorgaben. Tatsächliche Werte kannst du beim Training freiwillig eintragen.") }
+                } header: { Text("Dein Plan") } footer: { Text("Sätze und Wiederholungen sind Vorgaben. Deine tatsächlichen Werte kannst du im Workout freiwillig eintragen.") }
                 Section {
                     ForEach(Array(draft.exercises.enumerated()), id: \.element.id) { index, entry in
                         Button { editingEntry = entry } label: {
@@ -279,15 +279,15 @@ struct WorkoutPlanDetailView: View {
                             }; Spacer(minLength: 0)
                         }.fyCard()
                     }
-                    Text("Du trainierst mit deinem eigenen Protokoll. Tatsächliche Gewichte und Wiederholungen bleiben privat.").font(.caption).foregroundStyle(FYColor.muted)
-                    if allowsStarting { Button(linkedActivityID == nil ? "Mit diesem Plan starten" : "Diesen Plan einmal mittrainieren") {
+                    Text("Du nutzt dein eigenes Workout-Protokoll. Tatsächliche Gewichte und Wiederholungen bleiben privat.").font(.caption).foregroundStyle(FYColor.muted)
+                    if allowsStarting { Button(linkedActivityID == nil ? "Workout starten" : "MITZIEHEN 🔥") {
                         Task {
                             await store.start(sport: .gym, subtype: plan.name, linked: linkedActivityID, plannedSessionID: sessionID, workoutPlanID: plan.id)
                             if store.errorMessage == nil && store.myActivity?.status == .live { showsLive = true }
                         }
                     }.buttonStyle(PrimaryButtonStyle()).disabled(store.isBusy).accessibilityIdentifier("start-workout-plan") }
                     if plan.ownerID == store.profile?.id {
-                        Button("Training planen & Freunde einladen") { showsPlanning = true }.buttonStyle(OutlineButtonStyle())
+                        Button("Session planen & Freunde einladen") { showsPlanning = true }.buttonStyle(OutlineButtonStyle())
                         Button("Plan mit Freunden teilen") { showsSharing = true }.buttonStyle(OutlineButtonStyle())
                         Button("Plan archivieren", role: .destructive) { confirmArchive = true }.frame(maxWidth: .infinity).padding(.vertical, 8)
                     } else {
@@ -297,12 +297,12 @@ struct WorkoutPlanDetailView: View {
                 } else if isLoading { ProgressView().frame(maxWidth: .infinity) }
                 if let error = store.workouts.errorMessage { WorkoutErrorBanner(message: error) { Task { await load() } } }
                 if plan == nil && !isLoading && linkedActivityID != nil {
-                    Text("Ein privater Plan muss zuerst mit dir geteilt werden. Du kannst inzwischen ein eigenes Training starten.").font(.subheadline).foregroundStyle(FYColor.muted)
-                    Button("Eigenes Training starten") { showsIndependentTraining = true }.buttonStyle(OutlineButtonStyle())
+                    Text("Ein privater Plan muss zuerst mit dir geteilt werden. Du kannst inzwischen selbst loslegen.").font(.subheadline).foregroundStyle(FYColor.muted)
+                    Button("Selbst loslegen") { showsIndependentTraining = true }.buttonStyle(OutlineButtonStyle())
                 }
                 if let error = store.errorMessage { Text(error).font(.callout).foregroundStyle(FYColor.coral) }
             }.padding(20)
-        }.background(FYColor.background).navigationTitle("Trainingsplan").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        }.background(FYColor.background).navigationTitle("Workout-Plan").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
             .toolbar { if let plan, plan.ownerID == store.profile?.id { Button("Bearbeiten") { editPlan = plan } } }
             .task(id: planID) { await load() }
             .onChange(of: scenePhase) { _, phase in
@@ -319,11 +319,11 @@ struct WorkoutPlanDetailView: View {
             .navigationDestination(isPresented: $showsLive) { LiveActivityView() }
             .alert("Eigene Kopie gespeichert", isPresented: Binding(get: { copiedPlan != nil }, set: { if !$0 { copiedPlan = nil } })) {
                 Button("OK") { copiedPlan = nil }
-            } message: { Text("Du kannst sie unter Meine Pläne ändern. Das Original und eigene Übungen deines Freundes bleiben unverändert.") }
+            } message: { Text("Du kannst sie unter Meine Workout-Pläne ändern. Das Original und eigene Übungen deines Freundes bleiben unverändert.") }
             .confirmationDialog("Plan archivieren?", isPresented: $confirmArchive) {
                 Button("Archivieren", role: .destructive) { Task { if await store.workouts.archivePlan(id: planID) { dismiss() } } }
                 Button("Behalten", role: .cancel) {}
-            } message: { Text("Der Plan verschwindet aus deiner Auswahl. Abgeschlossene Trainings bleiben erhalten.") }
+            } message: { Text("Der Plan verschwindet aus deiner Auswahl. Abgeschlossene Workouts bleiben erhalten.") }
     }
     private func clearDetail() {
         loadRequest = UUID(); plan = nil; isLoading = false
@@ -349,7 +349,7 @@ private struct WorkoutPlanShareView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section { Text("Ausgewählte Freunde können den vollständigen Plan ansehen und als unabhängige Kopie speichern. Deine Trainingsprotokolle werden nicht geteilt.").font(.subheadline).foregroundStyle(FYColor.muted) }
+                Section { Text("Ausgewählte Freunde können den vollständigen Workout-Plan ansehen und als eigene Kopie speichern. Deine Workout-Protokolle bleiben privat.").font(.subheadline).foregroundStyle(FYColor.muted) }
                 if store.crew.isEmpty { Text("Füge zuerst einen Freund zu deiner Crew hinzu.") }
                 ForEach(store.crew) { member in
                     Button { selected.formSymmetricDifference([member.id]) } label: {
