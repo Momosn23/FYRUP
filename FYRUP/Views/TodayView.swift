@@ -17,6 +17,7 @@ struct TodayView: View {
                     MyFeedCard(activity: store.myActivity)
                     OwnWeeklyCard(compact: true)
                     OwnStepsCard()
+                    SupplementHomeCard()
                     BlindInboxCards()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                     Text("Deine Crew").font(.headline).padding(.top, 4)
@@ -31,9 +32,11 @@ struct TodayView: View {
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh(); await store.personal.loadWeek(); await store.personal.loadRoutine(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
+        .refreshable { await store.refresh(); await store.personal.loadWeek(); await store.personal.loadRoutine(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
         .navigationBarHidden(true)
         .task {
+            await store.prepareNotificationRegistration()
+            await store.supplements.refresh()
             await store.steps.refresh()
             await store.weekly.refresh()
             await store.weekly.refreshFriends()
@@ -43,6 +46,7 @@ struct TodayView: View {
                 guard !Task.isCancelled else { break }
                 await store.refresh()
                 await store.personal.loadWeek()
+                await store.supplements.refresh()
                 await store.steps.refresh()
                 await store.weekly.refresh()
                 await store.weekly.refreshFriends()

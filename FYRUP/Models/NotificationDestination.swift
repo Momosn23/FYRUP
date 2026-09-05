@@ -7,6 +7,7 @@ enum NotificationDestination: Hashable, Sendable {
     case workoutPlan(UUID)
     case session(UUID)
     case activity(UUID)
+    case supplement(UUID)
     case weekly(userID: UUID?, weekID: UUID?, commitmentID: UUID?)
 }
 
@@ -17,6 +18,7 @@ struct NotificationTapPayload: Equatable, Sendable {
     let recipientID: UUID?
     let type: String
     let destination: NotificationDestination
+    var marksSupplementTaken = false
 
     init?(userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["fyrup_type"] as? String, !type.isEmpty, type.count <= 80 else { return nil }
@@ -41,9 +43,10 @@ struct NotificationTapPayload: Equatable, Sendable {
         self.init(userInfo: values)
     }
 
-    private static let identifierKeys = ["fyrup_notification_id", "fyrup_recipient_id", "blind_workout_id", "plan_id", "session_id", "activity_id", "week_id", "commitment_id", "user_id"]
+    private static let identifierKeys = ["fyrup_notification_id", "fyrup_recipient_id", "blind_workout_id", "plan_id", "session_id", "activity_id", "week_id", "commitment_id", "user_id", "dose_id"]
     private static func destination(type: String, ids: [String: UUID]) -> NotificationDestination {
         switch type {
+        case "supplement_reminder": return ids["dose_id"].map(NotificationDestination.supplement) ?? .inbox
         case "friend_request", "friend_accepted", "fyrup": return .friends
         case "blind_workout_received", "blind_workout_completed", "blind_reaction":
             return ids["blind_workout_id"].map(NotificationDestination.blindWorkout) ?? .inbox
@@ -65,6 +68,8 @@ struct NotificationPresentation: Identifiable, Equatable, Sendable {
     let id: UUID
     let userID: UUID
     let destination: NotificationDestination
+    var marksSupplementTaken = false
+    var notificationID: UUID? = nil
 }
 
 struct NotificationActivityDetail: Sendable {

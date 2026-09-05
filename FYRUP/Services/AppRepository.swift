@@ -1,5 +1,9 @@
 import Foundation
 
+extension AppRepository {
+    func unregisterDeviceToken(_ token: String, ownerID: UUID) async throws { }
+}
+
 protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository, BlindWorkoutRepository, CallMyShotRepository, NotificationRoutingRepository, PersonalTrainingRepository, SupplementRepository {
     func restoreSession() async throws -> AuthSession?
     func signUp(email: String, password: String) async throws -> AuthSession?
@@ -42,6 +46,7 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func goalSummary() async throws -> GoalSummary
     func markNotificationsRead() async throws
     func registerDeviceToken(_ token: String) async throws
+    func unregisterDeviceToken(_ token: String, ownerID: UUID) async throws
     func deleteAccount() async throws
 }
 
@@ -205,7 +210,11 @@ actor LiveAppRepository: AppRepository {
         #else
         let environment = "ios"
         #endif
-        let _: Bool = try await client.rpc("register_device_token", body: ["p_token": token, "p_environment": environment])
+        guard let owner = await client.currentSession?.userID else { throw AppError.authentication }
+        let _: Bool = try await client.rpc("bind_device_token", body: ["p_token": token, "p_environment": environment, "p_owner": owner.uuidString])
+    }
+    func unregisterDeviceToken(_ token: String, ownerID: UUID) async throws {
+        let _: Bool = try await client.rpc("unregister_device_token", body: ["p_token": token, "p_owner": ownerID.uuidString])
     }
     func deleteAccount() async throws {
         struct Result: Decodable { let deleted: Bool }

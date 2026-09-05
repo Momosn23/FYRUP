@@ -48,6 +48,7 @@ struct ProfileView: View {
                 VStack(spacing: 0) {
                     SystemNotificationSettingsRow()
                     Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
+                    Divider(); NavigationLink { SupplementsView() } label: { SettingsRow(title: "Supplements", symbol: "pills") }
                     Divider(); NavigationLink { SettingsView() } label: { SettingsRow(title: "Einstellungen", symbol: "gearshape") }
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
                     Divider(); Button { Task { await store.logout() } } label: { SettingsRow(title: "Abmelden", symbol: "rectangle.portrait.and.arrow.right") }
@@ -267,7 +268,7 @@ private struct PrivacyView: View {
     private var visibilityBinding: Binding<String> { Binding(get: { store.profile?.activityVisibility ?? "friends" }, set: { value in guard var profile = store.profile else { return }; profile.activityVisibility = value; Task { try? await store.repository.saveProfile(profile); await MainActor.run { store.profile = profile } } }) }
 }
 
-private struct SystemNotificationSettingsRow: View {
+struct SystemNotificationSettingsRow: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var status: UNAuthorizationStatus?
     @State private var isWorking = false

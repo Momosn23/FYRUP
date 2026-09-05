@@ -75,7 +75,9 @@ final class NotificationRoutingStore {
                   let trusted = NotificationTapPayload(notification: note, recipientID: owner),
                   trusted.type == payload.type, trusted.destination == payload.destination else { throw AppError.accessDenied }
             pending = nil; lastDelivered = payload; errorMessage = nil
-            presentation = NotificationPresentation(id: UUID(), userID: owner, destination: trusted.destination)
+            presentation = NotificationPresentation(id: UUID(), userID: owner, destination: trusted.destination,
+                marksSupplementTaken: payload.type == "supplement_reminder" && payload.marksSupplementTaken,
+                notificationID: note.id)
         } catch {
             guard generation == request, ticket == read, accountID == owner, mainReady, !Task.isCancelled else { return }
             // Keep the IDs for an explicit retry, but no old detail can remain visible.

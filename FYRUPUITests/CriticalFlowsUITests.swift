@@ -74,15 +74,14 @@ final class CriticalFlowsUITests: XCTestCase {
         waitUntilReady(app.buttons["confirm-activity"])
         XCTAssertTrue(app.staticTexts["Loslegen"].exists)
         XCTAssertTrue(app.staticTexts["Laufen"].exists)
-        XCTAssertFalse(app.staticTexts["Was hast du vor?"].exists)
+        XCTAssertEqual(app.staticTexts["activity-composer-title"].label, "Loslegen", "Check the open composer, not the discover page behind its sheet")
         capture("56-discover-selected-sport")
     }
 
     func testFyrupIsOneTap() {
         let app = launchDemo()
         let nudge = app.buttons["FYR UP 🔥"].firstMatch
-        XCTAssertTrue(nudge.waitForExistence(timeout: 4))
-        nudge.tap()
+        revealAndTap(nudge, in: app)
         XCTAssertTrue(app.staticTexts["Guten Morgen"].exists)
         XCTAssertFalse(app.alerts["Hinweis"].exists)
     }

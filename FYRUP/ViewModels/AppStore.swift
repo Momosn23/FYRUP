@@ -2,6 +2,7 @@ import AuthenticationServices
 import CryptoKit
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @MainActor
 @Observable
@@ -36,18 +37,22 @@ final class AppStore {
     private(set) var session: AuthSession? {
         didSet {
             accountGeneration = UUID(); isRefreshing = false
+            currentDeviceToken = nil
             notificationSettings.activate(userID: session?.userID)
             trackingDrafts.activate(userID: session?.userID)
             personal.activate(userID: session?.userID)
+            supplements.activate(userID: session?.userID)
             notificationRouting.accountChanged(to: session?.userID)
         }
     }
     private var accountGeneration = UUID()
+    private var currentDeviceToken: String?
     let repository: any AppRepository
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
     let trackingDrafts: WorkoutTrackingDraftStore
     let personal: PersonalTrainingStore
+    let supplements: SupplementStore
     let steps: StepStore
     let weekly: WeeklyFlameStore
     let blind: BlindWorkoutStore
@@ -58,12 +63,13 @@ final class AppStore {
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil, supplements: SupplementStore? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
         self.personal = PersonalTrainingStore(repository: repository)
+        self.supplements = supplements ?? SupplementStore(repository: repository, persistence: repository is DemoRepository ? MemorySupplementPendingPersistence() : nil)
         self.steps = steps ?? StepStore(repository: repository)
         self.weekly = weekly ?? WeeklyFlameStore(repository: repository)
         self.blind = BlindWorkoutStore(repository: repository)
@@ -86,11 +92,11 @@ final class AppStore {
             let localDefaults = UserDefaults(suiteName: suite ?? "app.fyrup.demo.drafts.\(UUID().uuidString)") ?? .standard
             let drafts = WorkoutDraftStore(defaults: localDefaults)
             let demoUser = arguments.first(where: { $0.hasPrefix("--demo-user=") }).flatMap { UUID(uuidString: String($0.dropFirst("--demo-user=".count))) } ?? DemoRepository.defaultUserID
-            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), userID: demoUser, workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite), weeklyStorage: DemoWeeklyFlameStorage(persistenceSuiteName: suite), blindStorage: DemoBlindWorkoutStorage(persistenceSuiteName: suite))
+            let repository = DemoRepository(includesSocialFixtures: arguments.contains("--social-fixtures"), userID: demoUser, workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite), weeklyStorage: DemoWeeklyFlameStorage(persistenceSuiteName: suite), blindStorage: DemoBlindWorkoutStorage(persistenceSuiteName: suite), supplementStorage: DemoSupplementStorage(persistenceSuiteName: suite))
             let steps = arguments.contains("--steps-demo")
                 ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
                 : StepStore(repository: repository, defaults: localDefaults)
-            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults), workoutCopies: WorkoutCopyRequestStore(defaults: localDefaults), trackingDrafts: WorkoutTrackingDraftStore(defaults: localDefaults))
+            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults), workoutCopies: WorkoutCopyRequestStore(defaults: localDefaults), trackingDrafts: WorkoutTrackingDraftStore(defaults: localDefaults), supplements: SupplementStore(repository: repository, persistence: DemoSupplementPendingPersistence(defaults: localDefaults)))
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -120,6 +126,14 @@ final class AppStore {
     func logout() async {
         guard !isBusy else { return }
         isBusy = true
+        UIApplication.shared.unregisterForRemoteNotifications()
+        supplements.activate(userID: nil)
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        var detached = true
+        if let token = currentDeviceToken, let ownerID = session?.userID {
+            do { try await repository.unregisterDeviceToken(token, ownerID: ownerID) }
+            catch { detached = false }
+        }
         if let id = session?.userID { FeedCache.clear(userID: id) }
         workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount()
@@ -136,6 +150,23 @@ final class AppStore {
         await repository.signOut()
         isBusy = false
         route = .signedOut
+        if !detached { errorMessage = "Abgemeldet. Die Push-Abmeldung konnte noch nicht bestätigt werden. Bereits zugestellte Hinweise lassen sich nicht zurückrufen." }
+    }
+
+    func prepareNotificationRegistration() async {
+        guard !(repository is DemoRepository), let userID = session?.userID, route == .main else { return }
+        let generation = accountGeneration
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard generation == accountGeneration, session?.userID == userID, route == .main else { return }
+        if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+    }
+    func registerDeviceToken(_ token: String) async {
+        guard session?.userID != nil, route == .main else { return }
+        currentDeviceToken = token
+        do { try await repository.registerDeviceToken(token) }
+        catch { /* The list remains usable. Registration is retried at the next active main screen. */ }
     }
 
     func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
@@ -417,6 +448,7 @@ final class AppStore {
             self.workouts.activate(userID: nil)
             self.workoutDrafts.clearCurrentAccount()
             self.trackingDrafts.clearCurrentAccount()
+            self.supplements.clearDeletedAccount()
             self.steps.reset(clearLocalPreferences: true)
             self.weekly.reset(clearLocalPreferences: true)
             self.blind.reset()

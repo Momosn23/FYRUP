@@ -33,7 +33,7 @@ struct ActivityComposerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(sport == nil ? "Was hast du vor?" : mode == 0 ? "Loslegen" : "Session planen").font(.title2.weight(.black))
+                        Text(sport == nil ? "Was hast du vor?" : mode == 0 ? "Loslegen" : "Session planen").font(.title2.weight(.black)).accessibilityIdentifier("activity-composer-title")
                         Text(sport == nil ? "Starte direkt oder plane mit deiner Crew." : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
                             .font(.subheadline).foregroundStyle(FYColor.muted)
                     }

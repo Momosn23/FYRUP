@@ -13,6 +13,7 @@ struct NotificationDestinationView: View {
     @State private var hosted: HostedSession?
     @State private var activity: NotificationActivityDetail?
     @State private var loadTicket = UUID()
+    @State private var handledSupplementAction = false
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,7 @@ struct NotificationDestinationView: View {
         case .friends: FriendsView()
         case .blindWorkout(let id): BlindWorkoutDetailView(id: id)
         case .workoutPlan(let id): WorkoutPlanDetailView(planID: id)
+        case .supplement(let id): SupplementsView(highlightedDoseID: id)
         case .session:
             if let invitation { InvitationDetailView(invitation: invitation) }
             else if let hosted { HostedSessionView(hosted: hosted) }
@@ -98,6 +100,17 @@ struct NotificationDestinationView: View {
             case .workoutPlan(let id):
                 let value = try await store.repository.workoutPlan(id: id)
                 guard value.id == id, value.validationMessage == nil else { throw AppError.accessDenied }
+            case .supplement(let id):
+                await store.supplements.refresh()
+                guard isCurrent(ticket), store.supplements.ownerID == presentation.userID,
+                      store.supplements.isCurrentDay, store.supplements.errorMessage == nil,
+                      let dose = store.supplements.snapshot?.doses.first(where: { $0.id == id }) else { throw AppError.accessDenied }
+                if presentation.marksSupplementTaken && !handledSupplementAction {
+                    handledSupplementAction = true
+                    if dose.status == .open {
+                        await store.supplements.mark(id, as: .taken, requestID: presentation.notificationID)
+                    }
+                }
             case .session(let id):
                 let invitations = try await store.repository.invitations()
                 let sessions = try await store.repository.hostedSessions()

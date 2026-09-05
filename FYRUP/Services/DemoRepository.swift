@@ -282,5 +282,5 @@ actor DemoRepository: AppRepository {
     }
     func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}
-    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID); await stepStorage.deleteAccount(userID: meID); try await weeklyStorage.deleteAccount(userID: meID); try await blindStorage.deleteAccount(userID: meID) }
+    func deleteAccount() async throws { try await workoutStorage.deleteAccount(userID: meID); await stepStorage.deleteAccount(userID: meID); try await weeklyStorage.deleteAccount(userID: meID); try await blindStorage.deleteAccount(userID: meID); await supplementStorage.delete(owner: meID) }
 }

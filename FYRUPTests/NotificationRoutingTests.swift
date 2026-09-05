@@ -13,6 +13,7 @@ final class NotificationRoutingTests: XCTestCase {
             ("session_invite", ["session_id": id.uuidString], .session(id)),
             ("invite_response", ["session_id": id.uuidString], .session(id)),
             ("session_reminder", ["session_id": id.uuidString], .session(id)),
+            ("supplement_reminder", ["dose_id": id.uuidString], .supplement(id)),
             ("activity_started", ["activity_id": id.uuidString], .activity(id)),
             ("reaction", ["activity_id": id.uuidString], .activity(id)),
             ("weekly_goal", ["week_id": id.uuidString], .weekly(userID: nil, weekID: id, commitmentID: nil)),
@@ -32,6 +33,7 @@ final class NotificationRoutingTests: XCTestCase {
     func testNonUUIDAndNonStringIdentifiersAreRejected() {
         for bad: Any in ["not-a-uuid", "", "\(RoutingFixture.detail.uuidString) ", 123, ["id": RoutingFixture.detail.uuidString]] {
             XCTAssertNil(NotificationTapPayload(userInfo: ["fyrup_type": "session_invite", "session_id": bad]))
+            XCTAssertNil(NotificationTapPayload(userInfo: ["fyrup_type": "supplement_reminder", "dose_id": bad]))
             XCTAssertNil(NotificationTapPayload(userInfo: ["fyrup_type": "friend_request", "fyrup_recipient_id": bad]))
         }
         XCTAssertNil(NotificationTapPayload(userInfo: ["fyrup_type": 42]))
@@ -327,6 +329,24 @@ final class NotificationRoutingTests: XCTestCase {
         let store = NotificationRoutingStore(repository: repository)
         store.accountChanged(to: RoutingFixture.owner); store.setMainReady(true)
         return store
+    }
+
+    func testSupplementActionNeedsAuthorizedReceiptAndCannotComeFromPayloadData() async throws {
+        let repo = RoutingRepositoryStub(); let routing = active(repo)
+        let note = RoutingFixture.note(type: "supplement_reminder", data: ["dose_id": RoutingFixture.detail.uuidString])
+        var payload = try XCTUnwrap(NotificationTapPayload(userInfo: ["fyrup_type": note.type,
+            "dose_id": RoutingFixture.detail.uuidString, "fyrup_notification_id": note.id.uuidString,
+            "fyrup_recipient_id": RoutingFixture.owner.uuidString, "marksSupplementTaken": true]))
+        XCTAssertFalse(payload.marksSupplementTaken, "Only the native user action may set the intent")
+        payload.marksSupplementTaken = true
+        await repo.setNotes([]); await routing.receive(payload)
+        XCTAssertNil(routing.presentation)
+        await repo.setNotes([note]); await routing.receive(payload)
+        XCTAssertEqual(routing.presentation?.destination, .supplement(RoutingFixture.detail))
+        XCTAssertEqual(routing.presentation?.marksSupplementTaken, true)
+        XCTAssertEqual(routing.presentation?.notificationID, note.id)
+        routing.accountChanged(to: RoutingFixture.other)
+        XCTAssertNil(routing.presentation); XCTAssertNil(routing.pending)
     }
 }
 

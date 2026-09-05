@@ -7,7 +7,7 @@ export const preferenceKeys = Object.freeze({
   reaction: "reactions", flame_reaction: "reactions", blind_workout_completed: "reactions",
   blind_reaction: "reactions", shot_reaction: "reactions",
   friend_request: "friend_requests", friend_accepted: "friend_requests",
-  session_reminder: "reminders", weekly_goal: "weekly_goal", crew_goal: "crew_goal",
+  session_reminder: "reminders", supplement_reminder: "reminders", weekly_goal: "weekly_goal", crew_goal: "crew_goal",
   shot_called: "weekly_goal", shot_achieved: "weekly_goal",
 });
 
@@ -20,6 +20,7 @@ const isObject = (value) => value !== null && typeof value === "object" && !Arra
 export function notificationCopy(note) {
   let { title, body } = note;
   switch (note.type) {
+    case "supplement_reminder": return { title: "Deine Erinnerung", body: "Ein Eintrag auf deiner heutigen Liste ist noch offen." };
     case "activity_started": title = title.replace(/ trainiert gerade 🔥$/, " ist gerade LIVE 🔥"); break;
     case "session_invite":
       if (title === "Trainingseinladung 🔥") title = "Session-Einladung 🔥";
@@ -42,13 +43,23 @@ export function notificationCopy(note) {
 
 /** Reserved routing fields always come from the authorized row, never its data bag. */
 export function notificationPayload(note) {
+  const supplement = note.type === "supplement_reminder";
   return {
-    ...note.data,
-    aps: { alert: notificationCopy(note), sound: "default", "mutable-content": 1 },
+    ...(supplement ? { dose_id: note.data.dose_id } : note.data),
+    aps: { alert: notificationCopy(note), sound: "default", "mutable-content": 1,
+      ...(supplement ? { category: "FYRUP_SUPPLEMENT" } : {}) },
     fyrup_type: note.type,
     fyrup_notification_id: note.id,
     fyrup_recipient_id: note.recipient_id,
   };
+}
+
+export function notificationDeliveryHeaders(note) {
+  if (note.type !== "supplement_reminder") return {};
+  if (!isUUID(note.data?.dose_id)) throw new Error("Invalid reminder receipt");
+  // No delayed delivery after offline periods. New, still-open reminders may follow
+  // at the user's bounded cadence; APNS cannot recall a previously delivered alert.
+  return { "apns-expiration": "0", "apns-collapse-id": `supplement-${note.data.dose_id.toLowerCase()}` };
 }
 
 /**
@@ -71,6 +82,12 @@ export async function evaluateQueuedNotification(db, note) {
       if (preferences.data[key] !== true && preferences.data[key] !== null) return "defer";
     }
 
+    if (note.type === "supplement_reminder") {
+      if (!isUUID(note.id) || note.actor_id != null || !isUUID(note.data?.dose_id)) return "drop";
+      const allowed = await db.rpc("can_dispatch_supplement", { p_notification: note.id });
+      if (allowed.error || typeof allowed.data !== "boolean") return "defer";
+      return allowed.data ? "send" : "drop";
+    }
     if (!blindTypes.has(note.type) && !shotTypes.has(note.type)) return "send";
     if (!isUUID(note.actor_id) || note.actor_id === note.recipient_id || !isObject(note.data)) return "drop";
 

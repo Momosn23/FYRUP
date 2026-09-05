@@ -4,7 +4,13 @@ Zusatzauftrag vom 05.09.2026. In Bearbeitung, noch nicht ausgeliefert. Dies ist 
 
 ## Nachweisstand
 
-Private Datenmodelle, vier Backend-Schnittstellen, kontogebundene Offline-Vormerkungen, Demo-Speicherung und begrenzte Erinnerungswarteschlange sind vorbereitet. 113 neue lokale Datenbankprüfungen plus 836 bestehende Regressionen bestehen. Elf native Einzeltests sind geschrieben, aber noch nicht ausgeführt. Migration 013 ist **nicht** produktiv angewendet. Startseiten-Karte, Eingabemasken, App-Anbindung, Push-Versand/-Aktionen und Gerätekontrolle fehlen noch; deshalb bleiben die vollständigen Abnahmepunkte offen.
+Private Datenmodelle, vier Backend-Schnittstellen, kontogebundene Offline-Vormerkungen, Demo-Speicherung und begrenzte Erinnerungswarteschlange sind vorbereitet. **124 neue lokale Datenbankprüfungen plus 836 bestehende Regressionen bestehen**. Build30 führte elf native Supplement-Tests aus: zehn bestanden, die Sommerzeit-Demo rundete irrtümlich 02:30 auf 03:00. Die Korrektur und zwei zusätzliche Tests für Tageswechsel/temporär gesperrten Speicher stehen zur nativen Wiederholung an.
+
+Im aktuellen Arbeitsstand sind Startseiten-Karte, eigene Tage/Uhrzeiten, Pause, Rückgängig, Entfernen, Ruhezeiten, optionale Push-Freigabe und neutrale Vorschau an das Konto angebunden. Der Push-Dispatcher prüft jede Einnahme vor jedem Gerät erneut; APNS wird angewiesen, Hinweise nicht für eine verspätete Offlinezustellung aufzubewahren. „Genommen“ öffnet die App mit Geräteentsperrung, überprüft zuerst die autorisierte Mitteilung und lädt dann die tatsächliche heutige Einnahme. Kontoersatz erhält eine neue Push-Zuordnung; Abmelden meldet das bekannte Gerät ab. Bereits von APNS akzeptierte Hinweise lassen sich nicht zurückrufen.
+
+54 lokale Versand-/Terminologieprüfungen bestehen. Ein durchgehender nativer UI-Test für freiwillige Einrichtung → Bestätigung → Neustart → Rückgängig → Überspringen → Pause ist vorbereitet. **Migration 013 und der neue Dispatcher sind noch nicht produktiv angewendet.** Neuer nativer Build, visuelle Prüfung, reale Mehrgeräte-/Offline-Pushzustellung und iPhone-Abnahme stehen aus; daher bleiben die vollständigen Abnahmepunkte offen.
+
+Technische Grundlagen: [Apple zu Benachrichtigungsaktionen](https://developer.apple.com/documentation/usernotifications/handling-notifications-and-notification-related-actions) und [minutenerhaltende Kalenderauflösung](https://developer.apple.com/documentation/foundation/calendar/matchingpolicy/nexttimepreservingsmallercomponents). Quellen erläutern die Plattform, ersetzen aber keinen Gerätetest.
 
 ## Persönliche Auswahl und Startseite
 

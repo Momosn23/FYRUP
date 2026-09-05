@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluateQueuedNotification, dispatchQueuedNotification, preferenceKeys, notificationPayload } from "./dispatch-queue.mjs";
+import { evaluateQueuedNotification, dispatchQueuedNotification, preferenceKeys, notificationPayload, notificationDeliveryHeaders } from "./dispatch-queue.mjs";
 
 const recipient = "00000000-0000-0000-0000-000000000001";
 const actor = "00000000-0000-0000-0000-000000000002";
@@ -11,6 +11,64 @@ const noteID = "00000000-0000-0000-0000-000000000006";
 const thirdParty = "00000000-0000-0000-0000-000000000007";
 const ok = (data) => ({ data, error: null });
 const failure = () => ({ data: null, error: { message: "Database unavailable" } });
+
+function supplementFixture(options = {}) {
+  const context = fixture("supplement_reminder", options);
+  context.note.actor_id = null; context.note.data = { dose_id: blindID };
+  return context;
+}
+
+test("supplement checks the open current dose and revisions before EACH device", async () => {
+  const context = supplementFixture();
+  assert.equal(preferenceKeys.supplement_reminder, "reminders");
+  await context.dispatch();
+  assert.equal(context.sends.length, 1);
+  assert.deepEqual(context.rpcCalls, Array(2).fill({ name: "can_dispatch_supplement", args: { p_notification: noteID } }));
+});
+test("supplement private names and arbitrary metadata never enter APNS", () => {
+  const context = supplementFixture();
+  context.note.title = "Private product"; context.note.body = "Private dose";
+  context.note.data = { dose_id: blindID, name: "Hidden name", aps: { alert: "Private" }, plan_id: actor };
+  const value = notificationPayload(context.note);
+  assert.deepEqual(Object.keys(value).sort(), ["aps", "dose_id", "fyrup_notification_id", "fyrup_recipient_id", "fyrup_type"]);
+  assert.equal(value.aps.category, "FYRUP_SUPPLEMENT");
+  assert.equal(value.aps.alert.title, "Deine Erinnerung");
+  assert.equal(JSON.stringify(value).includes("Private"), false);
+  assert.deepEqual(notificationDeliveryHeaders(context.note), { "apns-expiration": "0", "apns-collapse-id": `supplement-${blindID}` });
+  assert.deepEqual(notificationDeliveryHeaders({ type: "reaction" }), {});
+});
+test("supplement refuses malformed receipt/dose IDs and any social actor", async () => {
+  for (const mutate of [n => n.id = "bad", n => n.data = {}, n => n.actor_id = actor, n => n.data.dose_id = 123]) {
+    const context = supplementFixture(); mutate(context.note);
+    assert.equal(await evaluateQueuedNotification(context.db, context.note), "drop");
+    assert.equal(context.rpcCalls.length, 0);
+  }
+});
+test("closed, quiet, expired, paused or deleted supplement sources suppress instead of retrying", async () => {
+  const context = supplementFixture({ rpc: async () => ok(false) });
+  const result = await context.dispatch();
+  assert.equal(context.sends.length, 0); assert.equal(result.suppressed, 1);
+});
+test("supplement database uncertainty defers, never grants permission", async () => {
+  for (const response of [failure(), ok(null), ok("true")]) {
+    const context = supplementFixture({ rpc: async () => response });
+    const result = await context.dispatch();
+    assert.equal(result.deferred, 1); assert.equal(context.sends.length, 0);
+    assert.equal(context.queries.some(q => q.kind === "update"), false);
+  }
+});
+test("confirmed intake between two devices stops the second supplement push", async () => {
+  let reads = 0;
+  const context = supplementFixture({ rpc: async () => ok(++reads < 3), route: q => q.table === "device_tokens" ? ok([
+    { token: "abc1", environment: "ios" }, { token: "abc2", environment: "ios" }
+  ]) : undefined });
+  const result = await context.dispatch();
+  assert.equal(context.sends.length, 1); assert.equal(result.suppressed, 1);
+});
+test("global reminder preference overrides supplement opt-in", async () => {
+  const context = supplementFixture({ route: q => q.table === "notification_preferences" ? ok({ reminders: false }) : undefined });
+  await context.dispatch(); assert.equal(context.rpcCalls.length, 0); assert.equal(context.sends.length, 0);
+});
 
 test("APNS payload binds notification and recipient IDs to the authorized row", () => {
   const { note } = fixture("shot_called");

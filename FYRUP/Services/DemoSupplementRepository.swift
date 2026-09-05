@@ -40,7 +40,10 @@ actor DemoSupplementStorage {
               let weekday = SupplementDay.weekday(now, timezone: value.settings.timezone) else { throw AppError.server }
         for plan in value.plans where !plan.isPaused && !plan.isArchived && plan.weekdays.contains(weekday) {
             for slot in plan.slots {
-                guard let due = calendar.date(bySettingHour: slot.hour, minute: slot.minuteOfHour, second: 0, of: now,
+                // nextDate preserves the minute inside a missing spring hour; date(bySettingHour:)
+                // was observed to round 02:30 to 03:00 in the native iOS test.
+                guard let due = calendar.nextDate(after: calendar.startOfDay(for: now).addingTimeInterval(-1),
+                                              matching: DateComponents(hour: slot.hour, minute: slot.minuteOfHour, second: 0),
                                               matchingPolicy: .nextTimePreservingSmallerComponents, repeatedTimePolicy: .last),
                       SupplementDay.key(due, timezone: value.settings.timezone) == day else { throw AppError.server }
                 if let index = value.doses.firstIndex(where: { $0.planID == plan.id && $0.slotID == slot.id && $0.day == day }) {

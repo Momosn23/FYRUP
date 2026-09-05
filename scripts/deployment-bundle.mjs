@@ -85,6 +85,35 @@ export function assembleFollowup(sources) {
 }
 
 export const personalTrainingFile = '202609050012_personal_training.sql';
+export const supplementsFile = '202609050013_supplement_reminders.sql';
+export function assembleSupplements(source) {
+  source = source?.replace(/\r\n/g, '\n').trimEnd();
+  if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid supplement transaction wrapper');
+  const body = source.replace(/^begin;\n/m, '').replace(/\ncommit;$/, '');
+  if (body.includes('$migration_source$')) throw Error('SQL quote delimiter collision');
+  return `begin;
+set local lock_timeout = '4s';
+set local statement_timeout = '60s';
+do $preflight$ begin
+  if not exists(select 1 from supabase_migrations.schema_migrations where version='202609050012')
+    or exists(select 1 from supabase_migrations.schema_migrations where version='202609050013')
+    or to_regclass('public.supplement_settings') is not null
+    or to_regclass('public.supplement_plans') is not null
+    or to_regclass('public.supplement_doses') is not null then
+    raise exception 'unexpected supplement baseline; inspect before retrying';
+  end if;
+end $preflight$;
+insert into fyrup_deployment.schema_snapshots(version,routines,policies)
+select 'before-202609050013',
+  (select coalesce(jsonb_agg(jsonb_build_object('signature',p.oid::regprocedure::text,'definition',pg_get_functiondef(p.oid),'acl',p.proacl::text)),'[]')
+   from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='register_device_token'), '[]'::jsonb;
+${body}
+insert into supabase_migrations.schema_migrations(version,name,statements)
+values ('202609050013','supplement_reminders',array[$migration_source$${body}$migration_source$]);
+notify pgrst, 'reload schema';
+commit;
+`;
+}
 export function assemblePersonalTraining(source) {
   source = source?.replace(/\r\n/g, '\n').trimEnd();
   if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid personal-training transaction wrapper');

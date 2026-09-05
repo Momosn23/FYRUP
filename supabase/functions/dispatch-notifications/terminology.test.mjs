@@ -14,6 +14,6 @@ for (const [index, example] of examples.entries()) {
     assert.deepEqual(notificationCopy({ ...example, ...expected }), expected, 'idempotent formatting');
     assert.deepEqual(note, before, 'source row and user content unchanged');
     assert.equal(notificationPayload(note).fyrup_notification_id, 'receipt');
-    assert.equal(notificationPayload(note).plan_id, 'plan');
+    assert.equal(notificationPayload(note).plan_id, example.type === 'supplement_reminder' ? undefined : 'plan');
   });
 }

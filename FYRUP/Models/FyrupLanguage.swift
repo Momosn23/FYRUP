@@ -20,6 +20,7 @@ enum FyrupLanguage {
     static func notification(type: String, title: String, body: String) -> (title: String, body: String) {
         var title = title; var body = body
         switch type {
+        case "supplement_reminder": return ("Deine Erinnerung", "Ein Eintrag auf deiner heutigen Liste ist noch offen.")
         case "activity_started":
             title = title.replacingOccurrences(of: " trainiert gerade 🔥$", with: " ist gerade LIVE 🔥", options: .regularExpression)
         case "session_invite":

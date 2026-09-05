@@ -164,6 +164,31 @@ final class SupplementTests: XCTestCase {
         _ = try await repository.saveSupplement(SupplementPlan(ownerID: owner, name: "Mein Eintrag"))
         return repository
     }
+
+    func testMidnightMakesYesterdayReadOnlyUntilFreshLoad() async throws {
+        let repository = try await fixture()
+        var clock = date("2026-09-05T12:00:00Z")
+        let store = SupplementStore(repository: repository, persistence: MemorySupplementPendingPersistence(), clock: { clock })
+        store.activate(userID: owner); await store.load()
+        XCTAssertTrue(store.isCurrentDay)
+        let dose = try XCTUnwrap(store.snapshot?.doses.first)
+        clock = clock.addingTimeInterval(13 * 3600)
+        XCTAssertFalse(store.isCurrentDay); XCTAssertTrue(store.changesDisabled)
+        await store.mark(dose.id, as: .taken)
+        let writes = await repository.writes; XCTAssertEqual(writes, 0)
+        XCTAssertTrue(store.pending.isEmpty)
+    }
+    func testTemporarilyLockedPersistenceCanBeReadAgainWithoutDiscarding() async throws {
+        let repository = try await fixture(); let persistence = MemorySupplementPendingPersistence(); persistence.fails = true
+        let store = SupplementStore(repository: repository, persistence: persistence); store.activate(userID: owner)
+        await store.load(); XCTAssertNotNil(store.pendingError)
+        persistence.fails = false
+        await store.refresh(); XCTAssertNil(store.pendingError)
+        let dose = try XCTUnwrap(store.snapshot?.doses.first)
+        await store.mark(dose.id, as: .taken)
+        XCTAssertEqual(store.snapshot?.doses.first?.status, .taken)
+        XCTAssertTrue(try XCTUnwrap(store.snapshot).isValid(for: owner))
+    }
 }
 
 private actor SupplementStub: SupplementRepository {

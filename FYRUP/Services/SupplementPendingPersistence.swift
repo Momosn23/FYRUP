@@ -48,3 +48,17 @@ final class MemorySupplementPendingPersistence: SupplementPendingPersistence {
     func save(_ data: Data, owner: UUID) throws { if fails { throw AppError.server }; values[owner] = data }
     func clear(owner: UUID) throws { if fails { throw AppError.server }; values[owner] = nil }
 }
+
+/// Isolated simulator/demo suites only. Never selected for a real signed-in account.
+@MainActor
+struct DemoSupplementPendingPersistence: SupplementPendingPersistence {
+    let defaults: UserDefaults
+    private func key(_ owner: UUID) -> String { "supplement-pending.\(owner.uuidString)" }
+    func load(owner: UUID) throws -> Data? {
+        guard let value = defaults.object(forKey: key(owner)) else { return nil }
+        guard let data = value as? Data else { throw AppError.server }
+        return data
+    }
+    func save(_ data: Data, owner: UUID) throws { defaults.set(data, forKey: key(owner)) }
+    func clear(owner: UUID) throws { defaults.removeObject(forKey: key(owner)) }
+}

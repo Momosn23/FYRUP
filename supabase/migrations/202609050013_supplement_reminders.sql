@@ -248,5 +248,28 @@ revoke all on function public.supplement_is_quiet(integer,boolean,integer,intege
 grant execute on function public.can_dispatch_supplement(uuid,timestamptz),public.process_supplement_reminders(timestamptz) to service_role;
 revoke all on function public.get_supplements(text),public.save_supplement_plan(jsonb),public.save_supplement_settings(jsonb),public.set_supplement_dose(jsonb) from public,anon;
 grant execute on function public.get_supplements(text),public.save_supplement_plan(jsonb),public.save_supplement_settings(jsonb),public.set_supplement_dose(jsonb) to authenticated;
+-- Bind one APNS installation to its currently authenticated account. The explicit
+-- owner fences a request that was prepared before an in-app account replacement.
+create function public.bind_device_token(p_token text,p_environment text,p_owner uuid) returns boolean language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or auth.uid() is distinct from p_owner then raise exception 'unauthorized'; end if;
+ if p_token is null or length(p_token) not between 16 and 512 or p_token !~ '^[0-9a-f]+$' or p_environment not in ('ios','ios-sandbox') or p_environment is null then raise exception 'invalid_device_token'; end if;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_environment||':'||p_token,0));
+ delete from public.device_tokens where token=p_token and environment=p_environment and user_id<>p_owner;
+ insert into public.device_tokens(user_id,token,environment) values(p_owner,p_token,p_environment)
+ on conflict(user_id,token) do update set environment=excluded.environment,updated_at=now();
+ return true;
+end; $$;
+create or replace function public.register_device_token(p_token text,p_environment text) returns boolean language sql security definer set search_path='' as $$
+ select public.bind_device_token(p_token,p_environment,auth.uid());
+$$;
+create function public.unregister_device_token(p_token text,p_owner uuid) returns boolean language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or auth.uid() is distinct from p_owner then raise exception 'unauthorized'; end if;
+ delete from public.device_tokens where user_id=p_owner and token=p_token;
+ return true;
+end; $$;
+revoke all on function public.bind_device_token(text,text,uuid),public.register_device_token(text,text),public.unregister_device_token(text,uuid) from public,anon;
+grant execute on function public.bind_device_token(text,text,uuid),public.register_device_token(text,text),public.unregister_device_token(text,uuid) to authenticated;
 notify pgrst,'reload schema';
 commit;

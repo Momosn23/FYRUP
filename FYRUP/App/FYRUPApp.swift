@@ -29,6 +29,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     private var pendingNotification: NotificationTapPayload?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        let taken = UNNotificationAction(identifier: "FYRUP_SUPPLEMENT_TAKEN", title: "Genommen", options: [.foreground, .authenticationRequired])
+        let category = UNNotificationCategory(identifier: "FYRUP_SUPPLEMENT", actions: [taken], intentIdentifiers: [], options: [])
+        UNUserNotificationCenter.current().setNotificationCategories([category])
         if let payload = options?[.remoteNotification] as? [AnyHashable: Any] {
             pendingNotification = NotificationTapPayload(userInfo: payload)
         }
@@ -36,12 +39,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
-        Task { try? await store?.repository.registerDeviceToken(token) }
+        Task { await store?.registerDeviceToken(token) }
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner, .sound, .badge] }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        guard let payload = NotificationTapPayload(userInfo: notification.request.content.userInfo), await canPresent(payload) else { return [] }
+        return [.banner, .sound, .badge]
+    }
+    private func canPresent(_ payload: NotificationTapPayload) -> Bool {
+        guard let store, let owner = store.session?.userID, store.route == .main else { return false }
+        return payload.recipientID == owner
+    }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         guard response.actionIdentifier != UNNotificationDismissActionIdentifier,
-              let payload = NotificationTapPayload(userInfo: response.notification.request.content.userInfo) else { return }
+              var payload = NotificationTapPayload(userInfo: response.notification.request.content.userInfo) else { return }
+        payload.marksSupplementTaken = response.actionIdentifier == "FYRUP_SUPPLEMENT_TAKEN" && payload.type == "supplement_reminder"
         await deliverNotification(payload)
     }
     func deliverPendingNotification() async {
