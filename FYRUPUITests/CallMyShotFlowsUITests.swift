@@ -76,7 +76,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
 
     private func openOwnWeek(_ app: XCUIApplication) {
         tap(app.buttons["own-weekly-card"], in: app)
-        expectExists(app.staticTexts["Deine Flames"], in: app)
+        expectExists(app.staticTexts["Deine Streak"], in: app)
     }
 
     private func assertOwnFourTrainingShot(_ app: XCUIApplication) {
@@ -124,7 +124,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
         tap(app.buttons["edit-weekly-goal"], in: app)
         tap(app.buttons["weekly-goal-5"], in: app)
         tap(app.buttons["confirm-weekly-goal"], in: app)
-        expectExists(app.staticTexts["Deine Flames"], in: app)
+        expectExists(app.staticTexts["Deine Streak"], in: app)
         expectExists(app.staticTexts["Ab nächster Woche: 5 Trainings"], in: app)
         assertOwnFourTrainingShot(app)
         capture("50-shot-current-four-next-five")

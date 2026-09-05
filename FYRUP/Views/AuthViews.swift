@@ -97,8 +97,14 @@ struct WelcomeView: View {
         ZStack(alignment: .top) {
             Color.white.ignoresSafeArea()
             Image("WelcomeHeroLight").resizable().scaledToFill()
-                .frame(height: 310).clipped().blur(radius: 2)
-                .overlay(LinearGradient(colors: [.white.opacity(0.08), .white], startPoint: .top, endPoint: .bottom))
+                .frame(height: 310).blur(radius: 2)
+                .overlay(LinearGradient(stops: [
+                    .init(color: .white.opacity(0.08), location: 0),
+                    .init(color: .white, location: 0.88),
+                    .init(color: .white, location: 1)
+                ], startPoint: .top, endPoint: .bottom))
+                // Clip after the blur; otherwise its dark edge bleeds below the white fade.
+                .clipped().allowsHitTesting(false).accessibilityHidden(true)
                 .ignoresSafeArea(edges: .top)
             VStack(spacing: 14) {
                 Spacer().frame(height: 96)

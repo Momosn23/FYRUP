@@ -57,3 +57,29 @@ export function assembleDeployment(sources) {
 export async function loadDeploymentSources() {
   return Object.fromEntries(await Promise.all(deploymentFiles.map(async name => [name, await readFile(resolve('supabase/migrations', name), 'utf8')])));
 }
+
+export const followupFiles = ['202609050010_workout_copy_idempotency.sql', '202609050011_notification_preference_cas.sql'];
+export const followupPrelude = `begin;
+set local lock_timeout = '4s';
+set local statement_timeout = '60s';
+do $preflight$ begin
+  if not exists(select 1 from supabase_migrations.schema_migrations where version='202609050009')
+    or exists(select 1 from supabase_migrations.schema_migrations where version in ('202609050010','202609050011')) then
+    raise exception 'unexpected followup baseline; inspect before retrying';
+  end if;
+end $preflight$;
+`;
+
+export function assembleFollowup(sources) {
+  let sql = followupPrelude;
+  for (const filename of followupFiles) {
+    const source = sources[filename]?.replace(/\r\n/g, '\n').trimEnd();
+    if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error(`Invalid transaction wrapper: ${filename}`);
+    const body = source.replace(/^begin;\n/m, '').replace(/\ncommit;$/, '');
+    if (body.includes('$migration_source$')) throw Error('SQL quote delimiter collision');
+    const [version, ...parts] = filename.replace(/\.sql$/, '').split('_');
+    sql += `\n-- ${filename}\n${body}\n`;
+    sql += `insert into supabase_migrations.schema_migrations(version,name,statements) values ('${version}','${parts.join('_')}',array[$migration_source$${body}$migration_source$]);\n`;
+  }
+  return sql + "notify pgrst, 'reload schema';\ncommit;\n";
+}

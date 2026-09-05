@@ -73,6 +73,7 @@ struct BlindWorkoutComposerView: View {
     @State private var selectsExercise = false
     @State private var editedExercise: WorkoutPlanExercise?
     @State private var confirmsDiscard = false
+    @State private var editMode: EditMode = .inactive
     private let emptyRecipient = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     init(recipientID: UUID? = nil) {
@@ -112,7 +113,7 @@ struct BlindWorkoutComposerView: View {
                         .onMove { draft.exercises.move(fromOffsets: $0, toOffset: $1) }
                     Button { selectsExercise = true } label: { Label("Übung hinzufügen", systemImage: "plus.circle.fill") }
                         .disabled(draft.exercises.count >= 12).accessibilityIdentifier("add-blind-exercise")
-                } header: { Text("Deine Übungsreihenfolge") } footer: { Text("Tippe eine Übung für Sätze, Wiederholungen und optionale Notizen an. Mit Bearbeiten kannst du die Reihenfolge ändern.") }
+                } header: { Text("Deine Übungsreihenfolge") } footer: { Text("Tippe eine Übung für Sätze, Wiederholungen und optionale Notizen an. Mit Sortieren kannst du die Reihenfolge ändern.") }
                 if !draft.exercises.isEmpty {
                     Section("Das sieht dein Freund vor dem Start") {
                         Label("\(draft.focus.title) · \(draft.exercises.count) Übungen · ca. \(draft.estimatedDurationMinutes) Min.", systemImage: "eye")
@@ -123,10 +124,17 @@ struct BlindWorkoutComposerView: View {
                 if let validation = draft.validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.muted) }
                 BlindErrorBanner { await store.blind.refreshSummaries() }
             }.disabled(store.blind.isBusy).scrollContentBackground(.hidden).background(FYColor.background)
-                .navigationTitle("Blind Workout bauen").navigationBarTitleDisplayMode(.inline)
+                .environment(\.editMode, $editMode)
+                .navigationTitle("Blind Workout").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Schließen") { if hasChanges { confirmsDiscard = true } else { dismiss() } }.disabled(store.blind.isBusy) }
-                    ToolbarItem(placement: .primaryAction) { EditButton().disabled(store.blind.isBusy) }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button { if hasChanges { confirmsDiscard = true } else { dismiss() } } label: { Image(systemName: "xmark") }
+                            .accessibilityLabel("Schließen").disabled(store.blind.isBusy)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(editMode.isEditing ? "Fertig" : "Sortieren") { editMode = editMode.isEditing ? .inactive : .active }
+                            .disabled(store.blind.isBusy).accessibilityIdentifier("sort-blind-exercises")
+                    }
                 }
                 .safeAreaInset(edge: .bottom) {
                     Button("BLIND WORKOUT SENDEN") {
@@ -188,7 +196,7 @@ struct BlindWorkoutDetailView: View {
                         Button { Task { copiedPlan = await store.blind.copy(id: id) } } label: { Label("Als eigenen Trainingsplan speichern", systemImage: "square.and.arrow.down") }
                             .buttonStyle(OutlineButtonStyle()).disabled(store.blind.isBusy).accessibilityIdentifier("copy-blind-workout")
                     }
-                    if ![.completed, .cancelled, .declined].contains(value.summary.status) {
+                    if ![.completed, .cancelled, .declined].contains(value.summary.status) && (value.summary.status != .sent || value.viewerRole == .creator) {
                         Button("Workout abbrechen") { confirmsCancel = true }.font(.footnote).foregroundStyle(FYColor.muted)
                             .frame(maxWidth: .infinity, minHeight: 44).disabled(store.blind.isBusy)
                     }
@@ -204,10 +212,11 @@ struct BlindWorkoutDetailView: View {
                     }
                 }
                 BlindErrorBanner { _ = await store.blind.load(id: id) }
-            }.padding(20).padding(.bottom, 38)
+            }.padding(20).padding(.bottom, 76)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: state?.currentExercise?.id)
         }.background(FYColor.background).foregroundStyle(FYColor.ink)
             .navigationTitle("Blind Workout").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+            .toolbarBackground(FYColor.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
             .accessibilityElement(children: .contain).accessibilityIdentifier("blind-detail-screen")
             .task { _ = await store.blind.load(id: id) }
             .refreshable { _ = await store.blind.load(id: id) }

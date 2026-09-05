@@ -142,7 +142,7 @@ struct WeeklyFlameDetailView: View {
         TimelineView(.periodic(from: .now, by: 30)) { _ in
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Deine Flames").font(.largeTitle.weight(.black))
+                Text("Deine Streak").font(.largeTitle.weight(.black))
                 if let week = store.weekly.currentWeek { WeeklyProgressContent(week: week).fyCard() }
                 OwnShotCard()
                 if let state = store.weekly.state, state.goalConfirmed {

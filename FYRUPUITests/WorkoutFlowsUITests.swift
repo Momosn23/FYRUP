@@ -134,8 +134,11 @@ final class WorkoutFlowsUITests: XCTestCase {
         let plus = app.buttons["Planen"].firstMatch
         XCTAssertTrue(plus.exists)
         XCTAssertLessThan(done.frame.maxY, plus.frame.minY, "The completed workout button must stay above the raised tab-bar action.")
+        let share = app.buttons["preview-workout-share"]
+        XCTAssertTrue(waitUntilReady(share))
+        XCTAssertLessThan(share.frame.maxY, done.frame.minY, "Sharing must be visible above Done, never behind the pinned footer.")
         capture("31-workout-plan-done")
-        tap(app.buttons["preview-workout-share"], in: app)
+        tap(share, in: app)
         let export = app.staticTexts["workout-share-text"]
         XCTAssertTrue(export.waitForExistence(timeout: 4))
         XCTAssertTrue(export.label.contains("Workout geschafft mit FYRUP!"))

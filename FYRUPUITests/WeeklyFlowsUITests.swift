@@ -38,11 +38,11 @@ final class WeeklyFlowsUITests: XCTestCase {
     private func openWeeklyDetail(in app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
         revealAndTap(app.buttons["own-weekly-card"], in: app)
-        XCTAssertTrue(app.staticTexts["Deine Flames"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Deine Streak"].waitForExistence(timeout: 5))
     }
 
     private func assertFourCurrentFivePending(in app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["Deine Flames"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Deine Streak"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Ab nächster Woche: 5 Trainings"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["0 / 4"].exists, "A pending goal must not mutate this week's frozen target.")
         XCTAssertFalse(app.staticTexts["0 / 5"].exists)

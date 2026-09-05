@@ -97,10 +97,6 @@ struct WorkoutTrackingView: View {
                 if let completedActivity, let confirmed {
                     WorkoutResultHeader(activity: completedActivity, log: confirmed)
                     WorkoutRecordedExercises(log: confirmed)
-                    if let summary = WorkoutShareSummary(activity: completedActivity, log: confirmed, ownerID: store.profile?.id) {
-                        Button { shareSummary = summary } label: { Label("Mit Freunden teilen", systemImage: "square.and.arrow.up") }
-                            .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("preview-workout-share")
-                    }
                 } else if let log = displayed, let activity = currentActivity {
                     liveHeader(activity: activity, log: log)
                     if pending != nil { pendingBanner }
@@ -139,10 +135,18 @@ struct WorkoutTrackingView: View {
             }.padding(20).padding(.bottom, completedActivity == nil ? 72 : 24)
         }
         .safeAreaInset(edge: .bottom) {
-            if completedActivity != nil {
-                Button("Fertig") { dismiss() }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("finish-workout-summary")
-                    .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 44)
-                    .background(FYColor.background)
+            if let completedActivity {
+                // Keep both actions in the visible footer. A scroll-content action could
+                // otherwise sit behind this footer while iOS still reports it as hittable.
+                VStack(spacing: 10) {
+                    if let confirmed, let summary = WorkoutShareSummary(activity: completedActivity, log: confirmed, ownerID: store.profile?.id) {
+                        Button { shareSummary = summary } label: { Label("Mit Freunden teilen", systemImage: "square.and.arrow.up") }
+                            .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("preview-workout-share")
+                    }
+                    Button("Fertig") { dismiss() }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("finish-workout-summary")
+                }
+                .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 44)
+                .background(FYColor.background)
             }
         }
         .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Training" : "Geschafft")

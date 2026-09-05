@@ -4,7 +4,9 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 ## 1. Status und Abnahmeregel
 
-**Neuester vollständiger Cloud-Nachweis: Build25 (`559b6f7`) erfolgreich, 247 native Unit-Tests und22 UI-Abläufe ohne Fehler.** Blind/Shot, Schritte-Freigabe, Wochenzielwechsel, Onboarding sowie alle4 Trainingsplan-Flows bestanden. Laufzeit20m10s; nur iOS-Simulator/Demo, kein echter HealthKit-/APNs-/TestFlight-Nachweis. Die anschließenden Sicherheits-/Darstellungskorrekturen und ihre zusätzlichen Tests benötigen einen weiteren Lauf.
+**Aktuell: Build26 (`a94fb6e`), 346 native Unit-Tests und23/24 UI-Abläufe bestanden.** Der fehlgeschlagene Teilen-Vorschauablauf ist untersucht und wird nach der Korrektur erneut geprüft. Letzter vollständig grüner Lauf: Build25 (`559b6f7`),247 Unit-Tests und22 UI-Abläufe. Produktive Migrationen001–011 und Benachrichtigungsdienst inzwischen ausgerollt und separat überprüft: [Deploymentnachweis](DEPLOYMENT_2026-09-05.md). Kein echter HealthKit-/APNs-/TestFlight-Nachweis. Ältere Bereichstabellen unten sind historische Zwischenstände.
+
+Neu hinzugekommen am 05.09.: sichtbare Bezeichnung „Deine Streak“; freiwilliger sportbezogener Trainingsrhythmus mit Häufigkeit, Dauer, frei gewählten Wochentagen und einer Wochenleiste auf Heute. Die zusätzlichen Anforderungen werden in [WEEKLY_ROUTINE_CHECKLIST.md](WEEKLY_ROUTINE_CHECKLIST.md) separat geführt und ersetzen nicht die Abnahmeregeln dieser Liste.
 
 `[ ]` = noch nicht vollständig abgenommen. `[x]` = umgesetzt und durch einen konkreten Prüfnachweis belegt. Vorbereiteter Code, ein grüner Build oder ein einzelner Screenshot bedeuten jeweils noch keine vollständige Funktionsabnahme.
 

@@ -20,6 +20,9 @@ Der zusätzliche Dashboard-Befehl „Run and enable RLS“ meldete nach dem Comm
 
 ## Noch nicht als ausgeliefert markieren
 
-- Die ergänzenden Migrationen 010/011 sind lokal grün, aber hier noch nicht als gehostet bestätigt.
-- Neuere App-Korrekturen (Mitteilungsrouting, private Wiederherstellung von Satzentwürfen, Widerruf geöffneter Freunddaten, visuelle Details) brauchen einen neuen nativen Cloud-Test.
-- Edge-Function-Deployment, HealthKit-Signierung und neue signierte TestFlight-Version sind noch offen.
+- Die ergänzenden Migrationen 010/011 wurden inzwischen erfolgreich eingespielt und danach separat kontrolliert: 11 Versionen, geschützte Kopierbelege, alte unsichere Kopierfunktion für Clients gesperrt, neue auftragsgebundene Kopierfunktion freigegeben, atomare Mitteilungsfunktion freigegeben, direkte Tabellenänderung gesperrt. Bibliothek weiterhin 122 Übungen.
+- Cloud Build 26 (`a94fb6e`): 346 native Unit-Tests und 23/24 UI-Abläufe bestanden. Laufzeit 25m04s. Die Teilen-Vorschau scheiterte: der Button lag laut aufgezeichneter UI-Hierarchie bei y739,5 hinter dem festen unteren Bereich, obwohl iOS ihn als antippbar meldete. Beide Abschlussaktionen stehen im Korrekturstand gemeinsam sichtbar im unteren Bereich; ein neuer Test prüft ihre Lage und den vollständigen Vorschauablauf.
+- 58 Simulatorbilder von Build 26 lokal vorhanden. Weitere Korrekturen: Blind-Workout-Kopfzeile/Sortieren, unerwünschte Unschärfekante auf dem Anmeldebildschirm und Nutzerwunsch „Deine Streak“ statt „Deine Flames“. Nativer Nachtest steht aus.
+- `dispatch-notifications` wurde aktualisiert. Der anschließend vom Server heruntergeladene ZIP-Inhalt enthält exakt die beiden getesteten Quelldateien. Automatische Aufrufe nach Deployment liefern HTTP 200, u. a. 09:18, 09:22 und 09:33–09:35 CEST. Das belegt Laufzeit/Import, noch keinen Empfang einer echten Push-Nachricht auf dem iPhone.
+- HealthKit ist für `app.fyrup.ios` bei Apple aktiviert. Nach ausdrücklicher Bestätigung wurde das bestehende App-Store-Profil mit dem bestehenden Zertifikat erneuert; Apple bietet das neue Profil zum Download an. Übernahme in den Build-Dienst und signierter IPA-Nachweis sind noch zu prüfen.
+- Neue signierte TestFlight-Version und echte HealthKit-/APNs-Abnahme sind weiterhin offen.
