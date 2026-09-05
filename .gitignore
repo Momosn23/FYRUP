@@ -9,3 +9,5 @@ Config/Secrets.xcconfig
 supabase/.temp/
 .env
 .qa/
+__pycache__/
+*.pyc

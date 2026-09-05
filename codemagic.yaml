@@ -101,7 +101,9 @@ workflows:
         script: xcodegen generate
       - name: Verify renewed HealthKit signing profile
         script: |
-          security cms -D -i "$FYRUP_SIGNING_PROFILE" | python3 -c 'import plistlib,sys; p=plistlib.load(sys.stdin.buffer); e=p.get("Entitlements",{}); assert e.get("application-identifier")=="6379AH75GK.app.fyrup.ios", "Unexpected signing target"; assert e.get("com.apple.developer.healthkit") is True, "HealthKit missing from profile"; assert e.get("aps-environment")=="production", "Production push missing"; assert "Default" in e.get("com.apple.developer.applesignin",[]), "Apple sign-in missing"; print("Verified FYRUP profile: HealthKit, Apple sign-in and production push")'
+          set -o pipefail
+          python3 scripts/test_signing_profile.py
+          security cms -D -i "$FYRUP_SIGNING_PROFILE" | python3 scripts/verify-signing-profile.py
       - name: Run unit and UI tests
         script: |
           set -o pipefail
