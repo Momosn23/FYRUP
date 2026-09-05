@@ -51,6 +51,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         capture("01-home-feed")
         app.buttons["JETZT LOS"].tap()
+        waitUntilReady(app.buttons["Gym"])
         capture("04-activity-categories")
         app.buttons["Gym"].tap()
         app.buttons["Push"].tap()
@@ -63,6 +64,18 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("08-workout-complete")
         app.buttons["Im Feed ansehen"].tap()
         XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
+    }
+
+    func testDiscoverPreservesTheChosenSport() {
+        let app = launchDemo()
+        app.tabBars.buttons["Entdecken"].tap()
+        waitUntilReady(app.buttons["Laufen"])
+        app.buttons["Laufen"].tap()
+        waitUntilReady(app.buttons["confirm-activity"])
+        XCTAssertTrue(app.staticTexts["Training starten"].exists)
+        XCTAssertTrue(app.staticTexts["Laufen"].exists)
+        XCTAssertFalse(app.staticTexts["Was möchtest du machen?"].exists)
+        capture("56-discover-selected-sport")
     }
 
     func testFyrupIsOneTap() {
@@ -266,7 +279,10 @@ final class CriticalFlowsUITests: XCTestCase {
         app.textFields["2003"].tap()
         app.textFields["2003"].typeText("1998")
         app.textFields["Köln"].tap()
-        app.textFields["Köln"].typeText("Berlin")
+        app.textFields["Köln"].typeText("Berlin\n")
+        let progress = app.otherElements["onboarding-progress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 2))
+        XCTAssertGreaterThan(progress.frame.minY, app.frame.minY + 48, "Onboarding navigation must stay below the status bar")
         capture("onboarding-01-profile")
         app.buttons["Weiter"].tap()
 

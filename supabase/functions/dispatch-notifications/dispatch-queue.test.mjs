@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluateQueuedNotification, dispatchQueuedNotification, preferenceKeys } from "./dispatch-queue.mjs";
+import { evaluateQueuedNotification, dispatchQueuedNotification, preferenceKeys, notificationPayload } from "./dispatch-queue.mjs";
 
 const recipient = "00000000-0000-0000-0000-000000000001";
 const actor = "00000000-0000-0000-0000-000000000002";
@@ -11,6 +11,29 @@ const noteID = "00000000-0000-0000-0000-000000000006";
 const thirdParty = "00000000-0000-0000-0000-000000000007";
 const ok = (data) => ({ data, error: null });
 const failure = () => ({ data: null, error: { message: "Database unavailable" } });
+
+test("APNS payload binds notification and recipient IDs to the authorized row", () => {
+  const { note } = fixture("shot_called");
+  const payload = notificationPayload(note);
+  assert.equal(payload.fyrup_notification_id, noteID);
+  assert.equal(payload.fyrup_recipient_id, recipient);
+  assert.equal(payload.fyrup_type, "shot_called");
+  assert.equal(payload.commitment_id, commitmentID);
+  assert.equal(payload.week_id, weekID);
+  assert.deepEqual(payload.aps.alert, { title: note.title, body: note.body });
+});
+
+test("data cannot spoof reserved routing fields or the APNS alert", () => {
+  const { note } = fixture("blind_workout_received");
+  note.data = { ...note.data, fyrup_notification_id: thirdParty, fyrup_recipient_id: actor,
+    fyrup_type: "shot_called", aps: { alert: "Not the authorized alert" } };
+  const payload = notificationPayload(note);
+  assert.equal(payload.fyrup_notification_id, noteID);
+  assert.equal(payload.fyrup_recipient_id, recipient);
+  assert.equal(payload.fyrup_type, "blind_workout_received");
+  assert.equal(payload.blind_workout_id, blindID);
+  assert.deepEqual(payload.aps.alert, { title: note.title, body: note.body });
+});
 
 function fixture(type = "shot_called", options = {}) {
   const isReaction = type === "shot_reaction";

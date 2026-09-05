@@ -130,7 +130,7 @@ final class StepFlowsUITests: XCTestCase {
         waitForSharing(sharing, enabled: false)
         tap(app.tabBars.buttons["Heute"], in: app)
         XCTAssertTrue(app.buttons["own-steps-card"].waitForExistence(timeout: 5))
-        let count = NSPredicate(format: "label CONTAINS '8.421' OR label CONTAINS '8,421'")
+        let count = NSPredicate(format: "label CONTAINS '8.421'")
         XCTAssertTrue(app.descendants(matching: .any).matching(count).firstMatch.waitForExistence(timeout: 3))
         capture("35-own-daily-steps")
         tap(app.buttons["own-steps-card"], in: app)

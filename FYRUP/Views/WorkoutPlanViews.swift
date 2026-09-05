@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum WorkoutPlanText {
+    static func exerciseCount(_ count: Int) -> String { count == 1 ? "1 Übung" : "\(count) Übungen" }
+    static func subtitle(_ plan: WorkoutPlan) -> String {
+        let focus = plan.category?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return [exerciseCount(plan.exercises.count), focus?.isEmpty == false ? focus : nil].compactMap { $0 }.joined(separator: " · ")
+    }
+}
+
 struct WorkoutPlansView: View {
     @Environment(AppStore.self) private var store
     var onSelect: ((WorkoutPlan) -> Void)? = nil
@@ -57,7 +65,7 @@ struct WorkoutPlanCard: View {
                 .frame(width: 54, height: 58).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 5) {
                 Text(plan.name).font(.headline).foregroundStyle(FYColor.ink)
-                Text([plan.category, "\(plan.exercises.count) Übungen"].compactMap { $0 }.joined(separator: " · "))
+                Text(WorkoutPlanText.subtitle(plan))
                     .font(.caption).foregroundStyle(FYColor.muted)
                 Label(plan.visibility == .private ? "Privater Plan" : "Für Freunde sichtbar", systemImage: plan.visibility == .private ? "lock" : "person.2")
                     .font(.caption2).foregroundStyle(FYColor.muted)
@@ -65,7 +73,7 @@ struct WorkoutPlanCard: View {
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted)
         }.fyCard().accessibilityElement(children: .combine).accessibilityLabel(plan.name)
-            .accessibilityHint("\(plan.exercises.count) Übungen. \(plan.visibility == .private ? "Privater Plan" : "Für Freunde sichtbar")")
+            .accessibilityHint("\(WorkoutPlanText.exerciseCount(plan.exercises.count)). \(plan.visibility == .private ? "Privater Plan" : "Für Freunde sichtbar")")
     }
 }
 
@@ -78,6 +86,7 @@ struct WorkoutPlanEditorView: View {
     @State private var editingEntry: WorkoutPlanExercise?
     @State private var confirmDiscard = false
     @State private var restoredDraft = false
+    @State private var editMode = EditMode.inactive
     private let original: WorkoutPlan
     var onSaved: (WorkoutPlan) -> Void = { _ in }
 
@@ -136,7 +145,13 @@ struct WorkoutPlanEditorView: View {
             .navigationTitle(original.name.isEmpty ? "Plan erstellen" : "Plan bearbeiten").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { if draft == original { dismiss() } else { confirmDiscard = true } }.disabled(store.workouts.isBusy) }
-                ToolbarItem(placement: .primaryAction) { EditButton().accessibilityLabel("Sortieren") }
+                ToolbarItem(placement: .primaryAction) {
+                    Button(editMode.isEditing ? "Fertig" : "Sortieren") {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                            editMode = editMode.isEditing ? .inactive : .active
+                        }
+                    }.accessibilityIdentifier("sort-workout-exercises").disabled(store.workouts.isBusy)
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 5) {
@@ -173,6 +188,7 @@ struct WorkoutPlanEditorView: View {
                 }
             }
             .onChange(of: draft) { _, edited in store.workoutDrafts.save(edited: edited, original: original) }
+            .environment(\.editMode, $editMode)
         }.tint(FYColor.lime).preferredColorScheme(.light)
     }
 
@@ -230,6 +246,7 @@ struct WorkoutPrescriptionEditor: View {
 struct WorkoutPlanDetailView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     let planID: UUID
     var linkedActivityID: UUID? = nil
     var sessionID: UUID? = nil
@@ -243,12 +260,13 @@ struct WorkoutPlanDetailView: View {
     @State private var copiedPlan: WorkoutPlan?
     @State private var confirmArchive = false
     @State private var showsIndependentTraining = false
+    @State private var loadRequest = UUID()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 if let plan {
-                    SportHeroCard(sport: .gym, title: plan.name, subtitle: "\(plan.exercises.count) Übungen · \(plan.category ?? "Dein Fokus")")
+                    SportHeroCard(sport: .gym, title: plan.name, subtitle: WorkoutPlanText.subtitle(plan))
                     if let description = plan.description, !description.isEmpty { Text(description).foregroundStyle(FYColor.muted) }
                     ForEach(Array(plan.exercises.enumerated()), id: \.element.id) { index, entry in
                         HStack(alignment: .top, spacing: 13) {
@@ -287,6 +305,13 @@ struct WorkoutPlanDetailView: View {
         }.background(FYColor.background).navigationTitle("Trainingsplan").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
             .toolbar { if let plan, plan.ownerID == store.profile?.id { Button("Bearbeiten") { editPlan = plan } } }
             .task(id: planID) { await load() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await load() } }
+            }
+            .onChange(of: store.friendAccessRevision) { _, _ in
+                if let plan, plan.ownerID != store.profile?.id, store.revokedFriendIDs.contains(plan.ownerID) { clearDetail() }
+            }
+            .onChange(of: store.profile?.id) { _, _ in clearDetail() }
             .fullScreenCover(item: $editPlan) { draft in WorkoutPlanEditorView(plan: draft) { plan = $0 } }
             .fullScreenCover(isPresented: $showsPlanning) { if let plan { ActivityComposerView(initialMode: 1, selectedWorkoutPlan: plan) } }
             .sheet(isPresented: $showsSharing) { WorkoutPlanShareView(planID: planID) }
@@ -300,7 +325,20 @@ struct WorkoutPlanDetailView: View {
                 Button("Behalten", role: .cancel) {}
             } message: { Text("Der Plan verschwindet aus deiner Auswahl. Abgeschlossene Trainings bleiben erhalten.") }
     }
-    private func load() async { isLoading = true; plan = await store.workouts.plan(id: planID); isLoading = false }
+    private func clearDetail() {
+        loadRequest = UUID(); plan = nil; isLoading = false
+        showsSharing = false; editPlan = nil; showsPlanning = false; copiedPlan = nil
+    }
+    private func load() async {
+        let request = UUID(); loadRequest = request
+        guard let owner = store.profile?.id else { clearDetail(); return }
+        plan = nil; isLoading = true
+        let loaded = await store.workouts.plan(id: planID)
+        guard loadRequest == request, owner == store.profile?.id, !Task.isCancelled else { return }
+        isLoading = false
+        if let loaded, loaded.ownerID != owner, store.revokedFriendIDs.contains(loaded.ownerID) { return }
+        plan = loaded
+    }
 }
 
 private struct WorkoutPlanShareView: View {

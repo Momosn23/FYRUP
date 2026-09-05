@@ -147,9 +147,9 @@ private struct CustomExerciseEditorView: View {
                     } header: { Text("Schon in deiner Bibliothek?") }
                 }
                 if let error = store.workouts.errorMessage { Section { Text(error).foregroundStyle(FYColor.coral) } }
-            }.scrollContentBackground(.hidden).background(FYColor.background)
+            }.disabled(store.workouts.isBusy).scrollContentBackground(.hidden).background(FYColor.background)
                 .navigationTitle(isNew ? "Eigene Übung" : "Übung bearbeiten").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() }.disabled(store.workouts.isBusy) } }
                 .safeAreaInset(edge: .bottom) {
                     VStack(spacing: 5) {
                         Text("Nur du kannst deine Übung ändern. Geteilte Plankopien bleiben unabhängig.").font(.caption).foregroundStyle(FYColor.muted)
@@ -163,7 +163,7 @@ private struct CustomExerciseEditorView: View {
                 }
                 .onChange(of: draft.name) { _, _ in duplicateConfirmed = false }
                 .onChange(of: draft.primaryMuscle) { _, value in draft.secondaryMuscles.removeAll { $0 == value } }
-        }.tint(FYColor.lime)
+        }.tint(FYColor.lime).interactiveDismissDisabled(store.workouts.isBusy)
     }
     private var canSave: Bool { draft.validationMessage == nil && (!isNew || duplicates.isEmpty || duplicateConfirmed) }
     private var duplicates: [GymExercise] {

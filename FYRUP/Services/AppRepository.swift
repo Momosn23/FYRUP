@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository, BlindWorkoutRepository, CallMyShotRepository {
+protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository, BlindWorkoutRepository, CallMyShotRepository, NotificationRoutingRepository {
     func restoreSession() async throws -> AuthSession?
     func signUp(email: String, password: String) async throws -> AuthSession?
     func signIn(email: String, password: String) async throws -> AuthSession
@@ -38,7 +38,7 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func react(activityID: UUID, reaction: ReactionKind?) async throws
     func notifications() async throws -> [AppNotification]
     func notificationPreferences() async throws -> NotificationPreferences
-    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async throws -> NotificationPreferences
     func goalSummary() async throws -> GoalSummary
     func markNotificationsRead() async throws
     func registerDeviceToken(_ token: String) async throws
@@ -194,21 +194,8 @@ actor LiveAppRepository: AppRepository {
     func react(activityID: UUID, reaction: ReactionKind?) async throws { let _: Bool = try await client.rpc("set_reaction", body: ["p_activity": activityID.uuidString, "p_reaction": reaction?.rawValue ?? ""]) }
     func notifications() async throws -> [AppNotification] { try await client.select("notifications", query: [.init(name: "select", value: "*"), .init(name: "order", value: "created_at.desc"), .init(name: "limit", value: "50")]) }
     func notificationPreferences() async throws -> NotificationPreferences { try await client.rpc("get_notification_preferences", body: [:] as [String: String]) }
-    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
-        struct Body: Encodable {
-            let pFriendStarts: Bool; let pFyrup: Bool; let pInvitations: Bool; let pReactions: Bool
-            let pFriendRequests: Bool; let pReminders: Bool; let pWeeklyGoal: Bool; let pCrewGoal: Bool
-            enum CodingKeys: String, CodingKey {
-                case pFriendStarts = "p_friend_starts", pFyrup = "p_fyrup", pInvitations = "p_invitations", pReactions = "p_reactions"
-                case pFriendRequests = "p_friend_requests", pReminders = "p_reminders", pWeeklyGoal = "p_weekly_goal", pCrewGoal = "p_crew_goal"
-            }
-        }
-        return try await client.rpc("save_notification_preferences", body: Body(
-            pFriendStarts: preferences.friendStarts, pFyrup: preferences.fyrup,
-            pInvitations: preferences.invitations, pReactions: preferences.reactions,
-            pFriendRequests: preferences.friendRequests, pReminders: preferences.reminders,
-            pWeeklyGoal: preferences.weeklyGoal, pCrewGoal: preferences.crewGoal
-        ))
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async throws -> NotificationPreferences {
+        try await client.rpc("save_notification_preferences_cas", body: NotificationPreferenceSaveRequest(expected: expected, desired: preferences))
     }
     func goalSummary() async throws -> GoalSummary { try await client.rpc("goal_summary", body: ["p_timezone": TimeZone.current.identifier]) }
     func markNotificationsRead() async throws { let _: Bool = try await client.rpc("mark_notifications_read", body: [:] as [String: String]) }

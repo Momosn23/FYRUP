@@ -15,7 +15,7 @@ actor DemoRepository: AppRepository {
     var crew: [Profile]
     private var sentFyrups = Set<UUID>()
     private var profileExists: Bool
-    private var pushPreferences: NotificationPreferences = .standard
+    private let pushPreferences: DemoNotificationPreferenceStorage
     private var hosted: [HostedSession] = []
     private var groups: [TrainingGroup] = []
     private var demoInvitations: [SessionInvitation] = []
@@ -27,6 +27,7 @@ actor DemoRepository: AppRepository {
         self.stepStorage = stepStorage
         self.weeklyStorage = weeklyStorage
         self.blindStorage = blindStorage
+        self.pushPreferences = weeklyStorage.notificationPreferenceStorage.joined(with: blindStorage.notificationPreferenceStorage)
         self.hasConfirmedDemoWeeklyGoal = !startsWithoutProfile
         self.now = now
         profileExists = !startsWithoutProfile
@@ -74,7 +75,10 @@ actor DemoRepository: AppRepository {
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { try await signIn(email: "", password: "") }
     func resetPassword(email: String) async throws {}
     func signOut() async {}
-    func profile(userID: UUID) async throws -> Profile? { userID == meID ? (profileExists ? me : nil) : crew.first { $0.id == userID } }
+    func profile(userID: UUID) async throws -> Profile? {
+        try await restoreCrewAccess()
+        return userID == meID ? (profileExists ? me : nil) : crew.first { $0.id == userID }
+    }
     func saveProfile(_ profile: Profile) async throws {
         guard profile.id == meID else { throw AppError.authentication }
         me = profile; profileExists = true
@@ -92,6 +96,8 @@ actor DemoRepository: AppRepository {
     }
     func avatarData(path: String) async throws -> Data { guard let data = avatarObjects[path] else { throw AppError.server }; return data }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) {
+        guard userID == meID else { throw AppError.authentication }
+        try await restoreCrewAccess()
         try await restoreWorkoutActivities()
         let mine = DateLogic.status(for: activities.filter { $0.userID == meID })
         var members: [CrewMember] = []
@@ -104,6 +110,9 @@ actor DemoRepository: AppRepository {
         return (mine, members.sorted { $0.todayStatus < $1.todayStatus })
     }
     func recentActivities(userID: UUID) async throws -> [Activity] {
+        try await restoreCrewAccess()
+        let belongsToCrew = crew.contains { $0.id == userID }
+        guard userID == meID || belongsToCrew else { throw AppError.accessDenied }
         try await restoreWorkoutActivities()
         return activities
             .filter { $0.userID == userID && $0.status == .completed }
@@ -196,8 +205,14 @@ actor DemoRepository: AppRepository {
         activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
     }
     func invitations() async throws -> [SessionInvitation] { try await workoutStorage.invitations(userID: meID, friends: Set(crew.map(\.id))) + demoInvitations }
-    func hostedSessions() async throws -> [HostedSession] { try await workoutStorage.hostedSessions(userID: meID) + hosted }
-    func trainingGroups() async throws -> [TrainingGroup] { groups }
+    func hostedSessions() async throws -> [HostedSession] {
+        try await restoreCrewAccess()
+        let allowed = Set(crew.map(\.id))
+        return try await (workoutStorage.hostedSessions(userID: meID) + hosted).map { value in
+            HostedSession(session: value.session, participants: value.participants.filter { $0.id == meID || allowed.contains($0.id) })
+        }
+    }
+    func trainingGroups() async throws -> [TrainingGroup] { try await restoreCrewAccess(); return groups }
     func createTrainingGroup(name: String, memberIDs: [UUID]) async throws {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { throw AppError.conflict("Der Gruppenname ist zu kurz.") }
@@ -227,8 +242,20 @@ actor DemoRepository: AppRepository {
         activities.removeAll { $0.plannedSessionID == sessionID }; hosted.removeAll { $0.id == sessionID }
     }
     func joinPlannedSession(sessionID: UUID) async throws { _ = try await workoutStorage.respond(sessionID: sessionID, status: .accepted, userID: meID, friends: Set(crew.map(\.id))) }
-    func searchUsers(query: String) async throws -> [Profile] { crew.filter { $0.username.localizedCaseInsensitiveContains(query) || $0.displayName.localizedCaseInsensitiveContains(query) } }
+    func searchUsers(query: String) async throws -> [Profile] { try await restoreCrewAccess(); return crew.filter { $0.username.localizedCaseInsensitiveContains(query) || $0.displayName.localizedCaseInsensitiveContains(query) } }
     func requests() async throws -> [Profile] { [] }
+    private func restoreCrewAccess() async throws {
+        let allowed = try await workoutStorage.permittedFriendIDs(userID: meID, candidates: Set(crew.map(\.id)))
+        // Filter the current actor state after awaiting; never reinsert a captured fixture array.
+        crew.removeAll { !allowed.contains($0.id) }
+        activities.removeAll { $0.userID != meID && !allowed.contains($0.userID) }
+        groups = groups.filter { $0.ownerID == meID || allowed.contains($0.ownerID) }.map { group in
+            TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name,
+                          members: group.members.filter { $0.id == meID || allowed.contains($0.id) })
+        }
+        hosted = hosted.map { HostedSession(session: $0.session, participants: $0.participants.filter { $0.id == meID || allowed.contains($0.id) }) }
+        demoInvitations.removeAll { !allowed.contains($0.host.id) }
+    }
     func sendFriendRequest(to userID: UUID) async throws {}
     func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
     func removeFriend(_ userID: UUID) async throws { try await workoutStorage.revokeFriendship(meID, userID); await stepStorage.revokeFriendship(meID, userID); try await weeklyStorage.revokeFriendship(meID, userID); try await blindStorage.revokeFriendship(meID, userID); crew.removeAll { $0.id == userID } }
@@ -236,12 +263,9 @@ actor DemoRepository: AppRepository {
     func fyrup(_ userID: UUID) async throws { guard sentFyrups.insert(userID).inserted else { throw AppError.conflict("Heute hast du Leon schon motiviert.") } }
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}
     func notifications() async throws -> [AppNotification] { try await (workoutStorage.notifications(userID: meID) + blindNotifications() + weeklyNotifications() + demoNotifications).sorted { $0.createdAt > $1.createdAt } }
-    func notificationPreferences() async throws -> NotificationPreferences { pushPreferences }
-    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
-        try await blindStorage.setNotificationPreferences(preferences, userID: meID)
-        try await weeklyStorage.setNotificationPreferences(preferences, userID: meID)
-        pushPreferences = preferences
-        return preferences
+    func notificationPreferences() async throws -> NotificationPreferences { try pushPreferences.value(userID: meID) }
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async throws -> NotificationPreferences {
+        try pushPreferences.compareAndSave(preferences, expected: expected, userID: meID)
     }
     func goalSummary() async throws -> GoalSummary {
         let own = try await weeklyState(userID: meID, timezone: nil)

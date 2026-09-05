@@ -291,6 +291,150 @@ final class WorkoutStoreTests: XCTestCase {
         let calls = await repository.count(.savePlan)
         XCTAssertEqual(calls, 0)
     }
+
+    func testRevocationDiscardsInflightForeignPlanAndPreventsAnotherSharedRead() async {
+        var foreign = plan(); foreign.ownerID = otherOwner
+        let repository = WorkoutStoreRepositoryStub(plans: [foreign], held: [.plan])
+        let value = store(repository)
+        let request = Task { await value.plan(id: foreign.id) }
+        await repository.waitUntilStarted(.plan)
+        value.removeFriend(userID: otherOwner)
+        await repository.release(.plan)
+        let stale = await request.value
+        XCTAssertNil(stale)
+        let privatePlans = await value.sharedPlans(ownerID: otherOwner)
+        XCTAssertNil(privatePlans)
+        let calls = await repository.count(.plans)
+        XCTAssertEqual(calls, 0)
+        value.restoreFriend(userID: otherOwner)
+        let restored = await value.sharedPlans(ownerID: otherOwner)
+        XCTAssertEqual(restored?.map(\.id), [foreign.id])
+    }
+
+    func testCopyRetryAfterLostResponseUsesSameRequestAcrossStoreRestart() async throws {
+        let suite = "FYRUP.CopyStore.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let source = plan(); let repository = WorkoutStoreRepositoryStub(plans: [source])
+        await repository.loseNextCopyResponse()
+        let initial = WorkoutStore(repository: repository, copyRequests: WorkoutCopyRequestStore(defaults: defaults))
+        initial.activate(userID: owner)
+        let lost = await initial.copyPlan(id: source.id)
+        XCTAssertNil(lost); XCTAssertTrue(initial.plans.isEmpty)
+        let relaunched = WorkoutStore(repository: repository, copyRequests: WorkoutCopyRequestStore(defaults: defaults))
+        relaunched.activate(userID: owner)
+        let retry = await relaunched.copyPlan(id: source.id)
+        XCTAssertNotNil(retry); XCTAssertEqual(relaunched.plans.count, 1)
+        let requests = await repository.copyIDs()
+        XCTAssertEqual(requests.count, 2); XCTAssertEqual(requests.first, requests.last)
+        let intentional = await relaunched.copyPlan(id: source.id)
+        XCTAssertNotEqual(intentional?.id, retry?.id)
+        let allRequests = await repository.copyIDs()
+        XCTAssertNotEqual(allRequests[1], allRequests[2])
+    }
+
+    func testPendingCopyBlocksSecondTapAndConfirmationDeduplicatesPlanList() async {
+        let source = plan(); let repository = WorkoutStoreRepositoryStub(plans: [source], held: [.copy])
+        let value = store(repository)
+        let pending = Task { await value.copyPlan(id: source.id) }
+        await repository.waitUntilStarted(.copy)
+        let secondTap = await value.copyPlan(id: source.id)
+        XCTAssertNil(secondTap)
+        let count = await repository.count(.copy); XCTAssertEqual(count, 1)
+        await repository.release(.copy)
+        let copy = await pending.value
+        XCTAssertNotNil(copy); XCTAssertEqual(value.plans.count, 1)
+    }
+
+    func testWrongOwnerSourceOrRequestReceiptRemainsPending() async throws {
+        for invalid in 0..<4 {
+            let source = plan(); let repository = WorkoutStoreRepositoryStub(plans: [source])
+            let requests = WorkoutCopyRequestStore()
+            let request = try requests.requestID(sourceID: source.id, ownerID: owner)
+            var forged = source.independentCopy(ownerID: owner); forged.copyRequestID = request
+            if invalid == 0 { forged.ownerID = otherOwner }
+            if invalid == 1 { forged.copyRequestID = UUID() }
+            if invalid == 2 { forged.copiedFromPlanID = UUID() }
+            if invalid == 3 { forged.id = source.id }
+            await repository.overrideCopy(with: forged)
+            let value = WorkoutStore(repository: repository, copyRequests: requests); value.activate(userID: owner)
+            let rejected = await value.copyPlan(id: source.id)
+            XCTAssertNil(rejected); XCTAssertTrue(value.plans.isEmpty)
+            XCTAssertEqual(try requests.requestID(sourceID: source.id, ownerID: owner), request)
+            await repository.overrideCopy(with: nil)
+            let retry = await value.copyPlan(id: source.id)
+            XCTAssertNotNil(retry)
+            XCTAssertNotEqual(try requests.requestID(sourceID: source.id, ownerID: owner), request)
+        }
+    }
+
+    func testLateCopyAfterAccountSwitchCannotClearOldPendingIntent() async throws {
+        let source = plan(); let repository = WorkoutStoreRepositoryStub(plans: [source], held: [.copy])
+        let requests = WorkoutCopyRequestStore()
+        let request = try requests.requestID(sourceID: source.id, ownerID: owner)
+        let value = WorkoutStore(repository: repository, copyRequests: requests); value.activate(userID: owner)
+        let pending = Task { await value.copyPlan(id: source.id) }
+        await repository.waitUntilStarted(.copy)
+        value.activate(userID: otherOwner)
+        await repository.release(.copy)
+        let late = await pending.value
+        XCTAssertNil(late); XCTAssertTrue(value.plans.isEmpty); XCTAssertFalse(value.isBusy)
+        XCTAssertEqual(try requests.requestID(sourceID: source.id, ownerID: owner), request)
+        value.activate(userID: owner)
+        let retry = await value.copyPlan(id: source.id)
+        XCTAssertNotNil(retry)
+    }
+
+    func testPendingIntentsAreAccountScopedAndOnlyConfirmationRetiresMatchingID() throws {
+        let requests = WorkoutCopyRequestStore(); let source = UUID()
+        let first = try requests.requestID(sourceID: source, ownerID: owner)
+        let second = try requests.requestID(sourceID: source, ownerID: otherOwner)
+        XCTAssertNotEqual(first, second)
+        try requests.confirm(sourceID: source, ownerID: owner, requestID: second)
+        XCTAssertEqual(try requests.requestID(sourceID: source, ownerID: owner), first)
+        requests.clearAccount(ownerID: owner)
+        XCTAssertNotEqual(try requests.requestID(sourceID: source, ownerID: owner), first)
+        XCTAssertEqual(try requests.requestID(sourceID: source, ownerID: otherOwner), second)
+    }
+
+    func testUnreadablePendingIntentsDoNotCreateAnotherRemoteCopy() async throws {
+        let suite = "FYRUP.CopyStoreCorrupt.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let key = "fyrup.workout-copy-requests.v1." + owner.uuidString
+        for corrupt in [Data("broken".utf8), Data("{\"bad-source\":\"00000000-0000-0000-0000-000000000001\"}".utf8)] {
+            defaults.set(corrupt, forKey: key)
+            let source = plan(); let repository = WorkoutStoreRepositoryStub(plans: [source])
+            let value = WorkoutStore(repository: repository, copyRequests: WorkoutCopyRequestStore(defaults: defaults)); value.activate(userID: owner)
+            let copy = await value.copyPlan(id: source.id)
+            XCTAssertNil(copy); XCTAssertEqual(defaults.data(forKey: key), corrupt)
+            let count = await repository.count(.copy); XCTAssertEqual(count, 0)
+        }
+    }
+
+    func testSeparatePersistenceSuitesCannotReuseAnotherDemoIntent() throws {
+        let firstSuite = "FYRUP.CopyIsolation.\(UUID().uuidString)"
+        let secondSuite = "FYRUP.CopyIsolation.\(UUID().uuidString)"
+        let firstDefaults = try XCTUnwrap(UserDefaults(suiteName: firstSuite)); let secondDefaults = try XCTUnwrap(UserDefaults(suiteName: secondSuite))
+        defer { firstDefaults.removePersistentDomain(forName: firstSuite); secondDefaults.removePersistentDomain(forName: secondSuite) }
+        let source = UUID()
+        let first = try WorkoutCopyRequestStore(defaults: firstDefaults).requestID(sourceID: source, ownerID: owner)
+        let second = try WorkoutCopyRequestStore(defaults: secondDefaults).requestID(sourceID: source, ownerID: owner)
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(try WorkoutCopyRequestStore(defaults: firstDefaults).requestID(sourceID: source, ownerID: owner), first)
+    }
+
+    func testRevocationCannotRepopulateInflightSharedPlans() async {
+        var foreign = plan(); foreign.ownerID = otherOwner
+        let repository = WorkoutStoreRepositoryStub(plans: [foreign], held: [.plans])
+        let value = store(repository)
+        let request = Task { await value.sharedPlans(ownerID: otherOwner) }
+        await repository.waitUntilStarted(.plans)
+        value.removeFriend(userID: otherOwner)
+        await repository.release(.plans)
+        let stale = await request.value
+        XCTAssertNil(stale)
+    }
 }
 
 private enum WorkoutStoreStubOperation: Hashable, Sendable {
@@ -314,6 +458,10 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     private var calls: [WorkoutStoreStubOperation: Int] = [:]
     private var gates: [WorkoutStoreStubOperation: [CheckedContinuation<Void, Never>]] = [:]
     private var observers: [WorkoutStoreStubOperation: [(id: UUID, count: Int, continuation: CheckedContinuation<Void, Never>)]] = [:]
+    private var recordedCopyIDs: [UUID] = []
+    private var copyReceipts: [UUID: WorkoutPlan] = [:]
+    private var lostCopyReplies = 0
+    private var copyOverride: WorkoutPlan?
 
     init(plans: [WorkoutPlan] = [], exercises: [GymExercise] = [], favorites: Set<UUID> = [], logs: [UUID: WorkoutLog] = [:],
          held: Set<WorkoutStoreStubOperation> = [], failing: Set<WorkoutStoreStubOperation> = []) {
@@ -322,6 +470,9 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     }
 
     func count(_ operation: WorkoutStoreStubOperation) -> Int { calls[operation, default: 0] }
+    func copyIDs() -> [UUID] { recordedCopyIDs }
+    func loseNextCopyResponse() { lostCopyReplies += 1 }
+    func overrideCopy(with value: WorkoutPlan?) { copyOverride = value }
     func setFailure(_ operation: WorkoutStoreStubOperation, enabled: Bool) {
         if enabled { failing.insert(operation) } else { failing.remove(operation) }
     }
@@ -390,10 +541,16 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
         try await checkpoint(.favorite)
         if favorite { savedFavorites.insert(id) } else { savedFavorites.remove(id) }
     }
-    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan {
+    func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan {
+        recordedCopyIDs.append(requestID)
         try await checkpoint(.copy)
+        if let copyOverride { return copyOverride }
+        if let receipt = copyReceipts[requestID] { return receipt }
         guard let source = savedPlans.first(where: { $0.id == id }) else { throw WorkoutStoreStubError.failed }
-        let copied = source.independentCopy(ownerID: source.ownerID); savedPlans.append(copied); return copied
+        var copied = source.independentCopy(ownerID: source.ownerID); copied.copyRequestID = requestID
+        savedPlans.append(copied); copyReceipts[requestID] = copied
+        if lostCopyReplies > 0 { lostCopyReplies -= 1; throw WorkoutStoreStubError.failed }
+        return copied
     }
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { try await checkpoint(.share) }
     func workoutLog(activityID: UUID) async throws -> WorkoutLog {

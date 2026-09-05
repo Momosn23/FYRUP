@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// The app's current copy is German, even on a device with another number locale.
+enum StepCountFormat {
+    static func string(_ count: Int) -> String {
+        count.formatted(.number.locale(Locale(identifier: "de_DE")))
+    }
+}
+
 struct StepSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var explainsHealth = false
@@ -36,7 +43,7 @@ struct StepSettingsView: View {
             Section {
                 Picker("Tägliches Schrittziel", selection: goalChoice) {
                     Text("Kein Ziel").tag(0)
-                    ForEach([5000, 7500, 10000, 12500], id: \.self) { Text($0.formatted()).tag($0) }
+                    ForEach([5000, 7500, 10000, 12500], id: \.self) { Text(StepCountFormat.string($0)).tag($0) }
                     Text("Eigener Wert").tag(-1)
                 }
                 if goalChoice.wrappedValue == -1 {
@@ -117,13 +124,13 @@ struct OwnStepsCard: View {
                         }
                         if let count = store.steps.todaysSteps {
                             HStack(alignment: .firstTextBaseline, spacing: 5) {
-                                Text(count.formatted()).font(.title2.weight(.black)).contentTransition(.numericText())
+                                Text(StepCountFormat.string(count)).font(.title2.weight(.black)).contentTransition(.numericText())
                                 Text("Schritte").font(.subheadline).foregroundStyle(FYColor.muted)
                                 Spacer()
                             }
                             if let progress = store.steps.progress, let goal = store.steps.goal {
                                 ProgressView(value: progress).tint(FYColor.lime)
-                                Text("\(count.formatted()) / \(goal.formatted()) · dein privates Ziel").font(.caption).foregroundStyle(FYColor.muted)
+                                Text("\(StepCountFormat.string(count)) / \(StepCountFormat.string(goal)) · dein privates Ziel").font(.caption).foregroundStyle(FYColor.muted)
                             }
                         } else { Text("Keine Schrittdaten verfügbar").font(.subheadline).foregroundStyle(FYColor.muted) }
                     }.fyCard().foregroundStyle(FYColor.ink)
@@ -140,7 +147,7 @@ struct FriendStepsLine: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { _ in
             if store.crew.contains(where: { $0.id == userID }), let metric = store.steps.shared.first(where: { $0.userID == userID }) {
-                Label("\(metric.steps.formatted()) Schritte heute", systemImage: "figure.walk")
+                Label("\(StepCountFormat.string(metric.steps)) Schritte heute", systemImage: "figure.walk")
                     .font(.caption).foregroundStyle(FYColor.muted).accessibilityIdentifier("friend-steps-\(userID)")
             }
         }

@@ -45,7 +45,11 @@ struct MainTabView: View {
             .padding(.bottom, 9)
         }
         .fullScreenCover(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
+        .sheet(item: Binding(get: { store.notificationRouting.presentation }, set: { if $0 == nil { store.notificationRouting.dismiss() } })) { presentation in
+            NotificationDestinationView(presentation: presentation).id(presentation.id)
+        }
         .task {
+            await store.deliverPendingNotification()
             await store.refresh()
             guard !Task.isCancelled, store.route == .main, let userID = store.session?.userID, store.profile?.id == userID else { return }
             await store.steps.activate(userID: userID)
@@ -67,6 +71,7 @@ struct MainTabView: View {
 
 private struct DiscoverView: View {
     @Environment(AppStore.self) private var store
+    @State private var selectedSport: SportKind?
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
@@ -77,8 +82,7 @@ private struct DiscoverView: View {
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(SportKind.allCases) { sport in
                         Button {
-                            store.activityComposerMode = 0
-                            store.showsActivityComposer = true
+                            selectedSport = sport
                         } label: {
                             VStack(alignment: .leading, spacing: 20) {
                                 Image(systemName: sport.symbol).font(.title).foregroundStyle(sport.accentColor)
@@ -90,5 +94,6 @@ private struct DiscoverView: View {
                 }
             }.padding(18)
         }.background(FYColor.background).navigationBarHidden(true)
+            .fullScreenCover(item: $selectedSport) { sport in ActivityComposerView(initialSport: sport) }
     }
 }

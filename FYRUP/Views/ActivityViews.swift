@@ -22,11 +22,11 @@ struct ActivityComposerView: View {
     @State private var showsWorkoutPlans = false
     @State private var creatingPlan: WorkoutPlan?
 
-    init(linkedActivityID: UUID? = nil, initialMode: Int = 0, selectedWorkoutPlan: WorkoutPlan? = nil) {
+    init(linkedActivityID: UUID? = nil, initialMode: Int = 0, selectedWorkoutPlan: WorkoutPlan? = nil, initialSport: SportKind? = nil) {
         self.linkedActivityID = linkedActivityID
         _mode = State(initialValue: initialMode)
         _workoutPlan = State(initialValue: selectedWorkoutPlan)
-        _sport = State(initialValue: selectedWorkoutPlan == nil ? nil : .gym)
+        _sport = State(initialValue: selectedWorkoutPlan == nil ? initialSport : .gym)
     }
     var body: some View {
         NavigationStack {
@@ -190,9 +190,9 @@ struct ActivityComposerView: View {
 
     private var planningDetails: some View {
         VStack(spacing: 0) {
-            ComposerRow(symbol: "calendar", title: "Datum") { DatePicker("Datum", selection: $startsAt, in: Date()..., displayedComponents: .date).labelsHidden() }
+            ComposerRow(symbol: "calendar", title: "Datum") { DatePicker("Datum", selection: $startsAt, in: Date()..., displayedComponents: .date).labelsHidden().fixedSize(horizontal: true, vertical: false) }
             Divider().overlay(FYColor.line).padding(.leading, 44)
-            ComposerRow(symbol: "clock", title: "Uhrzeit") { DatePicker("Uhrzeit", selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute).labelsHidden() }
+            ComposerRow(symbol: "clock", title: "Uhrzeit") { DatePicker("Uhrzeit", selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute).labelsHidden().fixedSize(horizontal: true, vertical: false) }
             Divider().overlay(FYColor.line).padding(.leading, 44)
             ComposerRow(symbol: "timer", title: "Dauer") { Stepper("\(duration) Minuten", value: $duration, in: 15...240, step: 15).fixedSize() }
             Divider().overlay(FYColor.line).padding(.leading, 44)
@@ -482,6 +482,17 @@ struct ActivityDetailView: View {
     @State private var showsJoin = false
 
     var body: some View {
+        Group {
+            if store.revokedFriendIDs.contains(owner.id) {
+                ContentUnavailableView("Nicht mehr verfügbar", systemImage: "lock", description: Text("Ihr seid nicht mehr verbunden. Diese Aktivität wird nicht mehr angezeigt."))
+            } else { detailContent }
+        }
+        .onChange(of: store.friendAccessRevision) { _, _ in
+            if store.revokedFriendIDs.contains(owner.id) { showsJoin = false }
+        }
+    }
+
+    private var detailContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 ZStack(alignment: .bottomLeading) {
@@ -543,7 +554,7 @@ private struct DetailRow: View {
     let title: String
     let value: String
     var tint: Color = FYColor.ink
-    var body: some View { HStack(spacing: 12) { Image(systemName: symbol).foregroundStyle(tint).frame(width: 24); VStack(alignment: .leading, spacing: 3) { Text(title).font(.caption).foregroundStyle(FYColor.muted); Text(value).font(.subheadline) }; Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted) }.padding(.vertical, 13).overlay(alignment: .bottom) { Rectangle().fill(FYColor.line).frame(height: 1) } }
+    var body: some View { HStack(spacing: 12) { Image(systemName: symbol).foregroundStyle(tint).frame(width: 24); VStack(alignment: .leading, spacing: 3) { Text(title).font(.caption).foregroundStyle(FYColor.muted); Text(value).font(.subheadline) }; Spacer() }.padding(.vertical, 13).overlay(alignment: .bottom) { Rectangle().fill(FYColor.line).frame(height: 1) } }
 }
 
 private struct ResultMetric: View {

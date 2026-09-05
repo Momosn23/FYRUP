@@ -12,24 +12,8 @@ struct NotificationCenterView: View {
                 ContentUnavailableView("Noch keine Mitteilungen", systemImage: "bell", description: Text("Social Signals aus deiner Crew erscheinen hier."))
             } else {
                 List(filteredNotifications) { item in
-                    Group {
-                        if let value = item.data?["blind_workout_id"], let blindID = UUID(uuidString: value) {
-                            NavigationLink { BlindWorkoutDetailView(id: blindID) } label: { notificationRow(item) }
-                        } else if item.type.hasPrefix("shot_"), let value = item.data?["user_id"], let userID = UUID(uuidString: value) {
-                            NavigationLink {
-                                if userID == store.profile?.id { WeeklyFlameDetailView() }
-                                else { FriendWeeklyDestination(userID: userID) }
-                            } label: { notificationRow(item) }
-                        } else if item.type == "workout_plan_shared", let value = item.data?["plan_id"], let planID = UUID(uuidString: value) {
-                            NavigationLink { WorkoutPlanDetailView(planID: planID) } label: { notificationRow(item) }
-                        } else if item.type == "weekly_goal" || item.type == "flame_reaction" {
-                            NavigationLink { WeeklyFlameDetailView() } label: { notificationRow(item) }
-                        } else if let value = item.data?["session_id"], let sessionID = UUID(uuidString: value), let invitation = store.invitations.first(where: { $0.sessionID == sessionID }) {
-                            NavigationLink { InvitationDetailView(invitation: invitation) } label: { notificationRow(item) }
-                        } else {
-                            notificationRow(item)
-                        }
-                    }
+                    Button { Task { await store.handleNotificationTap(notification: item) } } label: { notificationRow(item) }
+                    .buttonStyle(.plain)
                     .padding(.vertical, 4).listRowBackground(FYColor.background).listRowSeparatorTint(FYColor.line)
                 }.listStyle(.plain).scrollContentBackground(.hidden)
             }

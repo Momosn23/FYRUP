@@ -18,8 +18,10 @@ struct WeeklyGoalSelectionView: View {
                     }.accessibilityLabel("Zurück")
                 }
                 Image(systemName: "flame").font(.system(size: 42)).foregroundStyle(FYColor.lime).padding(.top, 16)
-                Text(firstConfirmation ? "Dein Wochenziel" : isOnboarding ? "Dein Ziel steht" : "Wochenziel ändern")
-                    .font(.system(size: 30, weight: .black))
+                if isOnboarding {
+                    Text(firstConfirmation ? "Dein Wochenziel" : "Dein Ziel steht")
+                        .font(.system(size: 30, weight: .black))
+                }
                 Text("Wie oft willst du pro Woche trainieren?").font(.title3.bold())
                 Text("Setze dir ein realistisches Ziel. Wenn du es erreichst, verdienst du deine Flamme. Pausen gehören dazu – es gibt kein Tagesziel.")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
@@ -59,9 +61,12 @@ struct WeeklyGoalSelectionView: View {
                 }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("confirm-weekly-goal")
                     .disabled(store.weekly.isSavingGoal || !store.weekly.isStateConfirmed || store.isBusy)
                 if store.weekly.isLoading { ProgressView().frame(maxWidth: .infinity) }
-            }.padding(22).padding(.bottom, 32)
+            }.padding(22).padding(.bottom, isOnboarding ? 32 : 72)
         }.background(FYColor.background).foregroundStyle(FYColor.ink)
+            .navigationTitle(isOnboarding ? "" : firstConfirmation ? "Dein Wochenziel" : "Wochenziel ändern")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(FYColor.background, for: .navigationBar)
+            .toolbarBackground(isOnboarding ? .automatic : .visible, for: .navigationBar)
             .task {
                 guard let userID = store.session?.userID else { return }
                 await store.weekly.activate(userID: userID)
@@ -78,13 +83,24 @@ struct WeeklyGoalSelectionView: View {
 
 struct OwnWeeklyCard: View {
     @Environment(AppStore.self) private var store
+    var compact = false
     var body: some View {
         NavigationLink { WeeklyFlameDetailView() } label: {
             TimelineView(.periodic(from: .now, by: 30)) { _ in
                 VStack(alignment: .leading, spacing: 13) {
                     HStack { Text("Deine Woche").font(.headline); Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted) }
                     if let week = store.weekly.currentWeek {
-                        WeeklyProgressContent(week: week)
+                        if compact {
+                            HStack(spacing: 10) {
+                                Text(week.progressText).font(.title2.weight(.black)).monospacedDigit().contentTransition(.numericText())
+                                Text("Trainings").font(.subheadline).foregroundStyle(FYColor.muted)
+                                Spacer()
+                                Image(systemName: week.flameEarned ? "flame.fill" : "flame").font(.title2)
+                                    .foregroundStyle(week.flameEarned ? FYColor.coral : FYColor.muted)
+                                    .accessibilityLabel(week.flameEarned ? "Wochenflamme verdient" : "Wochenziel noch offen")
+                            }
+                            ProgressView(value: week.fraction).tint(week.flameEarned ? FYColor.coral : FYColor.lime)
+                        } else { WeeklyProgressContent(week: week) }
                         if let commitment = week.commitment { ShotStatusBadge(commitment: commitment) }
                     }
                     else if store.weekly.needsGoalConfirmation == true {
@@ -100,7 +116,7 @@ struct OwnWeeklyCard: View {
     }
 }
 
-private struct WeeklyProgressContent: View {
+struct WeeklyProgressContent: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let week: WeeklyProgress
     var body: some View {
@@ -163,7 +179,7 @@ struct WeeklyFlameDetailView: View {
                 }
                 Text("Nur abgeschlossene FYRUP-Trainings zählen. Schritte, geplante und abgebrochene Trainings zählen nicht. Sehr kurze Einheiten unter einer aktiven Minute werden gespeichert, geben aber keinen Wochen-Credit.")
                     .font(.caption).foregroundStyle(FYColor.muted)
-            }.padding(20).padding(.bottom, 32)
+            }.padding(20).padding(.bottom, 72)
         }.background(FYColor.background).foregroundStyle(FYColor.ink)
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.weekly.refresh(force: true) }

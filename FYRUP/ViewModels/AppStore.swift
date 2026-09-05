@@ -7,13 +7,18 @@ import UIKit
 @Observable
 final class AppStore {
     enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, friendsSetup, onboardingComplete, main }
-    var route: Route = .loading
+    var route: Route = .loading {
+        didSet { notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID) }
+    }
     var profile: Profile?
     var myActivity: Activity?
     var crew: [CrewMember] = []
+    private(set) var revokedFriendIDs = Set<UUID>()
+    private(set) var friendAccessRevision = 0
+    private var feedRequestID: UUID?
     var friendRequests: [Profile] = []
     var notifications: [AppNotification] = []
-    var notificationPreferences: NotificationPreferences = .standard
+    var notificationPreferences: NotificationPreferences? { notificationSettings.confirmedValue }
     var invitations: [SessionInvitation] = []
     var hostedSessions: [HostedSession] = []
     var trainingGroups: [TrainingGroup] = []
@@ -29,28 +34,42 @@ final class AppStore {
     var opensNotifications = false
     var suggestedDisplayName = ""
     private(set) var session: AuthSession? {
-        didSet { accountGeneration = UUID(); isRefreshing = false }
+        didSet {
+            accountGeneration = UUID(); isRefreshing = false
+            notificationSettings.activate(userID: session?.userID)
+            trackingDrafts.activate(userID: session?.userID)
+            notificationRouting.accountChanged(to: session?.userID)
+        }
     }
     private var accountGeneration = UUID()
     let repository: any AppRepository
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
+    let trackingDrafts: WorkoutTrackingDraftStore
     let steps: StepStore
     let weekly: WeeklyFlameStore
     let blind: BlindWorkoutStore
     let shot: CallMyShotStore
+    let notificationSettings: NotificationPreferenceStore
+    let notificationRouting: NotificationRoutingStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil) {
         self.repository = repository; self.analytics = analytics
-        self.workouts = WorkoutStore(repository: repository)
+        self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
+        self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
         self.steps = steps ?? StepStore(repository: repository)
         self.weekly = weekly ?? WeeklyFlameStore(repository: repository)
         self.blind = BlindWorkoutStore(repository: repository)
         self.shot = CallMyShotStore(repository: repository, weekly: self.weekly)
+        self.notificationRouting = NotificationRoutingStore(repository: repository)
+        self.notificationSettings = NotificationPreferenceStore(
+            read: { try await repository.notificationPreferences() },
+            write: { try await repository.saveNotificationPreferences($0, expected: $1) }
+        )
     }
 
     static func make() -> AppStore {
@@ -68,7 +87,7 @@ final class AppStore {
             let steps = arguments.contains("--steps-demo")
                 ? StepStore(repository: repository, reader: StepPreviewReader(), defaults: localDefaults)
                 : StepStore(repository: repository, defaults: localDefaults)
-            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults))
+            return AppStore(repository: repository, workoutDrafts: drafts, steps: steps, weekly: WeeklyFlameStore(repository: repository, defaults: localDefaults), workoutCopies: WorkoutCopyRequestStore(defaults: localDefaults), trackingDrafts: WorkoutTrackingDraftStore(defaults: localDefaults))
         }
         guard let configuration = AppConfiguration.load() else { return AppStore(repository: DemoRepositoryPlaceholder()) }
         return AppStore(repository: LiveAppRepository(configuration: configuration))
@@ -101,6 +120,7 @@ final class AppStore {
         if let id = session?.userID { FeedCache.clear(userID: id) }
         workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount()
+        trackingDrafts.clearCurrentAccount()
         steps.reset()
         weekly.reset()
         blind.reset()
@@ -108,6 +128,7 @@ final class AppStore {
         session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
         invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
         goals = .empty; friendRequests = []; userSearchResults = []; errorMessage = nil
+        revokedFriendIDs = []; friendAccessRevision += 1; feedRequestID = nil
         route = .loading
         await repository.signOut()
         isBusy = false
@@ -244,12 +265,16 @@ final class AppStore {
     func refresh() async {
         guard let userID = session?.userID, !isRefreshing else { return }
         let generation = accountGeneration
+        let accessRevision = friendAccessRevision
+        let requestID = UUID()
+        feedRequestID = requestID
         isRefreshing = true
-        defer { if generation == accountGeneration { isRefreshing = false } }
+        defer { if generation == accountGeneration, feedRequestID == requestID { isRefreshing = false; feedRequestID = nil } }
         do {
             let result = try await repository.today(userID: userID)
-            guard generation == accountGeneration, session?.userID == userID else { return }
-            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let groups = repository.trainingGroups(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID); async let preferences = repository.notificationPreferences()
+            guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
+            async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let groups = repository.trainingGroups(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID)
+            async let preferenceRefresh: Void = notificationSettings.refresh()
             let loadedRequests = (try? await requests) ?? []
             let loadedNotifications = (try? await notes) ?? []
             let loadedInvitations = (try? await invites) ?? []
@@ -257,16 +282,31 @@ final class AppStore {
             let loadedGroups = (try? await groups) ?? []
             let loadedSummary = (try? await summary) ?? .empty
             let loadedRecent = (try? await recent) ?? []
-            let loadedPreferences = (try? await preferences) ?? .standard
-            guard generation == accountGeneration, session?.userID == userID else { return }
+            await preferenceRefresh
+            guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
+            let currentFriends = Set(result.1.map(\.id))
+            for removed in Set(crew.map(\.id)).subtracting(currentFriends) { revokeFriendAccess(userID: removed) }
+            // Only a new, fully confirmed server read may restore access after re-acceptance.
+            for restored in revokedFriendIDs.intersection(currentFriends) {
+                revokedFriendIDs.remove(restored)
+                steps.restoreFriend(userID: restored)
+                workouts.restoreFriend(userID: restored)
+                friendAccessRevision += 1
+            }
             myActivity = result.0; crew = result.1
-            friendRequests = loadedRequests; notifications = loadedNotifications; invitations = loadedInvitations
-            hostedSessions = loadedHosted; trainingGroups = loadedGroups; goals = loadedSummary
-            recentActivities = loadedRecent; notificationPreferences = loadedPreferences
+            friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) }
+            notifications = loadedNotifications
+            invitations = loadedInvitations.filter { !revokedFriendIDs.contains($0.host.id) }
+            hostedSessions = loadedHosted.map { HostedSession(session: $0.session, participants: $0.participants.filter { !revokedFriendIDs.contains($0.id) }) }
+            trainingGroups = loadedGroups.filter { !revokedFriendIDs.contains($0.ownerID) }.map { group in
+                TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name, members: group.members.filter { !revokedFriendIDs.contains($0.id) })
+            }
+            goals = loadedSummary
+            recentActivities = loadedRecent
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
-            guard generation == accountGeneration, session?.userID == userID else { return }
-            if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1; goals = cached.2 }
+            guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
+            if let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1.filter { !revokedFriendIDs.contains($0.id) }; goals = cached.2 }
             present(error)
         }
     }
@@ -331,15 +371,48 @@ final class AppStore {
 
     func sendFriendRequest(to profile: Profile) async { await perform { try await self.repository.sendFriendRequest(to: profile.id); await self.analytics.track(.friendRequestSent); self.userSearchResults.removeAll { $0.id == profile.id } } }
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
-    func removeFriend(_ profile: Profile) async { await perform { try await self.repository.removeFriend(profile.id); self.shot.removeFriend(userID: profile.id); self.blind.removeFriend(userID: profile.id); await self.refresh() } }
-    func block(_ profile: Profile) async { await perform { try await self.repository.block(profile.id); self.shot.removeFriend(userID: profile.id); self.blind.removeFriend(userID: profile.id); await self.refresh() } }
+    func removeFriend(_ profile: Profile) async { await endFriendAccess(profile, block: false) }
+    func block(_ profile: Profile) async { await endFriendAccess(profile, block: true) }
+
+    private func endFriendAccess(_ profile: Profile, block: Bool) async {
+        guard let ownerID = session?.userID else { return }
+        let generation = accountGeneration
+        await perform {
+            if block { try await self.repository.block(profile.id) }
+            else { try await self.repository.removeFriend(profile.id) }
+            guard self.accountGeneration == generation, self.session?.userID == ownerID else { return }
+            self.revokeFriendAccess(userID: profile.id)
+            // Retire any feed request which began before the confirmed revocation.
+            self.feedRequestID = nil; self.isRefreshing = false
+            await self.refresh()
+        }
+    }
+
+    private func revokeFriendAccess(userID: UUID) {
+        revokedFriendIDs.insert(userID); friendAccessRevision += 1
+        notificationRouting.revokeSocialDestinations()
+        crew.removeAll { $0.id == userID }
+        friendRequests.removeAll { $0.id == userID }
+        userSearchResults.removeAll { $0.id == userID }
+        invitations.removeAll { $0.host.id == userID }
+        trainingGroups = trainingGroups.filter { $0.ownerID != userID }.map { group in
+            TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name, members: group.members.filter { $0.id != userID })
+        }
+        hostedSessions = hostedSessions.map { HostedSession(session: $0.session, participants: $0.participants.filter { $0.id != userID }) }
+        shot.removeFriend(userID: userID); blind.removeFriend(userID: userID)
+        steps.removeFriend(userID: userID); workouts.removeFriend(userID: userID)
+        avatarCache = [:]
+        if let ownerID = session?.userID { FeedCache.clear(userID: ownerID) }
+    }
     func deleteAccount() async {
         await perform {
             let userID = self.session?.userID
             try await self.repository.deleteAccount()
             if let userID { FeedCache.clear(userID: userID) }
+            if let userID { self.workouts.clearCopyRequests(userID: userID) }
             self.workouts.activate(userID: nil)
             self.workoutDrafts.clearCurrentAccount()
+            self.trackingDrafts.clearCurrentAccount()
             self.steps.reset(clearLocalPreferences: true)
             self.weekly.reset(clearLocalPreferences: true)
             self.blind.reset()
@@ -348,6 +421,7 @@ final class AppStore {
             self.crew = []; self.recentActivities = []; self.invitations = []; self.hostedSessions = []
             self.notifications = []; self.trainingGroups = []; self.avatarCache = [:]
             self.goals = .empty; self.friendRequests = []; self.userSearchResults = []
+            self.revokedFriendIDs = []; self.friendAccessRevision += 1; self.feedRequestID = nil
         }
     }
 
@@ -378,16 +452,44 @@ final class AppStore {
     func respond(to invitation: SessionInvitation, status: InvitationStatus) async { await perform { try await self.repository.respondToInvitation(sessionID: invitation.sessionID, status: status); if status == .accepted { await self.analytics.track(.inviteAccepted) }; await self.refresh() } }
     func cancelPlannedSession(_ id: UUID) async { await perform { try await self.repository.cancelPlannedSession(sessionID: id); await self.refresh() } }
     func joinPlannedSession(_ id: UUID) async { await perform { try await self.repository.joinPlannedSession(sessionID: id); Haptics.impact(.medium); await self.refresh() } }
-    func markNotificationsRead() async { try? await repository.markNotificationsRead(); notifications = notifications.map { var item = $0; item.readAt = item.readAt ?? Date(); return item } }
-    func saveNotificationPreferences(_ preferences: NotificationPreferences) async {
-        await perform { self.notificationPreferences = try await self.repository.saveNotificationPreferences(preferences) }
+    func markNotificationsRead() async {
+        guard session != nil else { return }
+        let generation = accountGeneration
+        do {
+            try await repository.markNotificationsRead()
+            guard generation == accountGeneration else { return }
+            notifications = notifications.map { var item = $0; item.readAt = item.readAt ?? Date(); return item }
+        } catch { if generation == accountGeneration { present(error) } }
+    }
+    @discardableResult
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async -> Bool {
+        await notificationSettings.save(preferences, expected: expected)
     }
 
-    func handleNotificationTap(type: String?) async {
-        guard route == .main else { return }
-        if type == "friend_request" || type == "friend_accepted" { selectedTab = 1 }
-        else { selectedTab = 0; opensNotifications = true }
-        await refresh()
+    func handleNotificationTap(_ payload: NotificationTapPayload) async {
+        notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID)
+        let generation = accountGeneration
+        if route == .main, payload.recipientID == nil || payload.recipientID == session?.userID {
+            showsActivityComposer = false; weekly.dismissCelebration()
+        }
+        await notificationRouting.receive(payload)
+        guard generation == accountGeneration else { return }
+        if notificationRouting.presentation != nil { selectedTab = 0 }
+        if let message = notificationRouting.errorMessage { errorMessage = message }
+    }
+
+    func handleNotificationTap(notification: AppNotification) async {
+        guard let owner = session?.userID, let payload = NotificationTapPayload(notification: notification, recipientID: owner) else { return }
+        await handleNotificationTap(payload)
+    }
+
+    func deliverPendingNotification() async {
+        notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID)
+        let generation = accountGeneration
+        await notificationRouting.deliverPending()
+        guard generation == accountGeneration else { return }
+        if notificationRouting.presentation != nil { selectedTab = 0 }
+        if let message = notificationRouting.errorMessage { errorMessage = message }
     }
 
     private func loadProfileAndRoute() async throws {
@@ -459,7 +561,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func workoutPlan(id: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
     func saveWorkoutPlan(_ plan: WorkoutPlan) async throws -> WorkoutPlan { throw AppError.configuration }
     func archiveWorkoutPlan(id: UUID) async throws { throw AppError.configuration }
-    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
+    func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { throw AppError.configuration }
     func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity { throw AppError.configuration }
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws { throw AppError.configuration }
@@ -486,7 +588,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func sendFriendRequest(to userID: UUID) async throws {}; func answerFriendRequest(from userID: UUID, accept: Bool) async throws {}
     func removeFriend(_ userID: UUID) async throws {}; func block(_ userID: UUID) async throws {}; func fyrup(_ userID: UUID) async throws {}
     func react(activityID: UUID, reaction: ReactionKind?) async throws {}; func notifications() async throws -> [AppNotification] { [] }
-    func notificationPreferences() async throws -> NotificationPreferences { .standard }; func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences { preferences }
+    func notificationPreferences() async throws -> NotificationPreferences { .standard }; func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async throws -> NotificationPreferences { throw AppError.configuration }
     func goalSummary() async throws -> GoalSummary { .empty }; func markNotificationsRead() async throws {}
     func registerDeviceToken(_ token: String) async throws {}; func deleteAccount() async throws {}
 }

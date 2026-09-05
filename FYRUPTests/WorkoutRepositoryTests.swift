@@ -155,7 +155,7 @@ final class WorkoutRepositoryTests: XCTestCase {
         XCTAssertEqual(shared.exercises.first?.exercise.name, "Prime Chest Press")
         let maxLibraryBeforeCopy = try await max.exercises()
         XCTAssertFalse(maxLibraryBeforeCopy.contains { $0.id == custom.id }, "Explicit plan access must not expose the creator's private library")
-        var copy = try await max.copyWorkoutPlan(id: plan.id)
+        var copy = try await max.copyWorkoutPlan(id: plan.id, requestID: UUID())
         XCTAssertNotEqual(copy.id, plan.id)
         XCTAssertEqual(copy.ownerID, maxID)
         XCTAssertEqual(copy.visibility, .private)
@@ -323,13 +323,115 @@ final class WorkoutRepositoryTests: XCTestCase {
         let custom = try await momo.saveExercise(GymExercise(name: "Prime Chest Press", primaryMuscle: .chest))
         let plan = try await momo.saveWorkoutPlan(WorkoutPlan(ownerID: momoID, name: "Push", exercises: [WorkoutPlanExercise(exercise: custom)]))
         try await momo.shareWorkoutPlan(id: plan.id, friendIDs: [maxID])
-        let copy = try await max.copyWorkoutPlan(id: plan.id)
+        let copy = try await max.copyWorkoutPlan(id: plan.id, requestID: UUID())
         try await momo.deleteAccount()
         let surviving = try await max.workoutPlan(id: copy.id)
         XCTAssertEqual(surviving.exercises[0].exercise.name, "Prime Chest Press")
         XCTAssertEqual(surviving.exercises[0].exercise.createdBy, maxID)
         let deleted = try await momo.workoutPlans(ownerID: nil)
         XCTAssertTrue(deleted.isEmpty)
+    }
+
+    func testCopyRequestBodyRequiresBothSourceAndStableRequestID() throws {
+        let source = UUID(); let request = UUID()
+        let data = try JSONEncoder().encode(CopyWorkoutPlanRequest(id: source, requestID: request))
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+        XCTAssertEqual(body, ["p_id": source.uuidString, "p_request_id": request.uuidString])
+    }
+
+    func testCopyRetryKeepsPlanAndCustomIDsAcrossRestart() async throws {
+        let suite = "FYRUP.CopyRetry.\(UUID().uuidString)"
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let storage = DemoWorkoutStorage(persistenceSuiteName: suite, library: library)
+        let momo = DemoRepository(workoutStorage: storage)
+        let max = DemoRepository(userID: maxID, workoutStorage: storage)
+        let custom = try await momo.saveExercise(GymExercise(name: "Custom Press", primaryMuscle: .chest))
+        let source = try await momo.saveWorkoutPlan(WorkoutPlan(ownerID: momoID, name: "Shared", exercises: [WorkoutPlanExercise(exercise: custom), WorkoutPlanExercise(exercise: custom)]))
+        try await momo.shareWorkoutPlan(id: source.id, friendIDs: [maxID])
+        let request = UUID()
+        let first = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        let restored = DemoRepository(userID: maxID, workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite, library: library))
+        let retry = try await restored.copyWorkoutPlan(id: source.id, requestID: request)
+        XCTAssertEqual(retry, first); XCTAssertEqual(retry.copyRequestID, request)
+        XCTAssertEqual(retry.exercises[0].exercise.id, retry.exercises[1].exercise.id)
+        let plans = try await restored.workoutPlans(ownerID: nil)
+        let customCopies = try await restored.exercises().filter(\.isCustom)
+        XCTAssertEqual(plans.map(\.id), [first.id]); XCTAssertEqual(customCopies.count, 1)
+        let intentional = try await restored.copyWorkoutPlan(id: source.id, requestID: UUID())
+        XCTAssertNotEqual(intentional.id, first.id)
+        XCTAssertNotEqual(intentional.exercises[0].exercise.id, first.exercises[0].exercise.id)
+    }
+
+    func testCopyRetryAfterRevocationReturnsOnlyAlreadyOwnedCopy() async throws {
+        let storage = DemoWorkoutStorage(library: library)
+        let momo = DemoRepository(workoutStorage: storage)
+        let max = DemoRepository(userID: maxID, workoutStorage: storage)
+        let source = try await makePlan(in: momo)
+        try await momo.shareWorkoutPlan(id: source.id, friendIDs: [maxID])
+        let request = UUID(); let first = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        try await momo.block(maxID)
+        let retry = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        XCTAssertEqual(first, retry)
+        await assertDenied { _ = try await max.copyWorkoutPlan(id: source.id, requestID: UUID()) }
+        let stranger = DemoRepository(userID: UUID(), workoutStorage: storage)
+        await assertDenied { _ = try await stranger.copyWorkoutPlan(id: source.id, requestID: request) }
+    }
+
+    func testCopyRequestCannotChangeSourceAndIsAccountScoped() async throws {
+        let storage = DemoWorkoutStorage(library: library)
+        let momo = DemoRepository(workoutStorage: storage)
+        let max = DemoRepository(userID: maxID, workoutStorage: storage)
+        let source = try await makePlan(in: momo)
+        let second = try await makePlan(in: momo)
+        try await momo.shareWorkoutPlan(id: source.id, friendIDs: [maxID])
+        let request = UUID()
+        let first = try await momo.copyWorkoutPlan(id: source.id, requestID: request)
+        await assertDenied { _ = try await momo.copyWorkoutPlan(id: second.id, requestID: request) }
+        let otherAccount = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        XCTAssertNotEqual(first.id, otherAccount.id)
+        XCTAssertEqual(otherAccount.ownerID, maxID)
+        try await max.archiveWorkoutPlan(id: otherAccount.id)
+        await assertDenied { _ = try await max.copyWorkoutPlan(id: source.id, requestID: request) }
+        let visible = try await max.workoutPlans(ownerID: nil)
+        XCTAssertTrue(visible.isEmpty, "Retry must not replace an archived receipt")
+    }
+
+    func testCopyRetrySurvivesSourceDeletionAndDoesNotResurrectAccountReceipts() async throws {
+        let storage = DemoWorkoutStorage(library: library)
+        let momo = DemoRepository(workoutStorage: storage)
+        let max = DemoRepository(userID: maxID, workoutStorage: storage)
+        let source = try await makePlan(in: momo)
+        try await momo.shareWorkoutPlan(id: source.id, friendIDs: [maxID])
+        let request = UUID(); let first = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        try await momo.deleteAccount()
+        let surviving = try await max.copyWorkoutPlan(id: source.id, requestID: request)
+        XCTAssertEqual(surviving.id, first.id); XCTAssertNil(surviving.copiedFromPlanID)
+        XCTAssertEqual(surviving.copyRequestID, request)
+        try await max.deleteAccount()
+        await assertDenied { _ = try await max.copyWorkoutPlan(id: source.id, requestID: request) }
+    }
+
+    func testLegacyDemoPersistenceWithoutCopyRequestsStillLoads() async throws {
+        let suite = "FYRUP.CopyLegacy.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = DemoRepository(workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite, library: library))
+        let source = try await makePlan(in: first)
+        let original = try XCTUnwrap(defaults.data(forKey: "fyrup.demo.workouts.v1"))
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: original) as? [String: Any])
+        legacy.removeValue(forKey: "copyRequests")
+        defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: "fyrup.demo.workouts.v1")
+        let restored = DemoRepository(workoutStorage: DemoWorkoutStorage(persistenceSuiteName: suite, library: library))
+        let copy = try await restored.copyWorkoutPlan(id: source.id, requestID: UUID())
+        XCTAssertEqual(copy.ownerID, momoID); XCTAssertNotEqual(copy.id, source.id)
+    }
+
+    func testCopyErrorMapperDistinguishesRequestMismatchAndRemovedReceipt() {
+        for message in ["copy_request_mismatch", "copy_result_unavailable", "invalid_copy_request"] {
+            let error = SupabaseRESTClient.appError(status: 400, code: "P0001", message: message)
+            XCTAssertNotNil(error.errorDescription)
+            XCTAssertNotEqual(error.errorDescription, AppError.server.errorDescription)
+        }
     }
 
     func testPauseIsIdempotentSurvivesRestartAndCannotChangeCompletedOrForeignActivity() async throws {

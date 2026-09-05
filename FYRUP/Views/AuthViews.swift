@@ -234,6 +234,7 @@ struct ProfileSetupView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 15) {
                 OnboardingProgress(step: 1, total: 3) { Task { await store.logout() } }
+                    .accessibilityElement(children: .contain).accessibilityIdentifier("onboarding-progress")
                 Text("Erzähl uns von dir").font(.system(size: 30, weight: .black)).foregroundStyle(FYColor.ink)
                 AvatarPicker(profile: store.profile, jpegData: $avatarJPEG).frame(maxWidth: .infinity).padding(.vertical, 2)
                 OnboardingField(title: "Vorname", placeholder: "Max", text: $name, symbol: nil, suffix: nil)
@@ -243,7 +244,8 @@ struct ProfileSetupView: View {
                 OnboardingField(title: "Geburtsjahr (optional)", placeholder: "2003", text: $birthYear, symbol: nil, suffix: nil)
                     .keyboardType(.numberPad).focused($focusedField, equals: .birthYear)
                 OnboardingField(title: "Stadt (optional)", placeholder: "Köln", text: $city, symbol: nil, suffix: nil)
-                    .textContentType(.addressCity).focused($focusedField, equals: .city)
+                    .textContentType(.addressCity).focused($focusedField, equals: .city).submitLabel(.done)
+                    .onSubmit { focusedField = nil }
                 Button("Weiter") {
                     focusedField = nil
                     Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city, avatarJPEG: avatarJPEG) }

@@ -194,6 +194,8 @@ actor SupabaseRESTClient {
         if text.contains("group_name_exists") { return .conflict("Du hast bereits eine Gruppe mit diesem Namen.") }
         if text.contains("already_live") { return .conflict("Du hast bereits ein LIVE-Training.") }
         if text.contains("weekly_commitment_exists") { return .conflict("Dein Shot für diese Woche ist bereits gespeichert.") }
+        if text.contains("notification_preferences_conflict") { return .conflict("Die Einstellungen wurden inzwischen geändert. Bitte prüfe den aktuellen Stand, bevor du speicherst.") }
+        if text.contains("invalid_notification_preferences") { return .validation("Bitte lade deine Mitteilungseinstellungen erneut und prüfe alle Kategorien.") }
         if text.contains("weekly_week_changed") { return .conflict("Die Woche hat gewechselt. Prüfe dein aktuelles Ziel und bestätige es erneut.") }
         if text.contains("weekly_goal_not_confirmed") { return .validation("Bestätige zuerst dein persönliches Wochenziel.") }
         if text.contains("weekly_goal_already_reached") { return .conflict("Du hast dein Wochenziel bereits erreicht. Ein neuer Call ist nächste Woche möglich.") }
@@ -202,6 +204,9 @@ actor SupabaseRESTClient {
         if text.contains("start_in_past") { return .validation("Wähle bitte einen Zeitpunkt in der Zukunft.") }
         if text.contains("session_not_editable") { return .conflict("Dieses Training kann nicht mehr geändert werden.") }
         if text.contains("plan_not_available") { return .conflict("Dieser Plan ist nicht mehr verfügbar oder wurde archiviert.") }
+        if text.contains("copy_request_mismatch") { return .conflict("Diese Kopieranfrage gehört zu einem anderen Plan.") }
+        if text.contains("copy_result_unavailable") { return .conflict("Deine zuvor erstellte Kopie wurde archiviert oder gelöscht. Es wurde keine weitere Kopie angelegt.") }
+        if text.contains("invalid_copy_request") { return .validation("Bitte aktualisiere FYRUP und öffne den Plan erneut, damit deine Kopie sicher zugeordnet werden kann.") }
         if text.contains("not_friends") { return .conflict("Du kannst den Plan nur mit akzeptierten Freunden teilen.") }
         if text.contains("forbidden") || code == "42501" { return .accessDenied }
         if text.contains("invalid_exercise") || text.contains("invalid_plan") || text.contains("invalid_prescription") || code == "23514" {

@@ -30,9 +30,11 @@ actor DemoBlindWorkoutStorage {
     private let now: @Sendable () -> Date
     private var failedToLoad = false
     private let key = "fyrup.demo.blind-workouts.v1"
+    nonisolated let notificationPreferenceStorage: DemoNotificationPreferenceStorage
 
     init(persistenceSuiteName: String? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
         self.now = now
+        notificationPreferenceStorage = .shared(persistenceSuiteName: persistenceSuiteName)
         let defaults = persistenceSuiteName.flatMap { UserDefaults(suiteName: $0) }
         self.defaults = defaults
         if let data = defaults?.data(forKey: "fyrup.demo.blind-workouts.v1") {
@@ -135,7 +137,7 @@ actor DemoBlindWorkoutStorage {
         }
         let entry = Entry(draft: draft, creator: creator, recipient: recipient, createdAt: now(), logs: logs)
         saved.entries[draft.id] = entry
-        if (saved.preferences[recipient.id] ?? .standard).invitations {
+        if (try? notificationPreferenceStorage.value(userID: recipient.id))?.invitations == true {
             saved.notifications[recipient.id, default: []].insert(AppNotification(
                 id: UUID(), type: "blind_workout_received", title: "\(creator.displayName) hat dir ein Blind Workout gebaut 👀",
                 body: "\(draft.focus.title) · \(logs.count) Übungen · ca. \(draft.estimatedDurationMinutes) Min.",
@@ -287,7 +289,7 @@ actor DemoBlindWorkoutStorage {
             entry.status = .completed; entry.revealedCount = entry.logs.count
             if !entry.completionNotified {
                 entry.completionNotified = true
-                if (saved.preferences[entry.creator.id] ?? .standard).reactions {
+                if (try? notificationPreferenceStorage.value(userID: entry.creator.id))?.reactions == true {
                     saved.notifications[entry.creator.id, default: []].insert(AppNotification(
                         id: UUID(), type: "blind_workout_completed", title: "\(entry.recipient.displayName) hat dein Blind Workout abgeschlossen 🔥",
                         body: "\(entry.logs.count) Übungen · stark gemacht.", data: ["blind_workout_id": id.uuidString], createdAt: now(), readAt: nil), at: 0)
@@ -358,7 +360,7 @@ actor DemoBlindWorkoutStorage {
         entry.reactions[userID] = reaction
         let recipient = entry.creator.id == userID ? entry.recipient : entry.creator
         let author = entry.creator.id == userID ? entry.creator : entry.recipient
-        if let reaction, previous != reaction, (saved.preferences[recipient.id] ?? .standard).reactions,
+        if let reaction, previous != reaction, (try? notificationPreferenceStorage.value(userID: recipient.id))?.reactions == true,
            entry.reactionNotificationAuthors.insert(userID).inserted {
             saved.notifications[recipient.id, default: []].insert(AppNotification(
                 id: UUID(), type: "blind_reaction", title: "\(author.displayName) feiert euer Blind Workout",
@@ -385,7 +387,7 @@ actor DemoBlindWorkoutStorage {
         try checkLoaded(); saved.revokedFriendships.insert(friendshipKey(first, second)); try persist()
     }
     func setNotificationPreferences(_ preferences: NotificationPreferences, userID: UUID) throws {
-        try checkLoaded(); saved.preferences[userID] = preferences; try persist()
+        try checkLoaded(); try notificationPreferenceStorage.setFixture(preferences, userID: userID)
     }
     func deleteAccount(userID: UUID) throws {
         try checkLoaded()
@@ -398,6 +400,7 @@ actor DemoBlindWorkoutStorage {
         saved.orphanedActivities = saved.orphanedActivities.filter { $0.value.userID != userID }
         saved.notifications.removeValue(forKey: userID)
         saved.preferences.removeValue(forKey: userID)
+        try notificationPreferenceStorage.remove(userID: userID)
         try persist()
     }
 }

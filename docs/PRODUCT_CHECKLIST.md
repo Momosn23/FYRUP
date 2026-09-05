@@ -4,6 +4,8 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 ## 1. Status und Abnahmeregel
 
+**Neuester vollständiger Cloud-Nachweis: Build25 (`559b6f7`) erfolgreich, 247 native Unit-Tests und22 UI-Abläufe ohne Fehler.** Blind/Shot, Schritte-Freigabe, Wochenzielwechsel, Onboarding sowie alle4 Trainingsplan-Flows bestanden. Laufzeit20m10s; nur iOS-Simulator/Demo, kein echter HealthKit-/APNs-/TestFlight-Nachweis. Die anschließenden Sicherheits-/Darstellungskorrekturen und ihre zusätzlichen Tests benötigen einen weiteren Lauf.
+
 `[ ]` = noch nicht vollständig abgenommen. `[x]` = umgesetzt und durch einen konkreten Prüfnachweis belegt. Vorbereiteter Code, ein grüner Build oder ein einzelner Screenshot bedeuten jeweils noch keine vollständige Funktionsabnahme.
 
 Nachweise werden getrennt geführt: **Code integriert → Backend geprüft/ausgerollt → automatisierte Tests → manuell bedient/visuell verglichen → echtes iPhone/TestFlight**. Nicht zutreffende Schritte begründen. Nicht ausgeführte oder fehlgeschlagene Tests bleiben offen.
@@ -11,9 +13,9 @@ Nachweise werden getrennt geführt: **Code integriert → Backend geprüft/ausge
 | Bereich | Belegter Stand | Noch nicht abgenommen |
 | --- | --- | --- |
 | Trainingspläne / Bibliothek | 105 lokale PostgreSQL-Tests; native Unit-Tests bestanden. Build24: alle4 Workout-UI-Flows einschließlich Einfach/Tracken/Neustart bestanden. [Arbeitsnachweis](WORKOUT_IMPLEMENTATION_STATUS.md) | Frische visuelle/manuelle Abnahme, produktives Backend und iPhone |
-| Apple Health / Schritte | 100 lokale PostgreSQL-Tests,32 native Unit-Tests bestanden. Optionalität im UI bestanden, Freigabe noch fehlgeschlagen. [Arbeitsnachweis](HEALTH_IMPLEMENTATION_STATUS.md) | Freigabe-UI, visuelle Abnahme, produktives Backend/Signing und Gerätetest |
-| Neues Wochenziel-/Flammensystem | 183 Weekly-DB- plus50 Onboardingprüfungen bestanden; Build24:30 Store- und11/12 Repository-Tests bestanden, Zielwechsel-/Neustart-UI bestanden. Testfixture-Korrektur vorbereitet. [Arbeitsnachweis](WEEKLY_IMPLEMENTATION_STATUS.md) | Nativer Wiederholungslauf, produktive Migration, manuelle und iPhone-Abnahme |
-| Blind Workout / Call My Shot | Server, Modelle, Speicherung, helle UI und neue native Tests integriert. 678 gemeinsame lokale DB-Prüfungen mit Wochen-ID-Absicherung sowie29 Push-Dispatcher-Tests bestanden. [Arbeitsnachweis](SOCIAL_EXTENSIONS_IMPLEMENTATION_STATUS.md) | Neue native Ausführung, Produktiv-Backend, visuelle Abnahme, Push und iPhone |
+| Apple Health / Schritte | 100 lokale PostgreSQL-Tests,32 native Unit-Tests bestanden. Build25: beide Schritte-UI-Tests einschließlich bestätigtem ON/OFF bestanden. [Arbeitsnachweis](HEALTH_IMPLEMENTATION_STATUS.md) | Visuelle Nachkontrolle, produktives Backend/Signing und Gerätetest |
+| Neues Wochenziel-/Flammensystem | 183 Weekly-DB- plus50 Onboardingprüfungen bestanden; Build25:30 Store- und12 Repository-Tests bestanden, Zielwechsel-/Neustart-UI bestanden. [Arbeitsnachweis](WEEKLY_IMPLEMENTATION_STATUS.md) | Produktive Migration, manuelle und iPhone-Abnahme |
+| Blind Workout / Call My Shot | Server, Modelle, Speicherung und helle UI integriert. 678 gemeinsame lokale DB-Prüfungen; Build25:87 native Unit-Tests und beide neuen UI-Abläufe bestanden. [Arbeitsnachweis](SOCIAL_EXTENSIONS_IMPLEMENTATION_STATUS.md) | Produktiv-Backend, visuelle Abnahme, Push und iPhone |
 | Helles Grunddesign | Bestehende SwiftUI-Seiten und Referenzliste vorhanden | Vergleich jeder Seite und Integration der neuen Funktionen |
 
 Bestandsnachweis: Cloud-Build17 (`4311282`),11 UI-Tests bestanden. Build18 (`f461c1b`) erfolgreich; Einzelbilder visuell geprüft, Abweichungen in VISUAL_QA_BUILD18.md und VISUAL_QA_BUILD18_DETAILS.md dokumentiert. Feature-Builds19/20 scheiterten beim Kompilieren;21 an einer Schritte-Zeitgrenzenprüfung, jeweils korrigiert. **Build22 (`b899685`):117 native Unit-Tests bestanden;19 UI-Tests tatsächlich ausgeführt,15 bestanden und4 fehlgeschlagen.** Kein grüner Feature-Gesamtlauf. Echte iPhone-/HealthKit-Abnahme und TestFlight-Auslieferung der neuen Funktionen weiterhin **NICHT AUSGEFÜHRT**.

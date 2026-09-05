@@ -51,9 +51,11 @@ actor DemoWeeklyFlameStorage {
     private let now: @Sendable () -> Date
     private var failedToLoad = false
     private let key = "fyrup.demo.weekly-flames.v1"
+    nonisolated let notificationPreferenceStorage: DemoNotificationPreferenceStorage
 
     init(persistenceSuiteName: String? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
         self.now = now
+        notificationPreferenceStorage = .shared(persistenceSuiteName: persistenceSuiteName)
         let defaults = persistenceSuiteName.flatMap { UserDefaults(suiteName: $0) }
         self.defaults = defaults
         if let data = defaults?.data(forKey: "fyrup.demo.weekly-flames.v1") {
@@ -168,7 +170,7 @@ actor DemoWeeklyFlameStorage {
     private func appendNotification(owner: UUID, recipient: UUID, actor: UUID, commitmentID: UUID,
                                     type: String, title: String, body: String, receipt: Date) {
         guard recipient != actor, !state.revokedFriendships.contains(friendshipKey(recipient, actor)) else { return }
-        let preference = state.preferences?[recipient] ?? .standard
+        guard let preference = try? notificationPreferenceStorage.value(userID: recipient) else { return }
         guard (type == "shot_reaction" ? preference.reactions : preference.weeklyGoal),
               let weekID = state.accounts[owner]?.weeks.first(where: { $0.commitment?.id == commitmentID })?.id else { return }
         var notifications = state.notifications ?? [:]
@@ -348,7 +350,7 @@ actor DemoWeeklyFlameStorage {
               var commitment = account.weeks[index].commitment else { throw AppError.accessDenied }
         let previous = commitment.reactions[viewer]
         commitment.reactions[viewer] = reaction
-        if let reaction, previous != reaction, (state.preferences?[owner] ?? .standard).reactions,
+        if let reaction, previous != reaction, (try? notificationPreferenceStorage.value(userID: owner))?.reactions == true,
            commitment.reactionNotificationAuthors.insert(viewer).inserted {
             appendNotification(owner: owner, recipient: owner, actor: viewer, commitmentID: commitmentID,
                                type: "shot_reaction", title: "\(displayName) unterstützt dein Wochenziel",
@@ -375,9 +377,7 @@ actor DemoWeeklyFlameStorage {
 
     func setNotificationPreferences(_ preferences: NotificationPreferences, userID: UUID) throws {
         try checkLoaded()
-        var values = state.preferences ?? [:]
-        values[userID] = preferences; state.preferences = values
-        try persist()
+        try notificationPreferenceStorage.setFixture(preferences, userID: userID)
     }
 
     func revokeFriendship(_ first: UUID, _ second: UUID) throws {
@@ -401,6 +401,7 @@ actor DemoWeeklyFlameStorage {
         state.accounts.removeValue(forKey: userID)
         state.notifications?.removeValue(forKey: userID)
         state.preferences?.removeValue(forKey: userID)
+        try notificationPreferenceStorage.remove(userID: userID)
         for owner in Array(state.accounts.keys) {
             guard var account = state.accounts[owner] else { continue }
             for index in account.weeks.indices {

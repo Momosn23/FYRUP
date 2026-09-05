@@ -81,11 +81,22 @@ struct TrainingGroupCard: View {
 struct TrainingGroupDetailView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    let group: TrainingGroup
+    private let groupID: UUID
     @State private var confirmsDelete = false
+    @State private var isDeleting = false
+
+    init(group: TrainingGroup) { groupID = group.id }
+
+    private var currentGroup: TrainingGroup? {
+        guard store.profile != nil, let group = store.trainingGroups.first(where: { $0.id == groupID }),
+              !store.revokedFriendIDs.contains(group.ownerID) else { return nil }
+        return TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name,
+                             members: group.members.filter { !store.revokedFriendIDs.contains($0.id) })
+    }
 
     var body: some View {
         ScrollView {
+            if let group = currentGroup {
             VStack(alignment: .leading, spacing: 16) {
                 SportHeroCard(sport: .gym, title: group.name, subtitle: "\(group.members.count) Mitglieder")
                 Text("MITGLIEDER").groupSectionTitle()
@@ -94,16 +105,31 @@ struct TrainingGroupDetailView: View {
                 }
                 if group.ownerID == store.profile?.id {
                     Button("Gruppe löschen", role: .destructive) { confirmsDelete = true }.frame(maxWidth: .infinity).padding(.top, 12)
+                        .disabled(isDeleting || store.isBusy)
                 }
             }.padding(20)
+            } else {
+                ContentUnavailableView("Gruppe nicht mehr verfügbar", systemImage: "person.3", description: Text("Die Gruppe wurde entfernt oder ist nicht mehr freigegeben."))
+            }
+            if let message = store.errorMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral).padding() }
         }
         .background(FYColor.background)
-        .navigationTitle(group.name)
+        .navigationTitle(currentGroup?.name ?? "Trainingsgruppe")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Trainingsgruppe löschen?", isPresented: $confirmsDelete) {
-            Button("Gruppe löschen", role: .destructive) { Task { await store.deleteTrainingGroup(group); dismiss() } }
+            Button("Gruppe löschen", role: .destructive) { Task { await deleteGroup() } }
             Button("Behalten", role: .cancel) {}
         }
+    }
+
+    private func deleteGroup() async {
+        guard !isDeleting, !store.isBusy, let group = currentGroup, let ownerID = store.profile?.id,
+              group.ownerID == ownerID else { return }
+        isDeleting = true; defer { isDeleting = false }
+        await store.deleteTrainingGroup(group)
+        guard store.profile?.id == ownerID, store.errorMessage == nil,
+              !store.trainingGroups.contains(where: { $0.id == groupID }) else { return }
+        dismiss()
     }
 }
 

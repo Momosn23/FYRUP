@@ -18,9 +18,14 @@ final class WorkoutStore {
     private var libraryRevision = 0
     private var logRevisions: [UUID: Int] = [:]
     private var errorRevision = 0
+    private var revokedFriends = Set<UUID>()
+    private var accessRevision = 0
     private let repository: any WorkoutRepository
+    private let copyRequests: WorkoutCopyRequestStore
 
-    init(repository: any WorkoutRepository) { self.repository = repository }
+    init(repository: any WorkoutRepository, copyRequests: WorkoutCopyRequestStore? = nil) {
+        self.repository = repository; self.copyRequests = copyRequests ?? WorkoutCopyRequestStore()
+    }
 
     func activate(userID: UUID?) {
         guard self.userID != userID else { return }
@@ -28,7 +33,17 @@ final class WorkoutStore {
         generation = UUID()
         plansRevision = 0; libraryRevision = 0; logRevisions = [:]; errorRevision = 0
         plans = []; exercises = []; favorites = []; logs = [:]
+        revokedFriends = []; accessRevision = 0
         isLoadingPlans = false; isLoadingLibrary = false; isBusy = false; errorMessage = nil
+    }
+
+    func removeFriend(userID: UUID) {
+        revokedFriends.insert(userID); accessRevision += 1
+        plans.removeAll { $0.ownerID == userID }
+    }
+
+    func restoreFriend(userID: UUID) {
+        revokedFriends.remove(userID); accessRevision += 1
     }
 
     func loadPlans() async {
@@ -66,20 +81,22 @@ final class WorkoutStore {
     func plan(id: UUID) async -> WorkoutPlan? {
         guard userID != nil else { return nil }
         let request = generation
+        let permission = accessRevision
         do {
             let value = try await repository.workoutPlan(id: id)
-            guard userID != nil, generation == request else { return nil }
+            guard userID != nil, generation == request, permission == accessRevision, !revokedFriends.contains(value.ownerID) else { return nil }
             return value
         } catch { if generation == request { present(error) }; return nil }
     }
 
     func sharedPlans(ownerID: UUID) async -> [WorkoutPlan]? {
-        guard userID != nil else { return nil }
+        guard userID != nil, !revokedFriends.contains(ownerID) else { return nil }
         let request = generation
+        let permission = accessRevision
         do {
             let values = try await repository.workoutPlans(ownerID: ownerID)
-            guard userID != nil, generation == request else { return nil }
-            return values
+            guard userID != nil, generation == request, permission == accessRevision, !revokedFriends.contains(ownerID) else { return nil }
+            return values.filter { $0.ownerID == ownerID }
         } catch { if generation == request { present(error) }; return nil }
     }
 
@@ -126,11 +143,30 @@ final class WorkoutStore {
     }
 
     func copyPlan(id: UUID) async -> WorkoutPlan? {
-        await mutate { try await self.repository.copyWorkoutPlan(id: id) } update: { saved in
-            self.plansRevision += 1
-            self.plans.insert(saved, at: 0)
+        guard let ownerID = userID, !isBusy else { return nil }
+        let account = generation
+        isBusy = true; errorMessage = nil; errorRevision += 1
+        defer { if generation == account { isBusy = false } }
+        do {
+            let requestID = try copyRequests.requestID(sourceID: id, ownerID: ownerID)
+            let saved = try await repository.copyWorkoutPlan(id: id, requestID: requestID)
+            guard generation == account, userID == ownerID else { return nil }
+            guard saved.copyRequestID == requestID, saved.ownerID == ownerID, saved.id != id,
+                  saved.copiedFromPlanID == nil || saved.copiedFromPlanID == id,
+                  saved.validationMessage == nil else {
+                throw AppError.conflict("Die Plankopie konnte nicht eindeutig bestätigt werden. Bitte versuche es erneut; deine Kopieranfrage bleibt erhalten.")
+            }
+            try copyRequests.confirm(sourceID: id, ownerID: ownerID, requestID: requestID)
+            plansRevision += 1
+            plans.removeAll { $0.id == saved.id }; plans.insert(saved, at: 0)
+            return saved
+        } catch {
+            if generation == account { present(error) }
+            return nil
         }
     }
+
+    func clearCopyRequests(userID: UUID) { copyRequests.clearAccount(ownerID: userID) }
 
     func sharePlan(id: UUID, friendIDs: [UUID]) async -> Bool {
         guard !friendIDs.isEmpty else { errorRevision += 1; errorMessage = "Wähle mindestens einen Freund."; return false }

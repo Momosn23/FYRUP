@@ -4,7 +4,6 @@ struct RootView: View {
     @Environment(AppStore.self) private var store
     var body: some View {
         ZStack {
-            FYColor.background.ignoresSafeArea()
             switch store.route {
             case .loading: ProgressView().tint(FYColor.lime).controlSize(.large)
             case .configuration: ConfigurationView()
@@ -17,7 +16,17 @@ struct RootView: View {
             case .onboardingComplete: OnboardingCompleteView()
             case .main: MainTabView()
             }
-            if store.isBusy { Color.black.opacity(0.28).ignoresSafeArea(); ProgressView().tint(FYColor.lime).controlSize(.large) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Decorative fills must not enlarge the content's layout into the status bar.
+        .background { FYColor.background.ignoresSafeArea() }
+        .overlay {
+            if store.isBusy {
+                ZStack {
+                    Color.black.opacity(0.28).ignoresSafeArea()
+                    ProgressView().tint(FYColor.lime).controlSize(.large)
+                }
+            }
         }
         .tint(FYColor.lime)
         .foregroundStyle(FYColor.ink)

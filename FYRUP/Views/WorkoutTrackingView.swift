@@ -1,8 +1,30 @@
 import SwiftUI
 import UIKit
 
+/// A deliberately small export, independent of the activity/feed visibility.
+/// Names, IDs, location, notes, prescriptions and actual measurements never enter it.
+struct WorkoutShareSummary: Identifiable, Equatable {
+    let id = UUID()
+    let ownerID: UUID
+    let text: String
+
+    init?(activity: Activity, log: WorkoutLog, ownerID: UUID?) {
+        guard let ownerID, activity.userID == ownerID, activity.status == .completed,
+              activity.id == log.activityID, log.validationMessage == nil,
+              let start = activity.startedAt, let end = activity.endedAt,
+              start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite, end >= start,
+              let duration = activity.duration, duration.isFinite, duration >= 0, duration < Double(Int.max) else { return nil }
+        let seconds = Int(duration)
+        let time = [seconds / 3600, seconds / 60 % 60, seconds % 60]
+            .map { $0 < 10 ? "0\($0)" : String($0) }.joined(separator: ":")
+        self.ownerID = ownerID
+        let exerciseCount = log.exercises.count == 1 ? "1 Übung" : "\(log.exercises.count) Übungen"
+        text = "Workout geschafft mit FYRUP! 💪\n\(activity.sport.title) · \(time) aktive Zeit\n\(log.completedExercises) von \(exerciseCount) abgeschlossen."
+    }
+}
+
 /// Optional actual measurements. Empty fields stay empty; targets are never copied into them.
-struct WorkoutSetEntryInput {
+struct WorkoutSetEntryInput: Codable, Equatable, Sendable {
     var weight: String = ""
     var reps: String = ""
 
@@ -57,6 +79,9 @@ struct WorkoutTrackingView: View {
     @State private var confirmsFinish = false
     @State private var confirmsCancel = false
     @State private var confirmsLeave = false
+    @State private var shareSummary: WorkoutShareSummary?
+    @State private var draftConflict = false
+    @State private var confirmsDiscardDrafts = false
 
     private var displayed: WorkoutLog? { pending ?? confirmed }
     private var currentActivity: Activity? {
@@ -64,6 +89,7 @@ struct WorkoutTrackingView: View {
         return completedActivity ?? activitySnapshot
     }
     private var controlsDisabled: Bool { isLoading || isSaving || store.isBusy || store.workouts.isBusy || completedActivity != nil }
+    private var hasLocalInputs: Bool { capturedID.map { store.trackingDrafts.hasInput(activityID: $0) } == true }
 
     var body: some View {
         ScrollView {
@@ -71,10 +97,15 @@ struct WorkoutTrackingView: View {
                 if let completedActivity, let confirmed {
                     WorkoutResultHeader(activity: completedActivity, log: confirmed)
                     WorkoutRecordedExercises(log: confirmed)
-                    Button("Fertig") { dismiss() }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("finish-workout-summary")
+                    if let summary = WorkoutShareSummary(activity: completedActivity, log: confirmed, ownerID: store.profile?.id) {
+                        Button { shareSummary = summary } label: { Label("Mit Freunden teilen", systemImage: "square.and.arrow.up") }
+                            .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("preview-workout-share")
+                    }
                 } else if let log = displayed, let activity = currentActivity {
                     liveHeader(activity: activity, log: log)
                     if pending != nil { pendingBanner }
+                    if hasLocalInputs || draftConflict { localDraftBanner }
+                    if let error = store.trackingDrafts.errorMessage { errorBanner(error) }
                     if let message { errorBanner(message) }
                     Picker("Trainingsmodus", selection: $mode) {
                         ForEach(TrackingMode.allCases) { Text($0.title).tag($0) }
@@ -93,7 +124,7 @@ struct WorkoutTrackingView: View {
                         }.buttonStyle(OutlineButtonStyle()).disabled(controlsDisabled)
                             .accessibilityIdentifier("pause-plan-workout")
                         Button("Training beenden") { confirmsFinish = true }
-                            .buttonStyle(PrimaryButtonStyle()).disabled(controlsDisabled)
+                            .buttonStyle(PrimaryButtonStyle()).disabled(controlsDisabled || hasLocalInputs || draftConflict)
                             .accessibilityIdentifier("finish-plan-workout")
                         Button("Training abbrechen") { confirmsCancel = true }
                             .font(.footnote).foregroundStyle(FYColor.coral).frame(maxWidth: .infinity, minHeight: 44).disabled(controlsDisabled)
@@ -105,7 +136,14 @@ struct WorkoutTrackingView: View {
                     if let message { errorBanner(message) }
                     Button("Erneut laden") { Task { await load() } }.buttonStyle(PrimaryButtonStyle())
                 }
-            }.padding(20)
+            }.padding(20).padding(.bottom, completedActivity == nil ? 72 : 24)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if completedActivity != nil {
+                Button("Fertig") { dismiss() }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("finish-workout-summary")
+                    .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 44)
+                    .background(FYColor.background)
+            }
         }
         .background(FYColor.background).navigationTitle(completedActivity == nil ? "Dein Training" : "Geschafft")
         .navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden()
@@ -121,12 +159,13 @@ struct WorkoutTrackingView: View {
         .task { await load() }
         .onChange(of: store.profile?.id) { _, owner in
             guard owner != capturedOwnerID else { return }
-            confirmed = nil; pending = nil; activitySnapshot = nil; completedActivity = nil; editingSet = nil
+            confirmed = nil; pending = nil; activitySnapshot = nil; completedActivity = nil; editingSet = nil; shareSummary = nil
             dismiss()
         }
         .sheet(item: $editingSet) { selection in
             WorkoutSetEntrySheet(selection: selection) { updated in await saveSet(updated, exerciseID: selection.exerciseID) }
         }
+        .sheet(item: $shareSummary) { summary in WorkoutSharePreviewView(summary: summary) }
         .confirmationDialog("Training beenden?", isPresented: $confirmsFinish, titleVisibility: .visible) {
             Button("Training beenden") { Task { await finish() } }
             Button("Weiter trainieren", role: .cancel) {}
@@ -136,11 +175,18 @@ struct WorkoutTrackingView: View {
         .confirmationDialog("Training abbrechen?", isPresented: $confirmsCancel, titleVisibility: .visible) {
             Button("Training abbrechen", role: .destructive) { Task { await cancel() } }
             Button("Weiter trainieren", role: .cancel) {}
-        } message: { Text("Das ist okay. Ein abgebrochenes Training zählt nicht als abgeschlossenes Workout.") }
+        } message: { Text("Das ist okay. Ein abgebrochenes Training zählt nicht als abgeschlossenes Workout. Lokale, noch nicht gespeicherte Satzentwürfe werden beim Abbruch verworfen.") }
         .confirmationDialog("Noch nicht gespeicherte Eingaben", isPresented: $confirmsLeave, titleVisibility: .visible) {
             Button("Speichern und schließen") { Task { if let pending, await save(pending) { dismiss() } } }
             Button("Hier bleiben", role: .cancel) {}
         } message: { Text("Deine letzten Eingaben konnten noch nicht bestätigt werden. Bleibe hier und versuche es erneut.") }
+        .confirmationDialog("Lokale Eingaben verwerfen?", isPresented: $confirmsDiscardDrafts, titleVisibility: .visible) {
+            Button("Lokale Eingaben verwerfen", role: .destructive) {
+                if let id = capturedID { store.trackingDrafts.clearActivity(id) }
+                pending = nil; draftConflict = false
+            }
+            Button("Behalten", role: .cancel) {}
+        } message: { Text("Nur noch nicht bestätigte Eingaben auf diesem Gerät werden entfernt. Dein gespeichertes Protokoll bleibt unverändert.") }
     }
 
     private func liveHeader(activity: Activity, log: WorkoutLog) -> some View {
@@ -174,7 +220,17 @@ struct WorkoutTrackingView: View {
             Text("Deine Eingaben sind hier noch vorhanden. Der Fortschritt zählt erst nach erfolgreichem Speichern.").font(.caption)
             Button("Speichern erneut versuchen") { Task { if let pending { _ = await save(pending) } } }
                 .font(.subheadline.bold()).disabled(controlsDisabled).accessibilityIdentifier("retry-workout-log")
+            Button("Lokale Eingaben verwerfen") { confirmsDiscardDrafts = true }.font(.caption).disabled(controlsDisabled)
         }.foregroundStyle(FYColor.ink).padding(16).background(FYColor.planned.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var localDraftBanner: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Lokale Eingaben vorhanden", systemImage: "square.and.pencil").font(.subheadline.bold())
+            Text(draftConflict ? "Das gespeicherte Protokoll hat sich inzwischen geändert. Dein lokaler Entwurf wird nicht darübergeschrieben. Prüfe den aktuellen Stand oder verwirf den Entwurf." : "Öffne den zugehörigen Satz im Tracking-Modus. Deine noch nicht gespeicherten Texte werden dort wiederhergestellt. Vor dem Trainingsabschluss kannst du sie speichern oder verwerfen.")
+                .font(.footnote)
+            Button("Lokale Eingaben verwerfen") { confirmsDiscardDrafts = true }.font(.caption.bold()).disabled(controlsDisabled)
+        }.fyCard().accessibilityIdentifier("restored-tracking-draft")
     }
 
     private func errorBanner(_ value: String) -> some View {
@@ -207,7 +263,7 @@ struct WorkoutTrackingView: View {
                 VStack(spacing: 7) {
                     ForEach(exercise.sets.sorted { $0.setNumber < $1.setNumber }) { set in
                         Button {
-                            editingSet = TrackingSetSelection(exerciseID: exercise.id, exerciseName: exercise.exercise.name, unit: exercise.exercise.repetitionUnit, set: set)
+                            editingSet = TrackingSetSelection(exerciseID: exercise.id, exerciseName: exercise.exercise.name, unit: exercise.exercise.repetitionUnit, set: set, draftContext: draftContext(exerciseID: exercise.id, setID: set.id))
                         } label: { WorkoutSetRow(set: set, unit: exercise.exercise.repetitionUnit, editable: true) }
                             .buttonStyle(.plain).disabled(controlsDisabled)
                             .accessibilityIdentifier("workout-set-\(index)-\(set.setNumber)")
@@ -229,6 +285,11 @@ struct WorkoutTrackingView: View {
         }.fyCard().accessibilityElement(children: .contain).accessibilityIdentifier("workout-exercise-\(index)")
     }
 
+    private func draftContext(exerciseID: UUID, setID: UUID) -> WorkoutSetDraftContext? {
+        guard let owner = store.profile?.id, let activity = currentActivity, let log = displayed else { return nil }
+        return .workout(ownerID: owner, activity: activity, log: log, exerciseID: exerciseID, setID: setID)
+    }
+
     private func load() async {
         guard confirmed == nil, !isSaving else { return }
         capturedOwnerID = store.profile?.id
@@ -245,6 +306,14 @@ struct WorkoutTrackingView: View {
         if let result {
             confirmed = result; message = nil
             if activitySnapshot?.status == .completed { completedActivity = activitySnapshot }
+            if let activity = currentActivity {
+                switch store.trackingDrafts.recoverPending(activity: activity, confirmed: result) {
+                case .restored(let draft): pending = draft
+                case .conflict: draftConflict = true
+                case .none, .alreadySaved: break
+                }
+                if store.trackingDrafts.hasInput(activityID: activity.id) { mode = .track }
+            }
         } else { message = store.workouts.errorMessage ?? "Das Protokoll konnte nicht geladen werden." }
     }
 
@@ -252,12 +321,17 @@ struct WorkoutTrackingView: View {
         guard !isSaving, !store.workouts.isBusy, capturedOwnerID == store.profile?.id else { return false }
         isSaving = true; message = nil
         defer { isSaving = false }
+        if retainOnFailure, let baseline = confirmed, let activity = currentActivity {
+            _ = store.trackingDrafts.savePending(candidate, baseline: baseline, activity: activity)
+        }
         guard let saved = await store.workouts.saveLog(candidate), capturedOwnerID == store.profile?.id else {
             if retainOnFailure && capturedOwnerID == store.profile?.id { pending = candidate }
             message = store.workouts.errorMessage ?? "Nicht gespeichert. Deine Eingaben bleiben erhalten."
             return false
         }
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { confirmed = saved; pending = nil }
+        store.trackingDrafts.removePending(activityID: saved.activityID)
+        draftConflict = false
         Haptics.impact(.light)
         return true
     }
@@ -285,12 +359,13 @@ struct WorkoutTrackingView: View {
     }
 
     private func finish() async {
-        guard let id = capturedID, let candidate = displayed, !controlsDisabled, store.myActivity?.id == id else { return }
+        guard let id = capturedID, let candidate = displayed, !controlsDisabled, !hasLocalInputs, !draftConflict, store.myActivity?.id == id else { return }
         // Saving is deliberately awaited even without changes: completion never outruns persistence.
         guard await save(candidate), capturedOwnerID == store.profile?.id else { return }
         let finished = await store.finish(distanceMeters: nil)
         guard capturedOwnerID == store.profile?.id else { return }
         if let finished {
+            store.trackingDrafts.clearActivity(finished.id)
             completedActivity = finished; activitySnapshot = finished; message = nil
             await store.weekly.prepareCelebration()
         } else { message = store.errorMessage ?? "Der Abschluss wurde noch nicht bestätigt. Versuche es erneut." }
@@ -300,7 +375,10 @@ struct WorkoutTrackingView: View {
         guard store.myActivity?.id == capturedID, !controlsDisabled else { return }
         if let pending, !(await save(pending)) { return }
         await store.cancelCurrent()
-        if store.errorMessage == nil, store.myActivity?.id != capturedID { dismiss() }
+        if store.errorMessage == nil, store.myActivity?.id != capturedID {
+            if let id = capturedID { store.trackingDrafts.clearActivity(id) }
+            dismiss()
+        }
         else { message = store.errorMessage ?? "Der Abbruch wurde noch nicht bestätigt." }
     }
 }
@@ -317,11 +395,13 @@ struct TrackingSetSelection: Identifiable {
     let unit: String
     let set: WorkoutSetLog
     var isBlind = false
+    var draftContext: WorkoutSetDraftContext? = nil
     var id: UUID { self.set.id }
 }
 
 @MainActor
 struct WorkoutSetEntrySheet: View {
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let selection: TrackingSetSelection
     let onSave: (WorkoutSetLog) async -> Bool
@@ -329,6 +409,9 @@ struct WorkoutSetEntrySheet: View {
     @State private var isSaving = false
     @State private var error: String?
     @State private var confirmsDiscard = false
+    @State private var didRestore = false
+    @State private var restored = false
+    @State private var conflictingInput: WorkoutSetEntryInput?
 
     init(selection: TrackingSetSelection, onSave: @escaping (WorkoutSetLog) async -> Bool) {
         self.selection = selection; self.onSave = onSave
@@ -338,6 +421,16 @@ struct WorkoutSetEntrySheet: View {
     private var hasChanges: Bool {
         let original = WorkoutSetEntryInput(set: selection.set)
         return original.weight != input.weight || original.reps != input.reps
+    }
+
+    private var isAuthorized: Bool {
+        guard let context = selection.draftContext, store.profile?.id == context.key.ownerID,
+              store.trackingDrafts.userID == context.key.ownerID else { return false }
+        if let blindID = context.key.blindWorkoutID {
+            guard let state = store.blind.state(id: blindID) else { return false }
+            return WorkoutSetDraftContext.blind(ownerID: context.key.ownerID, state: state, exerciseID: context.key.exerciseID, setID: context.key.setID) != nil
+        }
+        return store.myActivity?.id == context.key.activityID && store.myActivity?.status == .live
     }
 
     private var validationMessage: String? {
@@ -352,6 +445,14 @@ struct WorkoutSetEntrySheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if restored { Label("Lokaler Satzentwurf wiederhergestellt", systemImage: "arrow.counterclockwise").font(.footnote).accessibilityIdentifier("restored-set-draft") }
+                if let conflictingInput {
+                    Section {
+                        Text("Dieser Satz wurde inzwischen geändert. Deine alten Eingaben sind noch lokal vorhanden und werden nicht automatisch übernommen.").font(.footnote)
+                        Button("Lokale Eingaben prüfen") { input = conflictingInput; self.conflictingInput = nil; restored = true }
+                        Button("Alten Entwurf verwerfen", role: .destructive) { removeDraft(); self.conflictingInput = nil }
+                    }
+                }
                 Section {
                     Text(selection.exerciseName).font(.headline)
                     Text("Trage nur ein, was du wirklich gemacht hast. Beide Felder dürfen leer bleiben.").font(.footnote).foregroundStyle(FYColor.muted)
@@ -364,6 +465,7 @@ struct WorkoutSetEntrySheet: View {
                 }
                 if let validation = validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.coral) }
                 if let error { Text(error).font(.footnote).foregroundStyle(FYColor.coral).accessibilityIdentifier("set-save-error") }
+                if let error = store.trackingDrafts.errorMessage { Text(error).font(.footnote).foregroundStyle(FYColor.coral) }
                 Section {
                     Button(selection.set.completed ? "Abgeschlossenen Satz speichern" : "Satz abschließen") { Task { await save(completed: true) } }
                         .accessibilityIdentifier("save-workout-set")
@@ -371,33 +473,55 @@ struct WorkoutSetEntrySheet: View {
                     if selection.set.completed {
                         Button("Satz wieder öffnen") { Task { await save(completed: false) } }
                     }
-                }.disabled(isSaving || validationMessage != nil)
-            }.disabled(isSaving)
+                }.disabled(isSaving || validationMessage != nil || conflictingInput != nil)
+            }.disabled(isSaving || !isAuthorized)
                 .scrollContentBackground(.hidden).background(FYColor.background)
                 .navigationTitle("Satz \(selection.set.setNumber)").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { if hasChanges { confirmsDiscard = true } else { dismiss() } }.disabled(isSaving)
+                        Button("Abbrechen") { if hasChanges || conflictingInput != nil { confirmsDiscard = true } else { removeDraft(); dismiss() } }.disabled(isSaving)
                     }
                     ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Tastatur schließen") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) } }
                 }
                 .confirmationDialog("Eingaben verwerfen?", isPresented: $confirmsDiscard) {
-                    Button("Eingaben verwerfen", role: .destructive) { dismiss() }
+                    Button("Eingaben verwerfen", role: .destructive) { removeDraft(); dismiss() }
                     Button("Weiter bearbeiten", role: .cancel) {}
                 }
                 .interactiveDismissDisabled(hasChanges || isSaving || error != nil)
+                .task { restoreDraft() }
+                .onChange(of: input) { _, input in
+                    guard didRestore, isAuthorized, conflictingInput == nil, let context = selection.draftContext else { return }
+                    _ = store.trackingDrafts.saveInput(input, context: context)
+                }
+                .onChange(of: isAuthorized) { _, authorized in if !authorized { dismiss() } }
         }.tint(FYColor.lime)
     }
 
     private func save(completed: Bool) async {
-        guard !isSaving, validationMessage == nil else { return }
+        guard !isSaving, isAuthorized, validationMessage == nil, conflictingInput == nil else { return }
         isSaving = true; error = nil
         defer { isSaving = false }
         do {
             let updated = try input.applying(to: selection.set, completed: completed)
-            if await onSave(updated) { dismiss() }
+            if let context = selection.draftContext { _ = store.trackingDrafts.saveInput(input, context: context) }
+            let saved = await onSave(updated)
+            guard isAuthorized else { return }
+            if saved { removeDraft(); dismiss() }
             else { error = "Nicht gespeichert. Deine Eingaben bleiben hier erhalten. Versuche es erneut." }
         } catch { self.error = error.localizedDescription }
+    }
+
+    private func restoreDraft() {
+        guard !didRestore, isAuthorized, let context = selection.draftContext else { return }
+        switch store.trackingDrafts.input(for: context) {
+        case .none: break
+        case .restored(let value): input = value; restored = true
+        case .conflict(let value): conflictingInput = value
+        }
+        didRestore = true
+    }
+    private func removeDraft() {
+        if let context = selection.draftContext { store.trackingDrafts.removeInput(context: context) }
     }
 }
 
@@ -422,7 +546,7 @@ struct WorkoutHistoryView: View {
                     Text(message).foregroundStyle(FYColor.coral).font(.footnote)
                     Button("Erneut laden") { Task { await load() } }.buttonStyle(OutlineButtonStyle())
                 }
-            }.padding(20)
+            }.padding(20).padding(.bottom, 72)
         }.background(FYColor.background).navigationTitle("Trainingsprotokoll").navigationBarTitleDisplayMode(.inline)
             .task(id: activityID) { await load() }
             .onChange(of: store.profile?.id) { _, _ in log = nil; message = nil }
@@ -434,6 +558,36 @@ struct WorkoutHistoryView: View {
         guard !Task.isCancelled, owner == store.profile?.id else { return }
         log = loaded; isLoading = false
         if loaded == nil { message = store.workouts.errorMessage ?? "Dein Protokoll konnte nicht geladen werden." }
+    }
+}
+
+private struct WorkoutSharePreviewView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let summary: WorkoutShareSummary
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if store.profile?.id == summary.ownerID {
+                        Label("Dein Moment. Deine Entscheidung.", systemImage: "square.and.arrow.up")
+                            .font(.title3.bold()).foregroundStyle(FYColor.ink)
+                        Text("Nur dieser Text wird zum Teilen vorbereitet:").font(.subheadline).foregroundStyle(FYColor.muted)
+                        Text(summary.text).font(.body).frame(maxWidth: .infinity, alignment: .leading).fyCard()
+                            .accessibilityIdentifier("workout-share-text")
+                        Text("Keine Übungsnamen, Gewichte, Wiederholungen, Notizen oder Orte. Dein privater Plan und deine Satzdaten bleiben in FYRUP. Die Sichtbarkeit deiner Aktivität wird nicht geändert.")
+                            .font(.footnote).foregroundStyle(FYColor.muted)
+                        ShareLink(item: summary.text) { Label("Zusammenfassung teilen", systemImage: "square.and.arrow.up") }
+                            .buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("confirm-workout-share")
+                        Text("Du wählst anschließend die App und die Empfänger. Ohne deine Auswahl wird nichts versendet.")
+                            .font(.caption).foregroundStyle(FYColor.muted)
+                    }
+                }.padding(24)
+            }.background(FYColor.background).navigationTitle("Mit Freunden teilen").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() }.accessibilityIdentifier("cancel-workout-share") } }
+        }.tint(FYColor.lime).preferredColorScheme(.light)
+            .onChange(of: store.profile?.id) { _, owner in if owner != summary.ownerID { dismiss() } }
     }
 }
 

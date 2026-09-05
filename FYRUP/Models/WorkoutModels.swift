@@ -161,10 +161,12 @@ struct WorkoutPlan: Codable, Identifiable, Hashable, Sendable {
     var description: String?
     var visibility: PlanVisibility = .private
     var copiedFromPlanID: UUID?
+    /// Present only on an authenticated copy receipt; never client-created provenance.
+    var copyRequestID: UUID?
     var exercises: [WorkoutPlanExercise] = []
     enum CodingKeys: String, CodingKey {
         case id, name, category, description, visibility, exercises
-        case ownerID = "owner_id", copiedFromPlanID = "copied_from_plan_id"
+        case ownerID = "owner_id", copiedFromPlanID = "copied_from_plan_id", copyRequestID = "copy_request_id"
     }
     var validationMessage: String? {
         if !WorkoutLimits.planNameLength.contains(name.trimmingCharacters(in: .whitespacesAndNewlines).count) { return "Gib deinem Plan einen Namen mit 2–60 Zeichen." }
@@ -198,6 +200,7 @@ struct WorkoutPlan: Codable, Identifiable, Hashable, Sendable {
         value.id = UUID()
         value.ownerID = newOwnerID
         value.copiedFromPlanID = id
+        value.copyRequestID = nil
         value.visibility = .private
         var customCopies: [UUID: GymExercise] = [:]
         value.exercises = value.exercises.map { item in
@@ -282,7 +285,7 @@ protocol WorkoutRepository: Sendable {
     func workoutPlan(id: UUID) async throws -> WorkoutPlan
     func saveWorkoutPlan(_ plan: WorkoutPlan) async throws -> WorkoutPlan
     func archiveWorkoutPlan(id: UUID) async throws
-    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan
+    func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws
     func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws

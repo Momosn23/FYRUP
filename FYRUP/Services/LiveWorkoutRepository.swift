@@ -57,8 +57,8 @@ extension LiveAppRepository {
         let _: Bool = try await client.rpc("archive_workout_plan", body: ["p_id": id.uuidString])
     }
 
-    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan {
-        try await client.rpc("copy_workout_plan", body: ["p_id": id.uuidString])
+    func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan {
+        try await client.rpc("copy_workout_plan", body: CopyWorkoutPlanRequest(id: id, requestID: requestID))
     }
 
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws {
@@ -96,6 +96,11 @@ extension LiveAppRepository {
         }
         return try await client.rpc("save_workout_log", body: Body(log: log))
     }
+}
+
+struct CopyWorkoutPlanRequest: Encodable {
+    let id: UUID; let requestID: UUID
+    enum CodingKeys: String, CodingKey { case id = "p_id", requestID = "p_request_id" }
 }
 
 struct PlanWorkoutRequest: Encodable {

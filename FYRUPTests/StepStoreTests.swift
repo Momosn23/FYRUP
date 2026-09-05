@@ -18,6 +18,21 @@ final class StepStoreTests: XCTestCase {
         XCTAssertTrue(rig.store.isSharingPreferenceCurrent)
     }
 
+    func testRemovedFriendIsImmediatelyHiddenAndCannotReturnFromStaleServerValues() async {
+        let rig = StepRig(); defer { rig.cleanUp() }
+        await rig.repository.setShared([DailyStepMetric(userID: max, localDate: "2026-09-05", steps: 12804, updatedAt: rig.clock.date, validUntil: rig.clock.date.addingTimeInterval(120))])
+        await rig.store.activate(userID: momo)
+        XCTAssertEqual(rig.store.shared.count, 1)
+        rig.store.removeFriend(userID: max)
+        XCTAssertTrue(rig.store.shared.isEmpty)
+        await rig.store.refresh(force: true)
+        XCTAssertTrue(rig.store.shared.isEmpty)
+        rig.store.restoreFriend(userID: max)
+        XCTAssertTrue(rig.store.shared.isEmpty, "Re-acceptance must still fetch fresh data")
+        await rig.store.refresh(force: true)
+        XCTAssertEqual(rig.store.shared.count, 1)
+    }
+
     func testExplicitConnectionShows8421ButDoesNotEnableSharing() async {
         let rig = StepRig(); defer { rig.cleanUp() }
         await rig.store.activate(userID: momo)
@@ -30,6 +45,39 @@ final class StepStoreTests: XCTestCase {
         XCTAssertTrue(uploads.isEmpty)
         let keys = rig.defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix("fyrup.steps.") }
         XCTAssertFalse(keys.contains { $0.contains("count") || $0.contains("samples") || $0.contains("8421") })
+    }
+
+    func testHeldSharedReadCannotReturnAfterRemovalAndReacceptance() async {
+        let rig = StepRig(); defer { rig.cleanUp() }
+        let previous = DailyStepMetric(userID: max, localDate: "2026-09-05", steps: 12804,
+                                       updatedAt: rig.clock.date, validUntil: rig.clock.date.addingTimeInterval(120))
+        await rig.repository.setShared([previous])
+        await rig.store.activate(userID: momo)
+        await rig.repository.holdNextSharedRead()
+        let oldRead = Task { await rig.store.refresh(force: true) }
+        await rig.repository.waitUntilSharedReadHeld()
+        rig.store.removeFriend(userID: max)
+        rig.store.restoreFriend(userID: max)
+        await rig.repository.setShared([]) // The re-accepted friend has stopped sharing.
+        await rig.repository.releaseSharedRead()
+        await oldRead.value
+        XCTAssertTrue(rig.store.shared.isEmpty, "Pre-revocation reply must not become fresh after re-acceptance")
+        await rig.store.refresh(force: true)
+        XCTAssertTrue(rig.store.shared.isEmpty)
+    }
+
+    func testHeldSharedReadCannotRestoreRemovedFriendWithoutReacceptance() async {
+        let rig = StepRig(); defer { rig.cleanUp() }
+        await rig.repository.setShared([DailyStepMetric(userID: max, localDate: "2026-09-05", steps: 100,
+            updatedAt: rig.clock.date, validUntil: rig.clock.date.addingTimeInterval(120))])
+        await rig.store.activate(userID: momo)
+        await rig.repository.holdNextSharedRead()
+        let pending = Task { await rig.store.refresh(force: true) }
+        await rig.repository.waitUntilSharedReadHeld()
+        rig.store.removeFriend(userID: max)
+        await rig.repository.releaseSharedRead(); await pending.value
+        XCTAssertTrue(rig.store.shared.isEmpty)
+        XCTAssertFalse(rig.store.isRefreshing)
     }
 
     func testExplicitSharingUploadsOnlyDailyAggregateAndRevision() async {
@@ -364,11 +412,20 @@ private actor StepRepositoryDouble: StepRepository {
     private var writeFailure = false
     private var acceptUploads = true
     private var sharedValues: [DailyStepMetric] = []
+    private var holdNextShared = false
+    private var sharedGate: CheckedContinuation<Void, Never>?
+    private var sharedWaiter: CheckedContinuation<Void, Never>?
     private(set) var uploads: [Upload] = []
     func setReadFailure(_ value: Bool) { readFailure = value }
     func setWriteFailure(_ value: Bool) { writeFailure = value }
     func setAcceptUploads(_ value: Bool) { acceptUploads = value }
     func setShared(_ value: [DailyStepMetric]) { sharedValues = value }
+    func holdNextSharedRead() { holdNextShared = true }
+    func waitUntilSharedReadHeld() async {
+        if sharedGate != nil { return }
+        await withCheckedContinuation { sharedWaiter = $0 }
+    }
+    func releaseSharedRead() { sharedGate?.resume(); sharedGate = nil }
     func setEnabled(_ userID: UUID, enabled: Bool) {
         preferences[userID] = StepSharingPreference(userID: userID, sharingEnabled: enabled, sharingRevision: enabled ? 1 : 0)
     }
@@ -387,5 +444,14 @@ private actor StepRepositoryDouble: StepRepository {
         uploads.append(Upload(user: userID, date: localDate, timezone: timezone, steps: steps, revision: sharingRevision, observedAt: observedAt))
         return acceptUploads && preferences[userID]?.sharingEnabled == true && preferences[userID]?.sharingRevision == sharingRevision
     }
-    func sharedSteps() async throws -> [DailyStepMetric] { sharedValues }
+    func sharedSteps() async throws -> [DailyStepMetric] {
+        let snapshot = sharedValues
+        if holdNextShared {
+            holdNextShared = false
+            await withCheckedContinuation { continuation in
+                sharedGate = continuation; sharedWaiter?.resume(); sharedWaiter = nil
+            }
+        }
+        return snapshot
+    }
 }

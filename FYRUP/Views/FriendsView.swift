@@ -42,13 +42,18 @@ private struct PersonRow<Trailing: View>: View {
 
 struct FriendProfileView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
     let member: CrewMember
     @State private var confirmRemove = false
     @State private var recentActivities: [Activity] = []
     @State private var sharedPlans: [WorkoutPlan] = []
     @State private var createsBlindWorkout = false
+    @State private var loadRequest = UUID()
     var body: some View {
         ScrollView {
+            if store.revokedFriendIDs.contains(member.id) {
+                ContentUnavailableView("Profil nicht mehr verfügbar", systemImage: "person.crop.circle.badge.xmark", description: Text("Die Freundschaft oder Freigabe besteht nicht mehr."))
+            } else {
             VStack(spacing: 18) {
                 AvatarView(profile: member.profile).scaleEffect(1.7).padding(22)
                 Text(member.profile.displayName.uppercased()).font(.largeTitle.weight(.black))
@@ -70,16 +75,37 @@ struct FriendProfileView: View {
                 }
                 Menu("Freundschaft verwalten") { Button("Freund entfernen", role: .destructive) { confirmRemove = true }; Button("Blockieren", role: .destructive) { Task { await store.block(member.profile) } } }.foregroundStyle(FYColor.muted)
             }.padding(20)
+            }
         }
         .background(FYColor.background)
         .sheet(isPresented: $createsBlindWorkout) { BlindWorkoutComposerView(recipientID: member.id) }
-        .task {
-            await store.steps.refresh()
-            _ = await store.weekly.loadFriend(userID: member.id)
-            recentActivities = (try? await store.repository.recentActivities(userID: member.id)) ?? []
-            sharedPlans = await store.workouts.sharedPlans(ownerID: member.id) ?? []
+        .task { await load() }
+        .onChange(of: store.friendAccessRevision) { _, _ in
+            if store.revokedFriendIDs.contains(member.id) { clearLoadedData() }
         }
+        .onChange(of: store.profile?.id) { _, _ in clearLoadedData() }
+        .onDisappear { loadRequest = UUID() }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await load() } } }
         .confirmationDialog("Freund entfernen?", isPresented: $confirmRemove) { Button("Entfernen", role: .destructive) { Task { await store.removeFriend(member.profile) } } }
+    }
+    private func load() async {
+        let request = UUID(); loadRequest = request
+        recentActivities = []; sharedPlans = []
+        let ownerID = store.profile?.id
+        let permission = store.friendAccessRevision
+        guard ownerID != nil, !store.revokedFriendIDs.contains(member.id) else { return }
+        await store.steps.refresh()
+        guard loadRequest == request, store.profile?.id == ownerID, permission == store.friendAccessRevision, !Task.isCancelled else { return }
+        _ = await store.weekly.loadFriend(userID: member.id)
+        guard loadRequest == request, store.profile?.id == ownerID, permission == store.friendAccessRevision, !Task.isCancelled else { return }
+        let activities = (try? await store.repository.recentActivities(userID: member.id)) ?? []
+        guard loadRequest == request, store.profile?.id == ownerID, permission == store.friendAccessRevision, !Task.isCancelled else { return }
+        let plans = await store.workouts.sharedPlans(ownerID: member.id) ?? []
+        guard loadRequest == request, store.profile?.id == ownerID, permission == store.friendAccessRevision, !store.revokedFriendIDs.contains(member.id), !Task.isCancelled else { return }
+        recentActivities = activities; sharedPlans = plans
+    }
+    private func clearLoadedData() {
+        loadRequest = UUID(); recentActivities = []; sharedPlans = []; createsBlindWorkout = false
     }
 }
 

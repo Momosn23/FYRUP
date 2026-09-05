@@ -25,7 +25,8 @@ workflows:
         script: |
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
-          node supabase/tests/run_shot_tests.mjs
+          node supabase/tests/run_preference_tests.mjs
+          node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs
       - name: Inject Supabase configuration
@@ -82,7 +83,8 @@ workflows:
         script: |
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
-          node supabase/tests/run_shot_tests.mjs
+          node supabase/tests/run_preference_tests.mjs
+          node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs
       - name: Inject Supabase configuration

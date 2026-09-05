@@ -95,6 +95,14 @@ final class WorkoutFlowsUITests: XCTestCase {
             tap(app.buttons["exercise-10000000-0000-0000-0000-000000000001"], in: app)
         }
         XCTAssertTrue(waitUntilReady(app.buttons["plan-exercise-0"]))
+        let sort = app.buttons["sort-workout-exercises"]
+        XCTAssertEqual(sort.label, "Sortieren")
+        tap(sort, in: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Fertig'"), object: sort)], timeout: 3), .completed)
+        XCTAssertEqual(sort.label, "Fertig")
+        tap(sort, in: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Sortieren'"), object: sort)], timeout: 3), .completed)
+        XCTAssertEqual(sort.label, "Sortieren")
         capture("25-workout-plan-editor")
         tap(app.buttons["save-workout-plan"], in: app)
         waitUntilDismissed(field)
@@ -121,7 +129,26 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(confirm, in: app)
         XCTAssertTrue(container("workout-completed-summary", in: app).waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["Workout geschafft!"].exists)
+        let done = app.buttons["finish-workout-summary"]
+        XCTAssertTrue(waitUntilReady(done))
+        let plus = app.buttons["Planen"].firstMatch
+        XCTAssertTrue(plus.exists)
+        XCTAssertLessThan(done.frame.maxY, plus.frame.minY, "The completed workout button must stay above the raised tab-bar action.")
         capture("31-workout-plan-done")
+        tap(app.buttons["preview-workout-share"], in: app)
+        let export = app.staticTexts["workout-share-text"]
+        XCTAssertTrue(export.waitForExistence(timeout: 4))
+        XCTAssertTrue(export.label.contains("Workout geschafft mit FYRUP!"))
+        XCTAssertFalse(export.label.contains("Push Day"))
+        XCTAssertFalse(export.label.contains("Bankdrücken"))
+        XCTAssertFalse(export.label.contains("kg"))
+        XCTAssertTrue(waitUntilReady(app.buttons["confirm-workout-share"]))
+        capture("53-workout-share-preview")
+        // Inspect and cancel the preview; no recipient is selected and nothing is sent.
+        tap(app.buttons["cancel-workout-share"], in: app)
+        waitUntilDismissed(export)
+        tap(done, in: app)
+        XCTAssertTrue(app.navigationBars["Trainingsplan"].waitForExistence(timeout: 4))
     }
 
     func testCustomExerciseAddsDirectlyAndPersists() {
@@ -185,5 +212,41 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(app.textFields["set-weight"].waitForExistence(timeout: 4))
         XCTAssertEqual(app.textFields["set-weight"].value as? String, "80")
         XCTAssertEqual(app.textFields["set-reps"].value as? String, "8")
+    }
+
+    func testUnconfirmedSetTextSurvivesRealRelaunchAndCanBeExplicitlyDiscarded() {
+        let app = launch()
+        createPlan(app, name: "Draft Recovery Push")
+        tap(app.buttons["Draft Recovery Push"], in: app)
+        tap(app.buttons["start-workout-plan"], in: app)
+        XCTAssertTrue(app.segmentedControls["tracking-mode"].waitForExistence(timeout: 6))
+        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
+        tap(app.buttons["workout-set-0-1"], in: app)
+        let weight = app.textFields["set-weight"]; tap(weight, in: app); weight.typeText("81")
+        let reps = app.textFields["set-reps"]; tap(reps, in: app); reps.typeText("9")
+        XCTAssertEqual(weight.value as? String, "81"); XCTAssertEqual(reps.value as? String, "9")
+        capture("54-unsaved-set-with-keyboard")
+        // No save button, no Back, no graceful sheet dismissal before termination.
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
+        tap(app.buttons["TRAINING ÖFFNEN"], in: app)
+        XCTAssertTrue(container("workout-tracking-screen", in: app).waitForExistence(timeout: 6))
+        XCTAssertTrue(container("restored-tracking-draft", in: app).exists)
+        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
+        let storedRow = app.buttons["workout-set-0-1"]
+        XCTAssertTrue(storedRow.waitForExistence(timeout: 4))
+        XCTAssertFalse(storedRow.label.contains("81"), "Unconfirmed text must not appear as saved measurements.")
+        tap(storedRow, in: app)
+        XCTAssertTrue(app.staticTexts["restored-set-draft"].waitForExistence(timeout: 4))
+        XCTAssertEqual(weight.value as? String, "81"); XCTAssertEqual(reps.value as? String, "9")
+        capture("55-restored-set-draft")
+        tap(app.buttons["Abbrechen"], in: app)
+        tap(app.sheets.buttons["Eingaben verwerfen"], in: app)
+        waitUntilDismissed(weight)
+        tap(app.buttons["workout-set-0-1"], in: app)
+        XCTAssertTrue(weight.waitForExistence(timeout: 4))
+        XCTAssertTrue(["", "Gewicht in kg (optional)"].contains(weight.value as? String ?? "unexpected"))
+        XCTAssertTrue(["", "Wdh. (optional)"].contains(reps.value as? String ?? "unexpected"))
+        XCTAssertFalse(app.staticTexts["restored-set-draft"].exists)
     }
 }

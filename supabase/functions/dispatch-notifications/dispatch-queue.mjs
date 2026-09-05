@@ -16,6 +16,17 @@ const shotTypes = new Set(["shot_called", "shot_achieved", "shot_reaction"]);
 const isUUID = (value) => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
+/** Reserved routing fields always come from the authorized row, never its data bag. */
+export function notificationPayload(note) {
+  return {
+    ...note.data,
+    aps: { alert: { title: note.title, body: note.body }, sound: "default", "mutable-content": 1 },
+    fyrup_type: note.type,
+    fyrup_notification_id: note.id,
+    fyrup_recipient_id: note.recipient_id,
+  };
+}
+
 /**
  * Result is send, drop (known revoked/muted/stale), or defer (unknown due to failure).
  * Supabase reports normal query errors in `error`; rejected promises also fail closed.

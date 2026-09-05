@@ -1,6 +1,6 @@
 import { importPKCS8, SignJWT } from "npm:jose@5";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { dispatchQueuedNotification } from "./dispatch-queue.mjs";
+import { dispatchQueuedNotification, notificationPayload } from "./dispatch-queue.mjs";
 
 function adminClient() {
   const url = Deno.env.get("SUPABASE_URL");
@@ -43,8 +43,7 @@ Deno.serve(async (request) => {
       return await fetch(`https://${host}/3/device/${device.token}`, {
         method: "POST",
         headers: { authorization: `bearer ${token}`, "apns-topic": topic, "apns-push-type": "alert", "apns-priority": "10" },
-        body: JSON.stringify({ ...authorizedNote.data, aps: { alert: { title: authorizedNote.title, body: authorizedNote.body },
-          sound: "default", "mutable-content": 1 }, fyrup_type: authorizedNote.type }),
+        body: JSON.stringify(notificationPayload(authorizedNote)),
       });
     } });
     delivered += result.delivered; deferred += result.deferred; suppressed += result.suppressed;

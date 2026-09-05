@@ -22,6 +22,7 @@ final class WeeklyFlowsUITests: XCTestCase {
         let save = app.buttons["confirm-weekly-goal"]
         reveal(save, in: app)
         waitUntilReady(save)
+        XCTAssertTrue(app.navigationBars["Wochenziel ändern"].exists, "The goal title must remain a readable navigation title after scrolling.")
         XCTAssertEqual(save.label, "Für nächste Woche speichern")
         capture("39-weekly-goal-next-week")
         save.tap()

@@ -32,6 +32,8 @@ final class StepStore {
     private var lastRefresh: Date?
     private var sharedValues: [DailyStepMetric] = []
     private var sharedFetchedAt: Date?
+    private var revokedFriends = Set<UUID>()
+    private var sharedReadRevision = 0
     private var queuedRefresh = false
 
     init(repository: any StepRepository, reader: any StepReading = HealthKitStepReader(),
@@ -58,7 +60,7 @@ final class StepStore {
     var shared: [DailyStepMetric] {
         guard isCurrentDay, let sharedFetchedAt, now().timeIntervalSince(sharedFetchedAt) >= 0,
               now().timeIntervalSince(sharedFetchedAt) <= refreshInterval else { return [] }
-        return sharedValues.filter { $0.validUntil > now() }
+        return sharedValues.filter { $0.validUntil > now() && !revokedFriends.contains($0.userID) }
     }
     private var isCurrentDay: Bool {
         localDate == StepDay.key(for: now(), calendar: calendar()) && activeTimezone == calendar().timeZone.identifier
@@ -82,9 +84,24 @@ final class StepStore {
         generation = UUID(); privacyGeneration = UUID()
         userID = nil; steps = nil; localDate = ""; activeTimezone = ""
         sharingEnabled = nil; isSharingPreferenceCurrent = false; preference = nil
-        sharedValues = []; sharedFetchedAt = nil; lastRefresh = nil; lastSyncedAt = nil
+        sharedValues = []; sharedFetchedAt = nil; lastRefresh = nil; lastSyncedAt = nil; revokedFriends = []
+        sharedReadRevision += 1
         healthRequested = false; showSteps = false; goal = nil; message = nil
         isAuthorizing = false; isChangingSharing = false; isRefreshing = false; queuedRefresh = false
+    }
+
+    /// Keep the exclusion through delayed reads; a confirmed new friendship is required to lift it.
+    func removeFriend(userID: UUID) {
+        sharedReadRevision += 1
+        revokedFriends.insert(userID)
+        sharedValues.removeAll { $0.userID == userID }
+    }
+
+    func restoreFriend(userID: UUID) {
+        sharedReadRevision += 1
+        revokedFriends.remove(userID)
+        sharedValues.removeAll { $0.userID == userID }
+        lastRefresh = nil
     }
 
     /// Call only after the user accepts the explanatory screen, never from activation/refresh.
@@ -243,14 +260,15 @@ final class StepStore {
             }
         }
 
+        let sharedPermission = sharedReadRevision
         do {
             let values = try await repository.sharedSteps()
-            guard current() else { return }
+            guard current(), sharedReadRevision == sharedPermission else { return }
             // Server checks owner-local dates and friendship/privacy. No timezone/device data is exposed.
-            sharedValues = values.filter { $0.userID != id && (0...StepDay.maximumSteps).contains($0.steps) }
+            sharedValues = values.filter { $0.userID != id && !revokedFriends.contains($0.userID) && (0...StepDay.maximumSteps).contains($0.steps) }
             sharedFetchedAt = now()
         } catch {
-            if generation == request { sharedValues = []; sharedFetchedAt = nil }
+            if generation == request, sharedReadRevision == sharedPermission { sharedValues = []; sharedFetchedAt = nil }
         }
     }
 

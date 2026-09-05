@@ -7,6 +7,10 @@ actor DemoWorkoutStorage {
         var hosted: HostedSession
         var host: Profile
     }
+    private struct CopyRequest: Codable {
+        let sourceID: UUID
+        let copyID: UUID
+    }
     private struct State: Codable {
         var exercises: [UUID: GymExercise] = [:]
         var plans: [UUID: WorkoutPlan] = [:]
@@ -18,6 +22,8 @@ actor DemoWorkoutStorage {
         var sessions: [UUID: SavedSession] = [:]
         var notifications: [UUID: [AppNotification]] = [:]
         var revokedFriendships: Set<String> = []
+        // Optional for persisted demos created before request-idempotent copying.
+        var copyRequests: [UUID: [UUID: CopyRequest]]?
     }
 
     private var state: State
@@ -51,6 +57,12 @@ actor DemoWorkoutStorage {
 
     private func areFriends(_ owner: UUID, _ user: UUID, friends: Set<UUID>) -> Bool {
         owner != user && friends.contains(owner) && !state.revokedFriendships.contains(friendshipKey(owner, user))
+    }
+
+    /// The fixture crew must respect the same persistent revocations as plan/RPC reads.
+    func permittedFriendIDs(userID: UUID, candidates: Set<UUID>) throws -> Set<UUID> {
+        try checkLoaded()
+        return Set(candidates.filter { areFriends($0, userID, friends: candidates) })
     }
 
     private func availableExercise(_ id: UUID, userID: UUID) -> GymExercise? {
@@ -167,6 +179,7 @@ actor DemoWorkoutStorage {
             plan.exercises[index].sortOrder = index
         }
         plan.copiedFromPlanID = previous?.copiedFromPlanID
+        plan.copyRequestID = nil
         state.plans[plan.id] = plan
         try persist()
         return plan
@@ -179,13 +192,28 @@ actor DemoWorkoutStorage {
         try persist()
     }
 
-    func copyPlan(id: UUID, userID: UUID, friends: Set<UUID>) throws -> WorkoutPlan {
+    func copyPlan(id: UUID, requestID: UUID, userID: UUID, friends: Set<UUID>) throws -> WorkoutPlan {
+        try checkLoaded()
+        if let request = state.copyRequests?[userID]?[requestID] {
+            guard request.sourceID == id else { throw AppError.conflict("Diese Kopieranfrage gehört zu einem anderen Plan.") }
+            guard state.plans[request.copyID]?.ownerID == userID, !state.archivedPlans.contains(request.copyID) else {
+                throw AppError.conflict("Deine zuvor erstellte Kopie wurde archiviert oder gelöscht. Es wurde keine weitere Kopie angelegt.")
+            }
+            var existing = try readablePlan(request.copyID, userID: userID, friends: [])
+            existing.copyRequestID = requestID
+            return existing
+        }
         let source = try readablePlan(id, userID: userID, friends: friends, includeArchived: false)
         let copy = source.independentCopy(ownerID: userID)
+        let previous = state
         for item in copy.exercises where item.exercise.isCustom { state.exercises[item.exercise.id] = item.exercise }
         state.plans[copy.id] = copy
-        try persist()
-        return copy
+        var requests = state.copyRequests ?? [:]
+        requests[userID, default: [:]][requestID] = CopyRequest(sourceID: id, copyID: copy.id)
+        state.copyRequests = requests
+        do { try persist() } catch { state = previous; throw error }
+        var receipt = copy; receipt.copyRequestID = requestID
+        return receipt
     }
 
     func sharePlan(id: UUID, recipients: [UUID], sender: Profile, friends: Set<UUID>) throws {
@@ -419,6 +447,7 @@ actor DemoWorkoutStorage {
         state.activities = state.activities.filter { !activityIDs.contains($0.key) }
         state.sessions = state.sessions.filter { $0.value.host.id != userID }
         state.notifications.removeValue(forKey: userID)
+        state.copyRequests?.removeValue(forKey: userID)
         state.shares = state.shares.filter { !planIDs.contains($0.key) }.mapValues { $0.subtracting([userID]) }
         try persist()
     }
@@ -443,7 +472,7 @@ extension DemoRepository {
     func workoutPlan(id: UUID) async throws -> WorkoutPlan { try await workoutStorage.plan(id: id, userID: meID, friends: Set(crew.map(\.id))) }
     func saveWorkoutPlan(_ plan: WorkoutPlan) async throws -> WorkoutPlan { try await workoutStorage.savePlan(plan, userID: meID) }
     func archiveWorkoutPlan(id: UUID) async throws { try await workoutStorage.archivePlan(id: id, userID: meID) }
-    func copyWorkoutPlan(id: UUID) async throws -> WorkoutPlan { try await workoutStorage.copyPlan(id: id, userID: meID, friends: Set(crew.map(\.id))) }
+    func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan { try await workoutStorage.copyPlan(id: id, requestID: requestID, userID: meID, friends: Set(crew.map(\.id))) }
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { try await workoutStorage.sharePlan(id: id, recipients: friendIDs, sender: me, friends: Set(crew.map(\.id))) }
 
     func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity {

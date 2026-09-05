@@ -15,8 +15,9 @@ struct FYRUPApp: App {
                 .environment(\.locale, Locale(identifier: "de_DE"))
                 .task {
                     appDelegate.store = store
-                    await store.bootstrap()
                     await appDelegate.deliverPendingNotification()
+                    await store.bootstrap()
+                    await store.deliverPendingNotification()
                 }
         }
     }
@@ -25,11 +26,11 @@ struct FYRUPApp: App {
 @MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     weak var store: AppStore?
-    private var pendingNotificationType: String?
+    private var pendingNotification: NotificationTapPayload?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         if let payload = options?[.remoteNotification] as? [AnyHashable: Any] {
-            pendingNotificationType = payload["fyrup_type"] as? String
+            pendingNotification = NotificationTapPayload(userInfo: payload)
         }
         return true
     }
@@ -39,15 +40,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner, .sound, .badge] }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let type = response.notification.request.content.userInfo["fyrup_type"] as? String
-        await deliverNotification(type)
+        guard response.actionIdentifier != UNNotificationDismissActionIdentifier,
+              let payload = NotificationTapPayload(userInfo: response.notification.request.content.userInfo) else { return }
+        await deliverNotification(payload)
     }
     func deliverPendingNotification() async {
-        guard let pendingNotificationType else { return }
-        self.pendingNotificationType = nil
-        await store?.handleNotificationTap(type: pendingNotificationType)
+        guard let store, let pendingNotification else { return }
+        self.pendingNotification = nil
+        await store.handleNotificationTap(pendingNotification)
     }
-    private func deliverNotification(_ type: String?) async {
-        await store?.handleNotificationTap(type: type)
+    private func deliverNotification(_ payload: NotificationTapPayload) async {
+        guard let store else { pendingNotification = payload; return }
+        await store.handleNotificationTap(payload)
     }
 }

@@ -167,6 +167,8 @@ struct BlindWorkoutDetailView: View {
     @State private var startsAt = Date().addingTimeInterval(3600)
     @State private var confirmsCancel = false
     @State private var copiedPlan: WorkoutPlan?
+    @State private var confirmsDiscardSetDrafts = false
+    @State private var restoredDraftMode = false
     private var state: BlindWorkoutState? { store.blind.state(id: id) }
 
     var body: some View {
@@ -209,7 +211,15 @@ struct BlindWorkoutDetailView: View {
             .accessibilityElement(children: .contain).accessibilityIdentifier("blind-detail-screen")
             .task { _ = await store.blind.load(id: id) }
             .refreshable { _ = await store.blind.load(id: id) }
-            .onChange(of: store.blind.selectedState) { _, value in if value == nil { selectedSet = nil } }
+            .onChange(of: store.blind.selectedState) { _, value in
+                if let selection = selectedSet {
+                    guard let value, let owner = store.profile?.id,
+                          WorkoutSetDraftContext.blind(ownerID: owner, state: value, exerciseID: selection.exerciseID, setID: selection.set.id) != nil else { selectedSet = nil; return }
+                }
+                if !restoredDraftMode, let activityID = value?.activity?.id, store.trackingDrafts.hasInput(activityID: activityID) {
+                    mode = .track; restoredDraftMode = true
+                }
+            }
             .sheet(item: $selectedSet) { selection in
                 WorkoutSetEntrySheet(selection: selection) { updated in
                     guard let exercise = state?.currentExercise, exercise.id == selection.exerciseID else { return false }
@@ -239,9 +249,16 @@ struct BlindWorkoutDetailView: View {
                     }
             }
             .confirmationDialog("Workout abbrechen?", isPresented: $confirmsCancel, titleVisibility: .visible) {
-                Button("Workout abbrechen", role: .destructive) { Task { if await store.blind.cancel(id: id) { await store.refresh() } } }
+                Button("Workout abbrechen", role: .destructive) {
+                    let activityID = state?.activity?.id
+                    Task { if await store.blind.cancel(id: id) { if let activityID { store.trackingDrafts.clearActivity(activityID) }; await store.refresh() } }
+                }
                 Button("Weiter trainieren", role: .cancel) {}
-            } message: { Text("Du kannst jederzeit aufhören. Es gibt keine negative Bewertung und keinen Wochen-Credit für einen Abbruch.") }
+            } message: { Text("Du kannst jederzeit aufhören. Lokale, noch nicht gespeicherte Satzentwürfe werden dabei verworfen. Es gibt keine negative Bewertung und keinen Wochen-Credit für einen Abbruch.") }
+            .confirmationDialog("Lokale Satzentwürfe verwerfen?", isPresented: $confirmsDiscardSetDrafts, titleVisibility: .visible) {
+                Button("Lokale Satzentwürfe verwerfen", role: .destructive) { if let activityID = state?.activity?.id { store.trackingDrafts.clearActivity(activityID) } }
+                Button("Behalten", role: .cancel) {}
+            } message: { Text("Deine bereits gespeicherten Satzwerte bleiben unverändert. Nur unbestätigte Eingaben auf diesem Gerät werden entfernt.") }
     }
 
     @ViewBuilder private func recipientContent(_ value: BlindWorkoutState) -> some View {
@@ -274,6 +291,14 @@ struct BlindWorkoutDetailView: View {
                     .accessibilityIdentifier("blind-tracking-mode")
                 Text(mode == .easy ? "Übung ansehen, in deinem Tempo trainieren und abhaken." : "Tatsächliche Satzwerte sind freiwillig und bleiben privat.")
                     .font(.footnote).foregroundStyle(FYColor.muted)
+                if store.trackingDrafts.hasInput(activityID: activity.id) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Lokale Satzentwürfe vorhanden", systemImage: "square.and.pencil").font(.subheadline.bold())
+                        Text("Öffne den Satz der aktuell freigegebenen Übung, um deine Eingaben zu prüfen. Vor dem Weiterschalten musst du sie speichern oder verwerfen. Frühere oder noch verborgene Übungen werden nicht aus einem Entwurf geöffnet.").font(.footnote)
+                        Button("Lokale Satzentwürfe verwerfen") { confirmsDiscardSetDrafts = true }.font(.caption.bold()).disabled(store.blind.isBusy)
+                    }.fyCard().accessibilityIdentifier("restored-blind-set-draft")
+                }
+                if let error = store.trackingDrafts.errorMessage { Text(error).font(.footnote).foregroundStyle(FYColor.coral) }
                 if let current = value.currentExercise {
                     revealedExercise(current, editable: true).id(current.id)
                         .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .bottom)))
@@ -282,7 +307,7 @@ struct BlindWorkoutDetailView: View {
                             let saved = await store.blind.saveExercise(id: id, exerciseID: current.id, sets: current.sets, complete: true)
                             if saved { Haptics.impact(.light) }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(store.blind.isBusy).accessibilityIdentifier("complete-blind-exercise")
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(store.blind.isBusy || store.trackingDrafts.hasInput(activityID: activity.id)).accessibilityIdentifier("complete-blind-exercise")
                 }
                 let hidden = max(0, value.summary.exerciseCount - value.visibleExercises.count)
                 if hidden > 0 {
@@ -296,7 +321,7 @@ struct BlindWorkoutDetailView: View {
                                 await store.refresh(); await store.weekly.refresh(force: true); await store.weekly.prepareCelebration()
                             }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(store.blind.isBusy).accessibilityIdentifier("finish-blind-workout")
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(store.blind.isBusy || store.trackingDrafts.hasInput(activityID: activity.id)).accessibilityIdentifier("finish-blind-workout")
                 }
                 Button(activity.pausedAt == nil ? "Training pausieren" : "Training fortsetzen") {
                     Task {
@@ -332,7 +357,11 @@ struct BlindWorkoutDetailView: View {
             if let note = exercise.note { Text(note).font(.footnote).foregroundStyle(FYColor.muted) }
             if editable && mode == .track {
                 ForEach(exercise.sets.sorted { $0.setNumber < $1.setNumber }) { set in
-                    Button { selectedSet = TrackingSetSelection(exerciseID: exercise.id, exerciseName: exercise.exercise.name, unit: exercise.exercise.repetitionUnit, set: set, isBlind: true) }
+                    Button {
+                        guard let state, let owner = store.profile?.id,
+                              let context = WorkoutSetDraftContext.blind(ownerID: owner, state: state, exerciseID: exercise.id, setID: set.id) else { return }
+                        selectedSet = TrackingSetSelection(exerciseID: exercise.id, exerciseName: exercise.exercise.name, unit: exercise.exercise.repetitionUnit, set: set, isBlind: true, draftContext: context)
+                    }
                     label: { WorkoutSetRow(set: set, unit: exercise.exercise.repetitionUnit, editable: true) }
                         .buttonStyle(.plain).disabled(store.blind.isBusy).accessibilityIdentifier("blind-set-\(set.setNumber)")
                 }

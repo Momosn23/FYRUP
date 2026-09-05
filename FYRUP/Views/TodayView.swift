@@ -14,7 +14,7 @@ struct TodayView: View {
                     FeedSkeleton()
                 } else {
                     MyFeedCard(activity: store.myActivity)
-                    OwnWeeklyCard()
+                    OwnWeeklyCard(compact: true)
                     OwnStepsCard()
                     BlindInboxCards()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
@@ -206,6 +206,14 @@ struct InvitationDetailView: View {
     let invitation: SessionInvitation
 
     var body: some View {
+        Group {
+            if store.revokedFriendIDs.contains(invitation.host.id) {
+                ContentUnavailableView("Einladung nicht mehr verfügbar", systemImage: "lock", description: Text("Ihr seid nicht mehr verbunden."))
+            } else { invitationContent }
+        }
+    }
+
+    private var invitationContent: some View {
         ScrollView { VStack(spacing: 18) {
             Spacer()
             AvatarView(profile: invitation.host).scaleEffect(1.7).padding(24)

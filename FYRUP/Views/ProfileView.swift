@@ -6,7 +6,6 @@ struct ProfileView: View {
     @Environment(AppStore.self) private var store
     @State private var showsDelete = false
     @State private var showsEdit = false
-    @State private var notificationsEnabled = false
     @State private var statisticsPeriod = 0
     var body: some View {
         ScrollView {
@@ -44,7 +43,7 @@ struct ProfileView: View {
                     RecentActivitiesCard(activities: store.recentActivities, profile: profile)
                 }
                 VStack(spacing: 0) {
-                    Toggle(isOn: $notificationsEnabled) { Label("Mitteilungen", systemImage: "bell") }.padding().onChange(of: notificationsEnabled) { _, enabled in if enabled { Task { let center = UNUserNotificationCenter.current(); if try await center.requestAuthorization(options: [.alert, .badge, .sound]) { await MainActor.run { UIApplication.shared.registerForRemoteNotifications() } } } } }
+                    SystemNotificationSettingsRow()
                     Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
                     Divider(); NavigationLink { SettingsView() } label: { SettingsRow(title: "Einstellungen", symbol: "gearshape") }
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
@@ -55,7 +54,7 @@ struct ProfileView: View {
         }
         .background(FYColor.background)
         .navigationBarHidden(true)
-        .task { await store.weekly.refresh(); let settings = await UNUserNotificationCenter.current().notificationSettings(); notificationsEnabled = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional }
+        .task { await store.weekly.refresh() }
         .sheet(isPresented: $showsEdit) { ProfileEditView() }
         .confirmationDialog("Account dauerhaft löschen?", isPresented: $showsDelete, titleVisibility: .visible) { Button("Account löschen", role: .destructive) { Task { await store.deleteAccount() } }; Button("Abbrechen", role: .cancel) {} } message: { Text("Deine personenbezogenen Daten und Verknüpfungen werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.") }
     }
@@ -265,13 +264,126 @@ private struct PrivacyView: View {
     private var visibilityBinding: Binding<String> { Binding(get: { store.profile?.activityVisibility ?? "friends" }, set: { value in guard var profile = store.profile else { return }; profile.activityVisibility = value; Task { try? await store.repository.saveProfile(profile); await MainActor.run { store.profile = profile } } }) }
 }
 
+private struct SystemNotificationSettingsRow: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var status: UNAuthorizationStatus?
+    @State private var isWorking = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Mitteilungen auf diesem iPhone", systemImage: "bell")
+            Text(statusText).font(.caption).foregroundStyle(FYColor.muted)
+                .accessibilityIdentifier("system-notification-status")
+            Button(buttonTitle) { Task { await act() } }
+                .disabled(isWorking)
+                .accessibilityIdentifier("system-notification-settings")
+            if let errorMessage { Text(errorMessage).font(.caption).foregroundStyle(.red) }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding()
+            .task { await refreshStatus() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await refreshStatus() } }
+            }
+    }
+
+    private var statusText: String {
+        guard let status else { return "Status noch nicht geladen" }
+        switch status {
+        case .notDetermined: return "Noch nicht eingerichtet"
+        case .denied: return "In den iPhone-Einstellungen ausgeschaltet"
+        case .authorized: return "Erlaubt. Anzeige, Töne und Hinweise legst du in den iPhone-Einstellungen fest."
+        case .provisional: return "Vorläufig erlaubt – stille Zustellung"
+        case .ephemeral: return "Vorübergehend erlaubt"
+        @unknown default: return "Bitte prüfe den Status in den iPhone-Einstellungen."
+        }
+    }
+
+    private var buttonTitle: String {
+        guard let status else { return "Status aktualisieren" }
+        return status == .notDetermined ? "Mitteilungen erlauben" : "iPhone-Mitteilungseinstellungen öffnen"
+    }
+
+    private func refreshStatus() async {
+        guard !isWorking else { return }
+        isWorking = true; defer { isWorking = false }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard !Task.isCancelled else { return }
+        status = settings.authorizationStatus
+    }
+
+    private func act() async {
+        guard !isWorking else { return }
+        guard let status else { await refreshStatus(); return }
+        isWorking = true; errorMessage = nil
+        defer { isWorking = false }
+        if status == .notDetermined {
+            do {
+                let center = UNUserNotificationCenter.current()
+                _ = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+                let settings = await center.notificationSettings()
+                self.status = settings.authorizationStatus
+                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            } catch { errorMessage = "Die Anfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut." }
+        } else if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+            if await UIApplication.shared.open(url) == false {
+                errorMessage = "Die Einstellungen konnten nicht geöffnet werden. Öffne auf deinem iPhone Einstellungen → Mitteilungen → FYRUP."
+            }
+        }
+    }
+}
+
 private struct NotificationPreferencesView: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
-    @State private var draft: NotificationPreferences = .standard
 
     var body: some View {
         Form {
+            if let snapshot = store.notificationSettings.value {
+                NotificationPreferenceFields(initial: snapshot)
+                    .id(store.notificationSettings.userID)
+            } else {
+                Section { Text("Deine gespeicherten Einstellungen werden erst nach erfolgreichem Laden angezeigt.").foregroundStyle(FYColor.muted) }
+            }
+            if store.notificationSettings.isLoading {
+                Section { ProgressView("Einstellungen laden …") }
+            }
+            if let message = store.notificationSettings.errorMessage {
+                Section { Text(message).font(.subheadline).foregroundStyle(.red) }
+            }
+            if !store.notificationSettings.isConfirmed {
+                Section {
+                    Button("Erneut laden") { Task { await store.notificationSettings.refresh() } }
+                        .disabled(store.notificationSettings.isBusy)
+                        .accessibilityIdentifier("reload-notification-preferences")
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(FYColor.background)
+        .navigationTitle("Benachrichtigungen")
+        .navigationBarBackButtonHidden(store.notificationSettings.isSaving)
+        .interactiveDismissDisabled(store.notificationSettings.isSaving)
+        .task(id: store.notificationSettings.userID) { await store.notificationSettings.refresh() }
+    }
+}
+
+private struct NotificationPreferenceFields: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: NotificationPreferences
+    @State private var baseline: NotificationPreferences
+
+    init(initial: NotificationPreferences) {
+        _draft = State(initialValue: initial); _baseline = State(initialValue: initial)
+    }
+
+    private var canEdit: Bool {
+        store.notificationSettings.isConfirmed && !store.notificationSettings.isBusy && store.notificationSettings.value == baseline
+    }
+
+    var body: some View {
+        Group {
             Section {
                 Toggle("Freund startet Training", isOn: $draft.friendStarts)
                 Toggle("FYR UP", isOn: $draft.fyrup)
@@ -286,18 +398,22 @@ private struct NotificationPreferencesView: View {
                 Toggle("Wochenziel", isOn: $draft.weeklyGoal)
                 Toggle("Crew-Ziel", isOn: $draft.crewGoal)
             }
+        }.disabled(!canEdit)
+        if store.notificationSettings.isConfirmed, let latest = store.notificationSettings.value, latest != baseline {
             Section {
-                Button("Einstellungen speichern") {
-                    Task {
-                        await store.saveNotificationPreferences(draft)
-                        if store.errorMessage == nil { dismiss() }
-                    }
-                }.frame(maxWidth: .infinity).fontWeight(.bold)
+                Text("Es gibt einen neueren gespeicherten Stand. Deine bisherigen Eingaben wurden nicht gesendet.").font(.caption)
+                Button("Aktuellen Stand übernehmen") { baseline = latest; draft = latest }
+                    .disabled(store.notificationSettings.isBusy)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(FYColor.background)
-        .navigationTitle("Benachrichtigungen")
-        .task { draft = store.notificationPreferences }
+        Section {
+            Button(store.notificationSettings.isSaving ? "Wird gespeichert …" : "Einstellungen speichern") {
+                Task {
+                    if await store.saveNotificationPreferences(draft, expected: baseline) { dismiss() }
+                }
+            }.frame(maxWidth: .infinity).fontWeight(.bold)
+                .disabled(!canEdit || draft == baseline)
+                .accessibilityIdentifier("save-notification-preferences")
+        }
     }
 }
