@@ -35,6 +35,22 @@ def validate_ipa(path, expected_url, expected_key):
             value = info.get(name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError("Missing Health purpose string: " + name)
+        if info.get("NSSupportsLiveActivities") is not True:
+            raise ValueError("Live Activities support is missing")
+        url_types = info.get("CFBundleURLTypes", [])
+        if not isinstance(url_types, list) or not any(
+                isinstance(item, dict) and isinstance(item.get("CFBundleURLSchemes"), list)
+                and "fyrup" in item["CFBundleURLSchemes"] for item in url_types):
+            raise ValueError("Live Activity return link is missing")
+        widget = read_plist(app_root + "PlugIns/FYRUPLive.appex/Info.plist")
+        if widget.get("CFBundleIdentifier") != "app.fyrup.ios.live":
+            raise ValueError("Unexpected Live Activity extension identifier")
+        for key in ("CFBundleVersion", "CFBundleShortVersionString"):
+            if not isinstance(info.get(key), str) or not info[key] or widget.get(key) != info[key]:
+                raise ValueError("App and Live Activity extension versions differ")
+        extension = widget.get("NSExtension")
+        if not isinstance(extension, dict) or extension.get("NSExtensionPointIdentifier") != "com.apple.widgetkit-extension":
+            raise ValueError("Live Activity widget extension point is missing")
         backend = read_plist(app_root + "BackendConfig.plist")
         if backend.get("SUPABASE_URL") != expected_url:
             raise ValueError("Embedded backend URL does not match")
@@ -53,4 +69,4 @@ if __name__ == "__main__":
     except (ValueError, OSError, zipfile.BadZipFile) as error:
         print("Release validation failed: " + str(error), file=sys.stderr)
         sys.exit(1)
-    print("Verified IPA: FYRUP bundle, both Health purposes and production backend")
+    print("Verified IPA: FYRUP, embedded Live Activity, matching versions, Health purposes and production backend")

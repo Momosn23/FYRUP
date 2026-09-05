@@ -69,6 +69,8 @@ workflows:
         provisioning_profiles:
           - profile: fyrup_app_store_healthkit
             environment_variable: FYRUP_SIGNING_PROFILE
+          - profile: fyrup_live_app_store
+            environment_variable: FYRUP_LIVE_SIGNING_PROFILE
         certificates:
           - FYRUP Apple Distribution
       vars:

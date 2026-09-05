@@ -10,7 +10,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
     private func launch(_ app: XCUIApplication, suite: String, user: String) {
         app.launchArguments = ["--demo", "--workout-persistence=\(suite)", "--demo-user=\(user)"]
         app.launch()
-        expectExists(app.staticTexts["Guten Morgen"], in: app, timeout: 8)
+        expectExists(app.staticTexts["home-greeting"], in: app, timeout: 8)
     }
 
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {

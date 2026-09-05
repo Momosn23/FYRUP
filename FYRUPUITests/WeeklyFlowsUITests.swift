@@ -36,7 +36,7 @@ final class WeeklyFlowsUITests: XCTestCase {
     }
 
     private func openWeeklyDetail(in app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 8))
         revealAndTap(app.buttons["own-weekly-card"], in: app)
         XCTAssertTrue(app.staticTexts["Deine Streak"].waitForExistence(timeout: 5))
     }

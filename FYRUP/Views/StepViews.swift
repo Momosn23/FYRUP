@@ -93,7 +93,7 @@ struct HealthExplanationView: View {
                         Label("Du entscheidest, ob Freunde sie sehen.", systemImage: "person.2")
                         Label("Die Freigabe kann jederzeit ausgeschaltet werden.", systemImage: "switch.2")
                     }.font(.subheadline).fyCard()
-                    Text("FYRUP fragt ausschließlich nach „Schritte lesen“. Keine Herzfrequenz, kein Schlaf, kein Standort und keine Schreibberechtigung. Die separate Freigabe an Freunde ist standardmäßig aus und wird durch diesen Dialog nicht geändert.")
+            Text("Dieser Dialog fragt ausschließlich nach „Schritte lesen“. Keine Herzfrequenz, kein Schlaf, kein Standort und keine Schreibberechtigung. Aktive Energie für die Kalorienanzeige wird nur in deren eigener Einrichtung angefragt. Die separate Freigabe an Freunde ist standardmäßig aus und wird durch diesen Dialog nicht geändert.")
                         .font(.caption).foregroundStyle(FYColor.muted)
                     if store.steps.healthRequested {
                         Text("Du kannst den Zugriff auch in Apple Health unter deinem Profil → Apps → FYRUP prüfen. Fehlende Daten bedeuten nicht automatisch eine abgelehnte Berechtigung.").font(.caption).foregroundStyle(FYColor.muted)

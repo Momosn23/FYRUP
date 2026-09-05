@@ -40,6 +40,8 @@ final class WorkoutFlowsUITests: XCTestCase {
             }
             if element.exists && element.isHittable {
                 guard waitUntilReady(element) else {
+                    capture("failure-workout-unstable-control")
+                    print("WORKOUT_UI_UNSTABLE_HIERARCHY\n\(app.debugDescription)")
                     XCTFail("The control did not become enabled and hittable: \(element)", file: file, line: line)
                     return
                 }
@@ -186,6 +188,8 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["open-library-muscles"], in: app)
         let chest = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'library-muscle-body-front-chest-'")).firstMatch
         let core = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'library-muscle-body-front-core-'")).firstMatch
+        XCTAssertTrue(core.waitForExistence(timeout: 4))
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'library-muscle-body-front-core-'")).count, 1, "One muscle is one accessible body control")
         tap(chest, in: app)
         XCTAssertTrue(chest.isSelected)
         tap(core, in: app)
@@ -313,7 +317,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         capture("54-unsaved-set-with-keyboard")
         // No save button, no Back, no graceful sheet dismissal before termination.
         app.terminate(); app.launch()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 8))
         tap(app.buttons["open-live-activity"], in: app)
         XCTAssertTrue(container("workout-tracking-screen", in: app).waitForExistence(timeout: 6))
         XCTAssertTrue(container("restored-tracking-draft", in: app).exists)

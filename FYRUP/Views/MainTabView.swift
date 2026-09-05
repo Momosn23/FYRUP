@@ -45,14 +45,22 @@ struct MainTabView: View {
             .padding(.bottom, 9)
         }
         .fullScreenCover(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
+        .fullScreenCover(isPresented: $store.showsLiveSession) {
+            NavigationStack {
+                LiveActivityView().toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { store.showsLiveSession = false } } }
+            }
+        }
         .sheet(item: Binding(get: { store.notificationRouting.presentation }, set: { if $0 == nil { store.notificationRouting.dismiss() } })) { presentation in
             NotificationDestinationView(presentation: presentation).id(presentation.id)
         }
         .task {
             await store.deliverPendingNotification()
             await store.refresh()
+            store.deliverPendingLiveLink()
+            store.synchronizeLiveSurface()
             guard !Task.isCancelled, store.route == .main, let userID = store.session?.userID, store.profile?.id == userID else { return }
             await store.steps.activate(userID: userID)
+            await store.energy.refresh()
             guard store.session?.userID == userID, store.route == .main else { return }
             await store.weekly.activate(userID: userID)
             guard store.session?.userID == userID else { return }
@@ -61,11 +69,13 @@ struct MainTabView: View {
             await store.blind.refreshSummaries()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && store.route == .main { Task { await store.prepareNotificationRegistration(); await store.refresh(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() } }
+            if phase == .active && store.route == .main { Task { await store.prepareNotificationRegistration(); await store.refresh(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() } }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-            Task { await store.steps.refresh(force: true); await store.weekly.refresh(force: true) }
+            Task { await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true) }
         }
+        .onChange(of: store.rest.clock) { _, _ in store.synchronizeLiveSurface() }
+        .onChange(of: store.myActivity) { _, _ in store.synchronizeLiveSurface() }
     }
 }
 

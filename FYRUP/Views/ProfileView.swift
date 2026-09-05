@@ -46,6 +46,7 @@ struct ProfileView: View {
                     RecentActivitiesCard(activities: store.recentActivities, profile: profile)
                 }
                 VStack(spacing: 0) {
+                    PersonalSetupHomeCard()
                     SystemNotificationSettingsRow()
                     Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
                     Divider(); NavigationLink { SupplementsView() } label: { SettingsRow(title: "Supplements", symbol: "pills") }
@@ -254,7 +255,7 @@ private struct SettingsView: View {
     }
 }
 
-private struct PrivacyView: View {
+struct PrivacyView: View {
     @Environment(AppStore.self) private var store
     var body: some View {
         Form {

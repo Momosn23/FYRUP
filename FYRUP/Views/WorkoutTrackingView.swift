@@ -101,6 +101,7 @@ struct WorkoutTrackingView: View {
                     WorkoutRecordedExercises(log: confirmed)
                 } else if let log = displayed, let activity = currentActivity {
                     liveHeader(activity: activity, log: log)
+                    WorkoutRestView(activityID: activity.id)
                     if pending != nil { pendingBanner }
                     if hasLocalInputs || draftConflict { localDraftBanner }
                     if let error = store.trackingDrafts.errorMessage { errorBanner(error) }
@@ -198,15 +199,13 @@ struct WorkoutTrackingView: View {
 
     private func liveHeader(activity: Activity, log: WorkoutLog) -> some View {
         VStack(alignment: .leading, spacing: 16) {
+            LiveSessionVisual(activity: activity, title: log.planName)
             HStack {
                 Label(activity.pausedAt == nil ? "LIVE" : "PAUSIERT", systemImage: activity.pausedAt == nil ? "circle.fill" : "pause.circle.fill")
                     .font(.caption.bold()).foregroundStyle(activity.pausedAt == nil ? FYColor.live : FYColor.muted)
                 Spacer()
                 Label("Privates Protokoll", systemImage: "lock.fill").font(.caption2).foregroundStyle(FYColor.muted)
             }
-            Text("Gym · \(log.planName)").font(.title2.bold()).foregroundStyle(FYColor.ink)
-            LiveActivityTimer(activity: activity).font(.system(size: 42, weight: .bold, design: .monospaced))
-                .minimumScaleFactor(0.65).lineLimit(1).accessibilityLabel("Aktive Zeit")
             HStack {
                 Text("\(confirmed?.completedExercises ?? 0) / \(confirmed?.exercises.count ?? 0) Übungen").font(.subheadline.bold())
                 Spacer()

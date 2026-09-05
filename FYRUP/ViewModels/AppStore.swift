@@ -33,6 +33,8 @@ final class AppStore {
     var activityComposerMode = 0
     var selectedTab = 0
     var opensNotifications = false
+    var showsLiveSession = false
+    private var pendingLiveLink: SessionLiveLink?
     var suggestedDisplayName = ""
     private(set) var session: AuthSession? {
         didSet {
@@ -41,6 +43,9 @@ final class AppStore {
             notificationSettings.activate(userID: session?.userID)
             activityPrivacy.activate(userID: session?.userID)
             trackingDrafts.activate(userID: session?.userID)
+            rest.activate(userID: session?.userID)
+            setup.activate(userID: session?.userID)
+            energy.accountChanged(to: session?.userID)
             personal.activate(userID: session?.userID)
             supplements.activate(userID: session?.userID)
             notificationRouting.accountChanged(to: session?.userID)
@@ -52,6 +57,10 @@ final class AppStore {
     let workouts: WorkoutStore
     let workoutDrafts: WorkoutDraftStore
     let trackingDrafts: WorkoutTrackingDraftStore
+    let rest: WorkoutRestStore
+    let setup: PersonalSetupStore
+    let energy: ActiveEnergyStore
+    let liveSurface: SessionLiveActivityStore
     let personal: PersonalTrainingStore
     let supplements: SupplementStore
     let steps: StepStore
@@ -70,6 +79,11 @@ final class AppStore {
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
+        self.rest = WorkoutRestStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest") ?? .standard : .standard)
+        let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
+        self.setup = setup
+        self.energy = ActiveEnergyStore(setup: setup)
+        self.liveSurface = SessionLiveActivityStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.live") ?? .standard : .standard)
         self.personal = PersonalTrainingStore(repository: repository)
         self.supplements = supplements ?? SupplementStore(repository: repository, persistence: repository is DemoRepository ? MemorySupplementPendingPersistence() : nil)
         self.steps = steps ?? StepStore(repository: repository)
@@ -134,6 +148,8 @@ final class AppStore {
     func logout() async {
         guard !isBusy else { return }
         isBusy = true
+        liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
+        showsLiveSession = false; pendingLiveLink = nil
         UIApplication.shared.unregisterForRemoteNotifications()
         supplements.activate(userID: nil)
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
@@ -355,6 +371,8 @@ final class AppStore {
                 friendAccessRevision += 1
             }
             myActivity = result.0; crew = result.1
+            if let clock = rest.clock, result.0?.id != clock.activityID || result.0?.status != .live { rest.stop(activityID: clock.activityID) }
+            synchronizeLiveSurface(confirmedEmpty: true)
             friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) }
             notifications = loadedNotifications
             invitations = loadedInvitations.filter { !revokedFriendIDs.contains($0.host.id) }
@@ -404,6 +422,8 @@ final class AppStore {
             guard self.session?.userID == userID, result.id == id, result.status == .completed else { return }
             completed = result
             self.myActivity = result
+            self.rest.stop(activityID: result.id)
+            self.synchronizeLiveSurface(confirmedEmpty: true)
             Haptics.success()
             await self.analytics.track(.activityCompleted)
             await self.refresh()
@@ -418,10 +438,45 @@ final class AppStore {
             let updated = try await self.repository.setActivityPaused(id: activity.id, paused: paused)
             guard self.session?.userID == userID && self.myActivity?.id == activity.id else { return }
             self.myActivity = updated
+            self.synchronizeLiveSurface()
             Haptics.impact(.light)
         }
     }
-    func cancelCurrent() async { guard let id = myActivity?.id else { return }; await perform { try await self.repository.cancelActivity(id: id); self.myActivity = nil; await self.refresh() } }
+    func cancelCurrent() async {
+        guard let id = myActivity?.id, let owner = session?.userID else { return }
+        await perform {
+            try await self.repository.cancelActivity(id: id)
+            guard self.session?.userID == owner else { return }
+            self.rest.stop(activityID: id); self.myActivity = nil
+            self.synchronizeLiveSurface(confirmedEmpty: true)
+            await self.refresh()
+        }
+    }
+
+    func synchronizeLiveSurface(retry: Bool = false, confirmedEmpty: Bool = false) {
+        guard !(repository is DemoRepository), route == .main, profile?.id == session?.userID else { return }
+        // An offline cold start with no feed is not evidence that a session ended.
+        if myActivity == nil, !confirmedEmpty, setup.value?.liveActivityEnabled == true { return }
+        guard let settings = setup.value else { return }
+        liveSurface.synchronize(activity: myActivity, ownerID: session?.userID, enabled: settings.liveActivityEnabled, rest: rest.clock, retry: retry)
+    }
+
+    func receiveLiveLink(_ url: URL) async {
+        guard let link = SessionLiveLink(url: url) else { return }
+        pendingLiveLink = link
+        if route == .main { await refresh(); deliverPendingLiveLink() }
+    }
+
+    func deliverPendingLiveLink() {
+        guard route == .main, let link = pendingLiveLink, let owner = session?.userID else { return }
+        pendingLiveLink = nil
+        guard let activity = myActivity, activity.id == link.sessionID, activity.userID == owner, activity.status == .live else {
+            errorMessage = "Diese Session ist nicht mehr LIVE oder gehört nicht zu deinem Konto."; return
+        }
+        selectedTab = 0; showsLiveSession = true
+        // A lock-screen link only opens the timer. It never silently starts a set
+        // pause, modifies a workout or requests Health permissions.
+    }
     func fyrup(_ member: CrewMember) async { await perform { try await self.repository.fyrup(member.id); Haptics.impact(.light); await self.analytics.track(.fyrupSent) } }
     func react(_ activity: Activity, reaction: ReactionKind?) async { await perform { try await self.repository.react(activityID: activity.id, reaction: reaction) } }
 
@@ -470,11 +525,16 @@ final class AppStore {
         await perform {
             let userID = self.session?.userID
             try await self.repository.deleteAccount()
+            self.liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
+            self.showsLiveSession = false; self.pendingLiveLink = nil
             if let userID { FeedCache.clear(userID: userID) }
             if let userID { self.workouts.clearCopyRequests(userID: userID) }
             self.workouts.activate(userID: nil)
             self.workoutDrafts.clearCurrentAccount()
             self.trackingDrafts.clearCurrentAccount()
+            self.rest.clearDeletedAccount()
+            do { try self.setup.clearDeletedAccount() }
+            catch { self.errorMessage = "Dein Konto ist gelöscht. Private Körperdaten konnten auf diesem gesperrten iPhone noch nicht entfernt werden." }
             self.supplements.clearDeletedAccount()
             self.steps.reset(clearLocalPreferences: true)
             self.weekly.reset(clearLocalPreferences: true)

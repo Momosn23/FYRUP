@@ -124,27 +124,72 @@ private struct MuscleBodyDiagram: View {
                 Ellipse().fill(Color(red: 0.72, green: 0.79, blue: 0.79))
                     .frame(width: 23 * scale, height: 29 * scale).offset(x: 38.5 * scale, y: 4 * scale)
                     .allowsHitTesting(false).accessibilityHidden(true)
-                ForEach(Array(BodyPatch.patches(side).enumerated()), id: \.offset) { index, patch in
-                    let rect = patch.bounds
-                    let isSelected = selection.contains(patch.muscle)
-                    Button { onSelect(patch.muscle) } label: {
-                        BodyPatchShape(patch: patch)
+                ForEach(BodyMuscleRegion.regions(side), id: \.muscle) { region in
+                    let rect = region.bounds
+                    let isSelected = selection.contains(region.muscle)
+                    Button { onSelect(region.muscle) } label: {
+                        BodyMuscleShape(region: region)
                             .fill(LinearGradient(colors: isSelected ? [FYColor.lime, Color(red: 0.02, green: 0.55, blue: 0.34)] : [Color.white.opacity(0.48), Color.white.opacity(0.13)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .overlay(BodyPatchShape(patch: patch).stroke(isSelected ? Color.white.opacity(0.95) : Color(red: 0.52, green: 0.63, blue: 0.65).opacity(0.65), lineWidth: 0.8))
+                            .overlay(BodyMuscleShape(region: region).stroke(isSelected ? Color.white.opacity(0.95) : Color(red: 0.52, green: 0.63, blue: 0.65).opacity(0.65), lineWidth: 0.8))
                             .shadow(color: isSelected ? FYColor.lime.opacity(0.35) : .clear, radius: 5)
-                            .contentShape(BodyPatchShape(patch: patch))
+                            .contentShape(BodyMuscleShape(region: region))
                     }
                     .buttonStyle(.plain)
                     .frame(width: rect.width * scale, height: rect.height * scale)
-                    .offset(x: rect.minX * scale, y: rect.minY * scale)
-                    .disabled(!available.contains(patch.muscle))
-                    .accessibilityLabel("\(patch.muscle.title), \(side.title)")
+                    .position(x: rect.midX * scale, y: rect.midY * scale)
+                    .disabled(!available.contains(region.muscle))
+                    .accessibilityLabel("\(region.muscle.title), \(side.title)")
                     .accessibilityHint("Auswahl ändern. Alternativ die beschriftete Liste unter der Figur verwenden.")
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
-                    .accessibilityIdentifier("\(identifierPrefix)-body-\(side.rawValue)-\(patch.muscle.rawValue)-\(index)")
+                    .accessibilityActivationPoint(region.activationPoint)
+                    .accessibilityIdentifier("\(identifierPrefix)-body-\(side.rawValue)-\(region.muscle.rawValue)-\(region.firstPatchIndex)")
                 }
             }
         }
+    }
+}
+
+/// One accessible control per muscle, not ten tiny controls for the abdominal
+/// patches. The actual hit shape remains the union of the painted pieces, so a
+/// bounding rectangle cannot intercept taps on a neighbouring muscle.
+struct BodyMuscleRegion {
+    let muscle: MuscleGroup
+    let patches: [BodyPatch]
+    let firstPatchIndex: Int
+    var bounds: CGRect { patches.reduce(CGRect.null) { $0.union($1.bounds) } }
+    static func regions(_ side: MuscleBodySide) -> [BodyMuscleRegion] {
+        let patches = BodyPatch.patches(side)
+        return MuscleSelection.ordered(Set(patches.map(\.muscle))).map { muscle in
+            BodyMuscleRegion(muscle: muscle, patches: patches.filter { $0.muscle == muscle }, firstPatchIndex: patches.firstIndex { $0.muscle == muscle }!)
+        }
+    }
+    var activationPoint: UnitPoint {
+        for patch in patches.sorted(by: { $0.bounds.width * $0.bounds.height > $1.bounds.width * $1.bounds.height }) {
+            let path = BodyPatchShape(patch: patch).path(in: patch.bounds)
+            for y in [0.5, 0.35, 0.65, 0.2, 0.8] {
+                for x in [0.5, 0.35, 0.65, 0.2, 0.8] {
+                    let point = CGPoint(x: patch.bounds.minX + patch.bounds.width * x, y: patch.bounds.minY + patch.bounds.height * y)
+                    if path.contains(point) { return UnitPoint(x: (point.x - bounds.minX) / bounds.width, y: (point.y - bounds.minY) / bounds.height) }
+                }
+            }
+        }
+        return .center
+    }
+}
+
+struct BodyMuscleShape: Shape {
+    let region: BodyMuscleRegion
+    func path(in rect: CGRect) -> Path {
+        var result = Path()
+        let bounds = region.bounds
+        for patch in region.patches {
+            let subrect = CGRect(x: rect.minX + (patch.bounds.minX - bounds.minX) / bounds.width * rect.width,
+                                 y: rect.minY + (patch.bounds.minY - bounds.minY) / bounds.height * rect.height,
+                                 width: patch.bounds.width / bounds.width * rect.width,
+                                 height: patch.bounds.height / bounds.height * rect.height)
+            result.addPath(BodyPatchShape(patch: patch).path(in: subrect))
+        }
+        return result
     }
 }
 

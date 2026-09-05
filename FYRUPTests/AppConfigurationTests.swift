@@ -2,6 +2,15 @@ import XCTest
 @testable import FYRUP
 
 final class AppConfigurationTests: XCTestCase {
+    func testLiveActivityIsDeclaredAndItsWidgetIsReallyEmbedded() throws {
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "NSSupportsLiveActivities") as? Bool, true)
+        let plugins = try XCTUnwrap(Bundle.main.builtInPlugInsURL)
+        let widget = try XCTUnwrap(Bundle(url: plugins.appendingPathComponent("FYRUPLive.appex")))
+        XCTAssertEqual(widget.bundleIdentifier, "app.fyrup.ios.live")
+        XCTAssertEqual(widget.object(forInfoDictionaryKey: "CFBundleVersion") as? String, Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String)
+        let types = try XCTUnwrap(Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]])
+        XCTAssertTrue(types.contains { ($0["CFBundleURLSchemes"] as? [String])?.contains("fyrup") == true })
+    }
     func testAppBundleIncludesBothHealthPurposeDescriptions() throws {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "app.fyrup.ios")
         for key in ["NSHealthShareUsageDescription", "NSHealthUpdateUsageDescription"] {

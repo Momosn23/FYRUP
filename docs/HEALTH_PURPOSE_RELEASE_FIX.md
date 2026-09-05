@@ -15,3 +15,5 @@ Apple dokumentiert getrennte Erklärungstexte für Lesen und Schreiben und verla
 ## Nachweis
 
 Sieben lokale Python-Tests bestanden (XML/binary, fehlende/leere/falsche Zwecktexte, falsches Bundle, beide Backend-Felder und Umgebung jeweils unabhängig, fehlende Erwartungswerte, mehrdeutiges Bundle, ungültiges Archiv). Native Bundle-Prüfung, neuer signierter Build und Apple-Annahme bleiben bis zum tatsächlichen Nachweis offen.
+
+Nachtrag 15:10 CEST: `5aa1f07` ist hochgeladen. In [GitHub 47](https://github.com/Momosn23/FYRUP/actions/runs/33967902685/job/101311146542#step:5:1304) hat der native Test beider Health-Zwecktexte im tatsächlichen App-Bundle bestanden (0,001 s). [Signierter Build 10](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c144faa8e5db63a97f4af) für denselben Commit ist angefordert, noch queued. Tatsächliche neue IPA-Vorabprüfung und Apple-Annahme weiterhin offen.

@@ -2,6 +2,8 @@
 
 Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen, noch nicht implementiert oder abgenommen. Keine exakte Messung, medizinische Beratung oder automatische Abnehm-/Ernährungsvorgabe daraus ableiten.
 
+Nachtrag ab 17:45 CEST: [Einrichtung und erste Health-Energieanzeige](MODERN_SETUP_LIVE_CHECKLIST.md) in Umsetzung. Körperdaten/privates aktives Tagesziel/gesonderter Read-only-Energiepfad werden ergänzt; native Prüfung noch ausstehend. Der erste Datenpfad übernimmt Apple Health, addiert keine Schritte oder Workouts dazu und ersetzt ausdrücklich **nicht** die noch offene eigene Schritt-/Intensitätsrechnung oder den freiwilligen KI-Zielvorschlag. Die Abnahmehaken darunter bleiben bis zu Nachweisen offen.
+
 ## Einrichtung und Startseite
 
 - [ ] KCAL-01 Körpergröße und Gewicht während der Registrierung/Ersteinrichtung erfassen, Einheiten erklären und Eingaben validieren; persönliche Verbrauchsschätzung erst mit den benötigten Angaben aktivieren. Fehlende Daten nicht erfinden.

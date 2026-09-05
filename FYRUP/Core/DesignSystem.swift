@@ -23,6 +23,7 @@ struct FYCardModifier: ViewModifier {
             .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(FYColor.line, lineWidth: 0.8))
             .shadow(color: FYColor.ink.opacity(0.045), radius: 10, y: 4)
+            .fyEntrance()
     }
 }
 
@@ -31,6 +32,7 @@ extension View {
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.bold))
@@ -38,18 +40,21 @@ struct PrimaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity, minHeight: 50)
             .background(FYColor.lime.opacity(configuration.isPressed ? 0.76 : 1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .shadow(color: FYColor.lime.opacity(0.20), radius: 8, y: 4)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.snappy, value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+            .animation(reduceMotion ? nil : .snappy, value: configuration.isPressed)
     }
 }
 
 struct SecondaryButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: 48)
             .background(FYColor.ink.opacity(configuration.isPressed ? 0.76 : 1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+            .animation(reduceMotion ? nil : .snappy, value: configuration.isPressed)
     }
 }
 

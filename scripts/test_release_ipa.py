@@ -14,10 +14,17 @@ class ReleaseIPATests(unittest.TestCase):
     url = "https://fixture.supabase.co"
     key = "fixture-not-a-real-key"
 
-    def fixture(self, info_override=None, backend_override=None, fmt=plistlib.FMT_XML, extra_app=False):
+    def fixture(self, info_override=None, backend_override=None, fmt=plistlib.FMT_XML, extra_app=False, widget_override=None, missing_widget=False):
         info = {"CFBundleIdentifier": "app.fyrup.ios",
                 "NSHealthShareUsageDescription": "Read selected steps",
-                "NSHealthUpdateUsageDescription": "No Health writes requested"}
+                "NSHealthUpdateUsageDescription": "No Health writes requested",
+                "NSSupportsLiveActivities": True,
+                "CFBundleURLTypes": [{"CFBundleURLSchemes": ["fyrup"]}],
+                "CFBundleVersion": "11", "CFBundleShortVersionString": "1.0.0"}
+        widget = {"CFBundleIdentifier": "app.fyrup.ios.live", "CFBundleVersion": "11",
+                  "CFBundleShortVersionString": "1.0.0",
+                  "NSExtension": {"NSExtensionPointIdentifier": "com.apple.widgetkit-extension"}}
+        widget.update(widget_override or {})
         backend = {"SUPABASE_URL": self.url, "SUPABASE_PUBLISHABLE_KEY": self.key,
                    "APP_ENVIRONMENT": "production"}
         for name, value in (info_override or {}).items():
@@ -30,6 +37,8 @@ class ReleaseIPATests(unittest.TestCase):
         with zipfile.ZipFile(result, "w") as archive:
             archive.writestr("Payload/FYRUP.app/Info.plist", plistlib.dumps(info, fmt=fmt))
             archive.writestr("Payload/FYRUP.app/BackendConfig.plist", plistlib.dumps(backend, fmt=fmt))
+            if not missing_widget:
+                archive.writestr("Payload/FYRUP.app/PlugIns/FYRUPLive.appex/Info.plist", plistlib.dumps(widget, fmt=fmt))
             if extra_app:
                 archive.writestr("Payload/Other.app/Info.plist", plistlib.dumps(info))
         result.seek(0)
@@ -67,6 +76,21 @@ class ReleaseIPATests(unittest.TestCase):
     def test_rejects_invalid_archive(self):
         with self.assertRaises(zipfile.BadZipFile):
             validator.validate_ipa(io.BytesIO(b"not an IPA"), self.url, self.key)
+
+    def test_rejects_missing_live_support_and_links(self):
+        for field in [{"NSSupportsLiveActivities": False}, {"CFBundleURLTypes": []}, {"CFBundleURLTypes": "fyrup"}]:
+            with self.assertRaisesRegex(ValueError, "Live Activit"):
+                validator.validate_ipa(self.fixture(field), self.url, self.key)
+
+    def test_rejects_missing_widget(self):
+        with self.assertRaisesRegex(ValueError, "Missing"):
+            validator.validate_ipa(self.fixture(missing_widget=True), self.url, self.key)
+
+    def test_rejects_wrong_widget_and_mismatching_versions(self):
+        for field in [{"CFBundleIdentifier": "other.widget"}, {"CFBundleVersion": "10"},
+                      {"CFBundleShortVersionString": "2.0"}, {"NSExtension": {}}, {"NSExtension": "invalid"}]:
+            with self.assertRaises(ValueError):
+                validator.validate_ipa(self.fixture(widget_override=field), self.url, self.key)
 
 
 if __name__ == "__main__":

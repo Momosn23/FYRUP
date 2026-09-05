@@ -13,6 +13,7 @@ struct FYRUPApp: App {
                 .environment(store)
                 .preferredColorScheme(.light)
                 .environment(\.locale, Locale(identifier: "de_DE"))
+                .onOpenURL { url in Task { await store.receiveLiveLink(url) } }
                 .task {
                     appDelegate.store = store
                     await appDelegate.deliverPendingNotification()

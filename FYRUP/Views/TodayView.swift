@@ -2,22 +2,31 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
                 header
+                crewStrip.fyEntrance(delay: 0.06)
+                if let live = store.myActivity, live.status == .live {
+                    NavigationLink { LiveActivityView() } label: {
+                        LiveSessionVisual(activity: live, compact: true)
+                            .overlay(alignment: .bottomTrailing) {
+                                Image(systemName: "arrow.up.right").foregroundStyle(.white).padding(20)
+                            }
+                    }.buttonStyle(FYPressStyle()).accessibilityLabel("ÖFFNEN").accessibilityIdentifier("open-live-activity")
+                    if live.sport == .gym { WorkoutRestView(activityID: live.id, compact: true) }
+                } else { startHero }
+                if store.setup.value?.completed != true { PersonalSetupHomeCard() }
                 TrainingWeekCard()
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Dein Status").font(.headline)
-                }.padding(.top, 4)
                 if store.isRefreshing && store.crew.isEmpty && store.myActivity == nil {
                     FeedSkeleton()
                 } else {
-                    MyFeedCard(activity: store.myActivity)
+                    if let activity = store.myActivity, activity.status != .live { MyFeedCard(activity: activity) }
                     OwnWeeklyCard(compact: true)
                     OwnStepsCard()
-                    SupplementHomeCard()
+                    ActiveEnergyCard()
                     BlindInboxCards()
                     ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
                     Text("Deine Crew").font(.headline).padding(.top, 4)
@@ -25,19 +34,22 @@ struct TodayView: View {
                     if store.crew.isEmpty {
                         EmptyCrewCard { store.selectedTab = 1 }
                     }
+                    SupplementHomeCard()
                     MotivationCard()
                     if !store.crew.isEmpty { NavigationLink { CrewGoalView() } label: { CrewGoalCard(summary: store.goals) }.buttonStyle(.plain).accessibilityIdentifier("crew-goal") }
                 }
             }
-            .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 24)
+            .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 80)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: store.myActivity?.status)
         }
         .background(FYColor.background)
-        .refreshable { await store.refresh(); await store.personal.loadWeek(); await store.personal.loadRoutine(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
+        .refreshable { await store.refresh(); await store.personal.loadWeek(); await store.personal.loadRoutine(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
         .navigationBarHidden(true)
         .task {
             await store.prepareNotificationRegistration()
             await store.supplements.refresh()
             await store.steps.refresh()
+            await store.energy.refresh()
             await store.weekly.refresh()
             await store.weekly.refreshFriends()
             if !store.showsActivityComposer { await store.weekly.prepareCelebration() }
@@ -48,6 +60,7 @@ struct TodayView: View {
                 await store.personal.loadWeek()
                 await store.supplements.refresh()
                 await store.steps.refresh()
+                await store.energy.refresh()
                 await store.weekly.refresh()
                 await store.weekly.refreshFriends()
                 await store.blind.refreshSummaries()
@@ -56,11 +69,12 @@ struct TodayView: View {
     }
 
     private var header: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Guten Morgen").font(.caption).foregroundStyle(FYColor.muted)
+                Text(HomePresentation.greeting(at: context.date)).font(.caption).foregroundStyle(FYColor.muted).accessibilityIdentifier("home-greeting")
                 Text("\(store.profile?.displayName.components(separatedBy: " ").first ?? "Du") 👋").font(.title2.weight(.black))
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(.caption2).foregroundStyle(FYColor.muted)
+                Text(context.date.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(.caption2).foregroundStyle(FYColor.muted)
             }
             Spacer()
             Button { store.activityComposerMode = 0; store.showsActivityComposer = true } label: { Image(systemName: "plus").font(.headline).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()).overlay(Circle().stroke(FYColor.line)) }
@@ -70,6 +84,29 @@ struct TodayView: View {
             }.accessibilityLabel("Mitteilungen")
             if let profile = store.profile { AvatarView(profile: profile).scaleEffect(0.78).frame(width: 38, height: 38) }
         }.foregroundStyle(FYColor.ink)
+        }
+    }
+
+    private var startHero: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("DEIN TAG. DEIN TEMPO.").font(.system(size: 10, weight: .heavy)).tracking(2).foregroundStyle(.white.opacity(0.9))
+            Text("Gemeinsam\nweiterkommen.").font(.system(size: 29, weight: .bold, design: .rounded)).foregroundStyle(.white)
+            HStack(spacing: 10) {
+                Button("JETZT LOS") { store.activityComposerMode = 0; store.showsActivityComposer = true }.buttonStyle(PrimaryButtonStyle())
+                Button("FÜR SPÄTER PLANEN") { store.activityComposerMode = 1; store.showsActivityComposer = true }
+                    .font(.caption2.bold()).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 50)
+                    .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.35)))
+                    .buttonStyle(FYPressStyle())
+            }
+        }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                SportPhoto(sport: store.profile?.sports.first ?? .running)
+                    .overlay(LinearGradient(colors: [.black.opacity(0.68), .black.opacity(0.28)], startPoint: .leading, endPoint: .trailing))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .shadow(color: FYColor.ink.opacity(0.12), radius: 16, y: 6).fyEntrance(delay: 0.1)
+            .accessibilityIdentifier("home-start-hero")
     }
 
     private var crewStrip: some View {

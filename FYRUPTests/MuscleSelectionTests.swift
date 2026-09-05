@@ -1,7 +1,21 @@
 import XCTest
+import SwiftUI
 @testable import FYRUP
 
 final class MuscleSelectionTests: XCTestCase {
+    func testEachBodyMuscleHasOneControlAndAnActivationPointInsideItsPaintedShape() {
+        for side in [MuscleBodySide.front, .back] {
+            let regions = BodyMuscleRegion.regions(side)
+            XCTAssertEqual(regions.count, Set(BodyPatch.patches(side).map(\.muscle)).count)
+            for region in regions {
+                let bounds = region.bounds, point = region.activationPoint
+                XCTAssertTrue((0...1).contains(point.x)); XCTAssertTrue((0...1).contains(point.y))
+                let absolute = CGPoint(x: bounds.minX + bounds.width * point.x, y: bounds.minY + bounds.height * point.y)
+                XCTAssertTrue(BodyMuscleShape(region: region).path(in: bounds).contains(absolute), "\(region.muscle) must have a real painted activation point")
+            }
+            XCTAssertEqual(regions.filter { $0.muscle == .core }.count, 1)
+        }
+    }
     func testGymMappingRoundTripsEveryAreaAndRejectsUnmappedCategories() {
         let areas = Set(GymBodyArea.allCases)
         XCTAssertEqual(MuscleSelection.groups(for: areas).count, areas.count)

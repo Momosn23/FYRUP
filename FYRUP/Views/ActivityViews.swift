@@ -383,7 +383,7 @@ private struct FreeActivityView: View {
         ScrollView {
         VStack(spacing: 24) {
             HStack { Button { dismiss() } label: { Image(systemName: "chevron.left") }; Spacer() }.foregroundStyle(FYColor.ink)
-            Spacer(minLength: 20)
+            Spacer(minLength: 0)
             if let activity = completedActivity ?? store.myActivity {
                 if didComplete {
                     Image(systemName: "trophy.fill").font(.system(size: 70)).foregroundStyle(FYColor.planned)
@@ -392,9 +392,8 @@ private struct FreeActivityView: View {
                     if let duration = activity.duration { HStack { ResultMetric(value: duration < 60 ? "\(max(0, Int(duration)))" : "\(Int(duration / 60))", label: duration < 60 ? "Sekunden" : "Minuten"); ResultMetric(value: "1", label: "Einheit"); ResultMetric(value: "✓", label: "Gespeichert") }.padding(.vertical, 8) }
                     Text("„Stärker als gestern.\nGenau so.“").multilineTextAlignment(.center).foregroundStyle(FYColor.muted).fyCard()
                 } else {
-                    StatusBadge(status: .live).font(.headline)
-                    Text([activity.sport.title, activity.displaySubtype].compactMap { $0 }.joined(separator: " · ")).font(.headline)
-                    LiveActivityTimer(activity: activity).font(.system(size: 46, weight: .bold, design: .monospaced))
+                    LiveSessionVisual(activity: activity)
+                    if activity.sport == .gym { WorkoutRestView(activityID: activity.id) }
                     if activity.pausedAt != nil { Text("Pausiert").font(.subheadline.bold()).foregroundStyle(FYColor.muted) }
                     if let liveFriend = store.crew.first(where: { $0.todayStatus == .live }) {
                         Label("\(liveFriend.profile.displayName) ist ebenfalls LIVE.", systemImage: "person.2.fill").font(.subheadline).foregroundStyle(FYColor.live)
@@ -405,7 +404,7 @@ private struct FreeActivityView: View {
                     if activity.sport.supportsDistance { TextField("Distanz in km (optional)", text: $distanceKM).keyboardType(.decimalPad).padding().background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)) }
                 }
             }
-            Spacer()
+            Spacer(minLength: 8)
             if didComplete {
                 if let activity = completedActivity { WorkoutFeedbackButton(activityID: activity.id) }
                 Text("Deine Aktivität erscheint entsprechend deiner Privatsphäre-Einstellung im Feed.").font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)

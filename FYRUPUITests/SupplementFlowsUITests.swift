@@ -27,7 +27,7 @@ final class SupplementFlowsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--workout-persistence=\(UUID().uuidString)"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 8))
         tap(app.buttons["open-supplements"], in: app)
         XCTAssertTrue(app.navigationBars["Supplements"].waitForExistence(timeout: 5))
         let purpose = app.staticTexts["supplement-purpose"]
@@ -54,7 +54,7 @@ final class SupplementFlowsUITests: XCTestCase {
         XCTAssertTrue(confirmed.waitForExistence(timeout: 5))
         capture("66-supplement-confirmed")
         app.terminate(); app.launch()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 8))
         tap(app.buttons["open-supplements"], in: app)
         XCTAssertTrue(confirmed.waitForExistence(timeout: 5), "Confirmed intake survives a real app relaunch")
         tap(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'supplement-secondary-'")).firstMatch, in: app)

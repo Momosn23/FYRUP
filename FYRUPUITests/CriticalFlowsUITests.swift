@@ -20,7 +20,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--demo"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
         return app
     }
 
@@ -59,7 +59,7 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["open-live-activity"].tap()
         XCTAssertTrue(app.buttons["ABSCHLIESSEN"].exists)
         capture("07-live-training")
-        app.buttons["ABSCHLIESSEN"].tap()
+        revealAndTap(app.buttons["ABSCHLIESSEN"], in: app)
         XCTAssertTrue(app.staticTexts["Heute geschafft 🔥"].waitForExistence(timeout: 3))
         capture("08-workout-complete")
         let finish = app.buttons["finish-free-activity"]
@@ -90,7 +90,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         let nudge = app.buttons["FYR UP 🔥"].firstMatch
         revealAndTap(nudge, in: app)
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].exists)
+        XCTAssertTrue(app.staticTexts["home-greeting"].exists)
         XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
 
@@ -189,7 +189,7 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
         capture("19-friend-profile")
         app.tabBars.buttons["Heute"].tap()
-        app.buttons["Details"].firstMatch.tap()
+        revealAndTap(app.buttons["Details"].firstMatch, in: app)
         XCTAssertTrue(app.navigationBars["Aktivitätsdetails"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Kategorie"].exists)
         capture("03-activity-details")
@@ -273,7 +273,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--social-fixtures"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
         app.buttons["Mitteilungen"].tap()
         XCTAssertTrue(app.navigationBars["Mitteilungen"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Sarah hat deine Aktivität gefeiert."].exists)
@@ -286,11 +286,11 @@ final class CriticalFlowsUITests: XCTestCase {
         app.launch()
         let invitation = app.buttons["session-invitation"]
         XCTAssertTrue(invitation.waitForExistence(timeout: 4))
-        invitation.tap()
+        revealAndTap(invitation, in: app)
         XCTAssertTrue(app.buttons["✓ Dabei"].waitForExistence(timeout: 3))
         capture("14-invitation")
         app.buttons["✓ Dabei"].tap()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["session-invitation"].exists)
         XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
@@ -363,9 +363,18 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("onboarding-04-friends")
         app.buttons["Später"].tap()
 
+        XCTAssertTrue(app.staticTexts["Jeder Schritt zählt."].waitForExistence(timeout: 4))
+        capture("73-setup-health")
+        // Optional system permissions are not silently accepted during onboarding.
+        for page in 0..<4 {
+            let next = app.buttons["personal-setup-next"]
+            revealAndTap(next, in: app)
+            if page < 3 { capture("74-setup-page-\(page + 2)") }
+        }
+
         XCTAssertTrue(app.staticTexts["Du bist startklar."].waitForExistence(timeout: 3))
         capture("onboarding-05-complete")
         app.buttons["FYRUP STARTEN"].tap()
-        XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 3))
     }
 }
