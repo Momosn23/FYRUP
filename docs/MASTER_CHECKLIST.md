@@ -94,7 +94,7 @@ Aktualisierung 05.09.2026: Helles Design, Trainingspläne, optionale Satzdaten, 
 - [x] ✅ Training beenden und DONE-Status mit Dauer
 - [x] ✅ Training abbrechen mit Sicherheitsabfrage
 - [x] ✅ Optionale manuelle Distanz für Laufen, Fahrrad und Schwimmen
-- [x] ✅ Kein GPS, keine Sätze, keine Gewichte und keine Kalorienerfassung
+- [ ] Historischer MVP-Ausschluss durch spätere Aufträge aufgehoben: optionale Satzwerte und Gewichte sind beauftragt; Ortserinnerungen und Kalorienschätzung ebenfalls. Den jeweiligen Umsetzungs- und Abnahmestand in der [zentralen Produktliste](PRODUCT_CHECKLIST.md) und ihren Zusatzlisten prüfen, nicht weiterhin als Ausschluss abhaken.
 - [x] ✅ Mitziehen kann eine verknüpfte eigene Aktivität starten
 - [ ] 🧪 Hintergrund/App-Neustart während LIVE auf echtem iPhone
 

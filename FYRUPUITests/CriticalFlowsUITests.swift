@@ -103,6 +103,14 @@ final class CriticalFlowsUITests: XCTestCase {
         app.segmentedControls.buttons["SESSION PLANEN"].tap()
         capture("05-plan-workout")
         let date = app.buttons["session-date"]
+        if !date.waitForExistence(timeout: 3) {
+            let tree = XCTAttachment(string: app.debugDescription)
+            tree.name = "session-date-accessibility-tree"
+            tree.lifetime = .keepAlways
+            add(tree)
+        }
+        XCTAssertTrue(date.exists, "Datum must remain a native accessible button")
+        waitUntilReady(date)
         XCTAssertTrue(date.isHittable)
         let selectedDate = date.value as? String ?? ""
         XCTAssertFalse(selectedDate.isEmpty)

@@ -278,10 +278,12 @@ private struct SessionDateRow: View {
                     Label("Datum", systemImage: "calendar")
                     Text(dateLabel).fixedSize(horizontal: false, vertical: true)
                 }.frame(maxWidth: .infinity, alignment: .leading)
-            }.foregroundStyle(FYColor.ink).padding(14)
+            }.foregroundStyle(FYColor.ink).padding(14).contentShape(Rectangle())
         }.buttonStyle(.plain)
-            .accessibilityElement(children: .ignore)
+            // Preserve the native Button role/action instead of wrapping it in
+            // a replacement accessibility element with ignored children.
             .accessibilityLabel("Datum").accessibilityValue(dateLabel)
+            .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("session-date")
             .sheet(isPresented: $showsCalendar) {
                 NavigationStack {
