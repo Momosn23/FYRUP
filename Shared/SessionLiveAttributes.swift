@@ -12,6 +12,7 @@ struct SessionLiveAttributes: ActivityAttributes, Sendable {
         var isGym: Bool
     }
     var sessionID: UUID
+    var ownerID: UUID
 }
 
 struct SessionLiveLink: Equatable {

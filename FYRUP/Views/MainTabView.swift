@@ -76,7 +76,7 @@ struct MainTabView: View {
             await store.blind.refreshSummaries()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && store.route == .main { Task { await store.prepareNotificationRegistration(); await store.refresh(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() } }
+            if phase == .active && store.route == .main { store.rest.reloadExternalClock(); Task { await store.prepareNotificationRegistration(); await store.refresh(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() } }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             Task { await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true) }

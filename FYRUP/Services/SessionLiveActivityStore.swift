@@ -6,6 +6,7 @@ import UIKit
 @MainActor @Observable
 final class SessionLiveActivityStore {
     struct Input: Equatable, Sendable {
+        let ownerID: UUID
         let sessionID: UUID
         let state: SessionLiveAttributes.ContentState
     }
@@ -16,20 +17,21 @@ final class SessionLiveActivityStore {
     private(set) var errorMessage: String?
     private(set) var systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    init(defaults: UserDefaults = FYRUPWidgetState.defaults) { self.defaults = defaults }
     func synchronize(activity: Activity?, ownerID: UUID?, enabled: Bool, rest: WorkoutRestClock?, retry: Bool = false, now: Date = .now) {
         systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
         var next: Input?
         if enabled, systemEnabled, let activity, activity.userID == ownerID, activity.status == .live,
            let elapsed = activity.duration(at: now), elapsed.isFinite, (0...604800).contains(elapsed) {
             let ownRest = rest.flatMap { $0.activityID == activity.id && $0.isValid ? $0 : nil }
-            next = Input(sessionID: activity.id, state: .init(
+            next = Input(ownerID: activity.userID, sessionID: activity.id, state: .init(
                 sport: activity.sport.title, symbol: activity.sport.symbol,
                 timerReference: activity.startedAt?.addingTimeInterval(Double(activity.pausedSeconds ?? 0)) ?? now,
                 pausedSeconds: activity.pausedAt != nil ? Int(elapsed) : nil,
                 restStartedAt: ownRest?.startedAt, restEndsAt: ownRest?.endsAt, isGym: activity.sport == .gym))
             if retry { defaults.removeObject(forKey: attemptedKey(activity.id)) }
         }
+        FYRUPWidgetState.save(next.map { FYRUPWidgetSnapshot(ownerID: $0.ownerID, sessionID: $0.sessionID, state: $0.state) }, to: defaults)
         if next == desired, !retry, worker != nil { return }
         desired = next; revision += 1
         guard worker == nil else { return }
@@ -49,7 +51,7 @@ final class SessionLiveActivityStore {
                 if version != revision { continue }
                 if !alreadyExists, UIApplication.shared.applicationState == .active, !defaults.bool(forKey: attemptedKey(input.sessionID)) {
                     do {
-                        _ = try ActivityKit.Activity<SessionLiveAttributes>.request(attributes: .init(sessionID: input.sessionID), content: content, pushType: nil)
+                        _ = try ActivityKit.Activity<SessionLiveAttributes>.request(attributes: .init(sessionID: input.sessionID, ownerID: input.ownerID), content: content, pushType: nil)
                         defaults.set(true, forKey: attemptedKey(input.sessionID)); errorMessage = nil
                     } catch { errorMessage = "Die Live-Anzeige konnte nicht gestartet werden. Deine Session läuft in FYRUP weiter." }
                 }

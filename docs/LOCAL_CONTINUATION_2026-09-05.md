@@ -90,6 +90,14 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 - Exakte Suchkoordinaten werden beim Sofortstart nicht an den Server übertragen. Ankunftserinnerungen bleiben bewusst auf geplante eigene Sessions beschränkt.
 - Ein Demo-Lebenszyklustest prüft Kürzung und Rückgabe des Orts; ein neuer Bedienablauf erfasst den spontanen Ort. Der lokale Wegwerf-Datenbanktest prüft die atomare Migration, Rücksetzung bei Fehler, Wiederholungssperre, Rechte, Kürzung und 120-Zeichen-Grenze. Sprachprüfung und lokale Release-Prüfung sind grün; native Swift-/UI-Ausführung, produktive Migration und visuelle Abnahme bleiben offen.
 
+## Interaktive LIVE-/Homescreen-Anzeige (lokal, noch ohne Upload)
+
+- Der frühere Sperrbildschirm-Link öffnete nur FYRUP. Er ist jetzt durch eine echte, nicht die App öffnende App-Intent-Aktion ersetzt, die eine Satzpause startet oder beendet und die Live-Anzeige sofort aktualisiert.
+- Ein kleines Homescreen-Widget zeigt laufende Sessionzeit beziehungsweise Satzpause und bietet bei Gym dieselbe Start-/Beenden-Aktion; ohne LIVE-Session bleibt es neutral.
+- App, Widget und Live-Anzeige teilen ausschließlich den aktuellen privaten Timerzustand über `group.app.fyrup.shared`. Bestehende lokale Dauer-/Erinnerungseinstellungen werden beim ersten Aktivieren übernommen. Keine Satzwerte, Übungsnamen, Gewichte, Health-Daten oder Fotos gelangen in den Widget-Zustand.
+- Eine freiwillig bereits aktivierte Ablauf-Mitteilung wird auch bei einer im Widget gestarteten Satzpause eingeplant; ohne vorhandene Mitteilungsfreigabe wird keine Freigabe erzwungen.
+- Zwei Speicher-/Rückkehrtests sind vorbereitet. Für eine echte Auslieferung fehlen noch die Apple-App-Group-Registrierung, Zuordnung zu beiden App-Kennungen, erneuerte Profile, nativer Swift-6-Lauf und Prüfung auf einem iPhone.
+
 ## Nächste Schritte
 
 Nach der verlangten lokalen Bündelung den aktuellen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests gemeinsam ausführen, echte neue Screenshots prüfen und anschließend den signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene native Standort-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorien-KI-, Design- und Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.

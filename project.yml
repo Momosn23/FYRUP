@@ -72,6 +72,8 @@ targets:
         com.apple.developer.healthkit: true
         com.apple.developer.applesignin:
           - Default
+        com.apple.security.application-groups:
+          - group.app.fyrup.shared
     scheme:
       testTargets:
         - FYRUPTests
@@ -97,6 +99,12 @@ targets:
         SKIP_INSTALL: YES
         TARGETED_DEVICE_FAMILY: 1
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        CODE_SIGN_ENTITLEMENTS: FYRUPLive/FYRUPLive.entitlements
+    entitlements:
+      path: FYRUPLive/FYRUPLive.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.fyrup.shared
   FYRUPTests:
     type: bundle.unit-test
     platform: iOS

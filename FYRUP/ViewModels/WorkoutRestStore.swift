@@ -21,8 +21,19 @@ final class WorkoutRestStore {
     private(set) var soundEnabled = false
     private(set) var reminderMessage: String?
 
-    init(defaults: UserDefaults = .standard, notifications: any WorkoutRestNotificationScheduling = SilentWorkoutRestNotifications(), now: @escaping @MainActor () -> Date = { .now }) {
+    init(defaults: UserDefaults = FYRUPWidgetState.defaults, notifications: any WorkoutRestNotificationScheduling = SilentWorkoutRestNotifications(), now: @escaping @MainActor () -> Date = { .now }) {
         self.defaults = defaults; self.notifications = notifications; self.now = now
+    }
+    func reloadExternalClock() {
+        guard let userID else { return }
+        if let data = defaults.data(forKey: key("clock", owner: userID)),
+           let restored = try? JSONDecoder().decode(WorkoutRestClock.self, from: data), restored.isValid,
+           restored.activityID == confirmedActivityID {
+            clock = restored
+        } else if clock != nil {
+            clock = nil
+        }
+        synchronizeReminder(force: true)
     }
     private func key(_ suffix: String, owner: UUID) -> String { "fyrup.rest.\(owner.uuidString).\(suffix)" }
 
@@ -33,12 +44,22 @@ final class WorkoutRestStore {
         confirmedActivityID = nil; reminderEnabled = false; soundEnabled = false
         synchronizeReminder(force: true)
         guard let userID else { return }
+        migrateLegacyPreferencesIfNeeded(owner: userID)
         reminderEnabled = defaults.bool(forKey: key("reminder", owner: userID))
         soundEnabled = defaults.bool(forKey: key("sound", owner: userID))
         let saved = defaults.integer(forKey: key("duration", owner: userID))
         if (15...600).contains(saved) { selectedDuration = saved }
         if let data = defaults.data(forKey: key("clock", owner: userID)),
            let restored = try? JSONDecoder().decode(WorkoutRestClock.self, from: data), restored.isValid { clock = restored }
+    }
+    private func migrateLegacyPreferencesIfNeeded(owner: UUID) {
+        guard defaults === FYRUPWidgetState.defaults, defaults !== UserDefaults.standard else { return }
+        let legacy = UserDefaults.standard
+        for suffix in ["duration", "clock", "reminder", "sound"] {
+            let storageKey = key(suffix, owner: owner)
+            guard defaults.object(forKey: storageKey) == nil, let value = legacy.object(forKey: storageKey) else { continue }
+            defaults.set(value, forKey: storageKey)
+        }
     }
     func selectDuration(_ seconds: Int) {
         guard let userID, (15...600).contains(seconds) else { return }
