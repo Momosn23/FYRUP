@@ -16,8 +16,9 @@ final class DemoFlowTests: XCTestCase {
         let repository = DemoRepository()
         let restored = try await repository.restoreSession()
         let session = try XCTUnwrap(restored)
-        let activity = try await repository.startActivity(userID: session.userID, sport: .gym, subtype: "Push", linkedActivityID: nil, plannedSessionID: nil)
+        let activity = try await repository.startActivity(userID: session.userID, sport: .gym, subtype: "Push", linkedActivityID: nil, plannedSessionID: nil, placeName: "  FYRUP Gym  ")
         XCTAssertEqual(activity.status, .live)
+        XCTAssertEqual(activity.placeName, "FYRUP Gym")
         do {
             _ = try await repository.startActivity(userID: session.userID, sport: .running, subtype: nil, linkedActivityID: nil, plannedSessionID: nil)
             XCTFail("Second live activity must fail")

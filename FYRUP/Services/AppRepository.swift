@@ -2,6 +2,9 @@ import Foundation
 
 extension AppRepository {
     func unregisterDeviceToken(_ token: String, ownerID: UUID) async throws { }
+    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
+        try await startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linkedActivityID, plannedSessionID: plannedSessionID, placeName: nil)
+    }
 }
 
 protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository, BlindWorkoutRepository, CallMyShotRepository, NotificationRoutingRepository, PersonalTrainingRepository, SupplementRepository {
@@ -19,7 +22,7 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func avatarData(path: String) async throws -> Data
     func today(userID: UUID) async throws -> (Activity?, [CrewMember])
     func recentActivities(userID: UUID) async throws -> [Activity]
-    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity
+    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?, placeName: String?) async throws -> Activity
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity
     func setActivityPaused(id: UUID, paused: Bool) async throws -> Activity
     func cancelActivity(id: UUID) async throws
@@ -125,9 +128,15 @@ actor LiveAppRepository: AppRepository {
         ])
     }
 
-    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
-        struct Body: Encodable { let pSport: String; let pSubtype: String?; let pLinkedActivityID: UUID?; let pPlannedSessionID: UUID?; enum CodingKeys: String, CodingKey { case pSport = "p_sport", pSubtype = "p_subtype", pLinkedActivityID = "p_linked_activity_id", pPlannedSessionID = "p_planned_session_id" } }
-        return try await client.rpc("start_activity", body: Body(pSport: sport.rawValue, pSubtype: subtype, pLinkedActivityID: linkedActivityID, pPlannedSessionID: plannedSessionID))
+    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?, placeName: String?) async throws -> Activity {
+        struct Body: Encodable {
+            let pSport: String; let pSubtype: String?; let pLinkedActivityID: UUID?; let pPlannedSessionID: UUID?; let pPlaceName: String?
+            enum CodingKeys: String, CodingKey {
+                case pSport = "p_sport", pSubtype = "p_subtype", pLinkedActivityID = "p_linked_activity_id"
+                case pPlannedSessionID = "p_planned_session_id", pPlaceName = "p_place_name"
+            }
+        }
+        return try await client.rpc("start_activity", body: Body(pSport: sport.rawValue, pSubtype: subtype, pLinkedActivityID: linkedActivityID, pPlannedSessionID: plannedSessionID, pPlaceName: placeName))
     }
 
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity {

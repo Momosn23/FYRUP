@@ -135,6 +135,7 @@ struct Activity: Codable, Identifiable, Hashable, Sendable {
     var exerciseCount: Int? = nil
     var pausedAt: Date? = nil
     var pausedSeconds: Int? = nil
+    var placeName: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, sport, subtype, status, note
@@ -143,6 +144,7 @@ struct Activity: Codable, Identifiable, Hashable, Sendable {
         case workoutPlanID = "workout_plan_id", exerciseCount = "exercise_count"
         case blindWorkoutID = "blind_workout_id"
         case pausedAt = "paused_at", pausedSeconds = "paused_seconds"
+        case placeName = "place_name"
     }
 
     var duration: TimeInterval? {

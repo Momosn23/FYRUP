@@ -69,12 +69,12 @@ extension LiveAppRepository {
         let _: Bool = try await client.rpc("share_workout_plan", body: Body(id: id, friends: Array(Set(friendIDs))))
     }
 
-    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity {
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity {
         struct Body: Encodable {
-            let plan: UUID; let linked: UUID?; let session: UUID?
-            enum CodingKeys: String, CodingKey { case plan = "p_plan", linked = "p_linked", session = "p_session" }
+            let plan: UUID; let linked: UUID?; let session: UUID?; let place: String?
+            enum CodingKeys: String, CodingKey { case plan = "p_plan", linked = "p_linked", session = "p_session", place = "p_place_name" }
         }
-        return try await client.rpc("start_workout", body: Body(plan: planID, linked: linkedActivityID, session: sessionID))
+        return try await client.rpc("start_workout", body: Body(plan: planID, linked: linkedActivityID, session: sessionID, place: placeName))
     }
 
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession {

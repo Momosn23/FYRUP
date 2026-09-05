@@ -264,7 +264,7 @@ actor DemoWorkoutStorage {
         try persist()
     }
 
-    func startWorkout(planID: UUID, userID: UUID, friends: Set<UUID>, linkedActivityID: UUID?, sessionID: UUID?, alreadyLive: Bool) throws -> Activity {
+    func startWorkout(planID: UUID, userID: UUID, friends: Set<UUID>, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?, alreadyLive: Bool) throws -> Activity {
         let plan = try readablePlan(planID, userID: userID, friends: friends, includeArchived: false)
         guard !alreadyLive && !state.activities.values.contains(where: { $0.userID == userID && $0.status == .live }) else {
             throw AppError.conflict("Du bist bereits LIVE.")
@@ -283,9 +283,11 @@ actor DemoWorkoutStorage {
             }
         }
         let planned = state.activities.values.first { $0.userID == userID && sessionID != nil && $0.plannedSessionID == sessionID && [.planned, .ready].contains($0.status) }
+        let sessionPlace = sessionID.flatMap { state.sessions[$0]?.hosted.session.placeName }
         var activity = Activity(id: planned?.id ?? UUID(), userID: userID, sport: .gym, subtype: plan.name, status: .live,
                                 plannedAt: planned?.plannedAt, startedAt: Date(), endedAt: nil, distanceMeters: nil,
                                 plannedDurationMinutes: planned?.plannedDurationMinutes, note: planned?.note, plannedSessionID: sessionID)
+        activity.placeName = placeName?.trimmedNil ?? sessionPlace ?? planned?.placeName
         activity.workoutPlanID = planID; activity.exerciseCount = plan.exercises.count
         let log = WorkoutLog(activityID: activity.id, planName: plan.name, exercises: plan.exercises.map { item in
             WorkoutExerciseLog(exercise: item.exercise, planExerciseID: item.id, sortOrder: item.sortOrder,
@@ -315,6 +317,7 @@ actor DemoWorkoutStorage {
         var activity = Activity(id: UUID(), userID: host.id, sport: .gym, subtype: plan.name, status: .planned,
                                 plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil,
                                 plannedDurationMinutes: duration, note: note, plannedSessionID: session.id)
+        activity.placeName = placeName
         activity.workoutPlanID = plan.id; activity.exerciseCount = plan.exercises.count
         state.activities[activity.id] = activity
         for invitee in invitees {
@@ -511,10 +514,10 @@ extension DemoRepository {
     func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan { try await workoutStorage.copyPlan(id: id, requestID: requestID, userID: meID, friends: Set(crew.map(\.id))) }
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { try await workoutStorage.sharePlan(id: id, recipients: friendIDs, sender: me, friends: Set(crew.map(\.id))) }
 
-    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity {
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity {
         try await restoreWorkoutActivities()
         let activity = try await workoutStorage.startWorkout(planID: planID, userID: meID, friends: Set(crew.map(\.id)),
-                                                            linkedActivityID: linkedActivityID, sessionID: sessionID,
+                                                            linkedActivityID: linkedActivityID, sessionID: sessionID, placeName: placeName,
                                                             alreadyLive: activities.contains { $0.userID == meID && $0.status == .live })
         activities.removeAll { $0.id == activity.id }
         activities.append(activity)

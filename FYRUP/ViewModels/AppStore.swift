@@ -422,7 +422,7 @@ final class AppStore {
         }
     }
 
-    func start(sport: SportKind, subtype: String?, linked: UUID? = nil, plannedSessionID: UUID? = nil, workoutPlanID: UUID? = nil) async {
+    func start(sport: SportKind, subtype: String?, linked: UUID? = nil, plannedSessionID: UUID? = nil, workoutPlanID: UUID? = nil, placeName: String? = nil) async {
         guard let userID = session?.userID else { return }
         let linkedPlan = crew.first(where: { $0.activity?.id == linked && linked != nil })?.activity?.workoutPlanID
         let sessionPlan = hostedSessions.first(where: { $0.id == plannedSessionID })?.session.workoutPlanID
@@ -431,9 +431,9 @@ final class AppStore {
         await perform {
             let started: Activity
             if let planID {
-                started = try await self.repository.startWorkout(planID: planID, linkedActivityID: linked, sessionID: plannedSessionID)
+                started = try await self.repository.startWorkout(planID: planID, linkedActivityID: linked, sessionID: plannedSessionID, placeName: placeName)
             } else {
-                started = try await self.repository.startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linked, plannedSessionID: plannedSessionID)
+                started = try await self.repository.startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linked, plannedSessionID: plannedSessionID, placeName: placeName)
             }
             guard self.session?.userID == userID else { return }
             self.myActivity = started
@@ -823,7 +823,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func archiveWorkoutPlan(id: UUID) async throws { throw AppError.configuration }
     func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan { throw AppError.configuration }
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws { throw AppError.configuration }
-    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity { throw AppError.configuration }
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity { throw AppError.configuration }
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession { throw AppError.configuration }
     func workoutLog(activityID: UUID) async throws -> WorkoutLog { throw AppError.configuration }
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog { throw AppError.configuration }
@@ -837,7 +837,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func avatarData(path: String) async throws -> Data { throw AppError.configuration }
     func today(userID: UUID) async throws -> (Activity?, [CrewMember]) { (nil, []) }
     func recentActivities(userID: UUID) async throws -> [Activity] { [] }
-    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity { throw AppError.configuration }
+    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?, placeName: String?) async throws -> Activity { throw AppError.configuration }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity { throw AppError.configuration }
     func cancelActivity(id: UUID) async throws {}
     func planSession(userID: UUID, sport: SportKind, subtype: String?, startsAt: Date, duration: Int?, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession { throw AppError.configuration }

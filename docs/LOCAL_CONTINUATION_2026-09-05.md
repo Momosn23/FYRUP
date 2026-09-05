@@ -82,8 +82,16 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 - 13 zusätzliche native Einzeltests vorbereitet: acht Intervall-/Speicherprüfungen, drei Cache-/Netzfehlerprüfungen und zwei Einrichtungsprüfungen. Ein neuer Intervall-Bedientest plus erweiterter Blind-Test, drei neue geplante Bildschirmnachweise. **Noch nicht ausgeführt.**
 - Lokale Sprachprüfung: 103 App-Textdateien bestanden. Lokales Release-Prüfskript: 10/10 Tests bestanden. Kein neuer iOS-Build, kein Upload und keine neuen kostenpflichtigen Läufe durch diese Arbeitsrunde.
 
+## Gebündelter Sofortstart-Ortsblock (lokal, noch ohne Upload)
+
+- Auch spontan gestartete Aktivitäten besitzen nun ein freiwilliges Ortsfeld. Gym übernimmt zunächst das private Stammgym; vor jedem Start lässt sich der Wert ändern, leeren oder über Apple Karten neu auswählen.
+- Der App-/Demo-/RPC-Datenfluss umfasst freie Aktivitäten und Workout-Pläne. Beim Start einer geplanten Session wird ohne bewusste Überschreibung der vorhandene Treffpunkt übernommen.
+- Neue Migration `202609050015_activity_place.sql` ergänzt den auf 120 Zeichen begrenzten Ortsnamen, übernimmt vorhandene Session-Treffpunkte und stellt kompatible neue RPC-Signaturen bereit. Alte App-Versionen behalten ihre bisherigen Signaturen.
+- Exakte Suchkoordinaten werden beim Sofortstart nicht an den Server übertragen. Ankunftserinnerungen bleiben bewusst auf geplante eigene Sessions beschränkt.
+- Ein Demo-Lebenszyklustest prüft Kürzung und Rückgabe des Orts; ein neuer Bedienablauf erfasst den spontanen Ort. Der lokale Wegwerf-Datenbanktest prüft die atomare Migration, Rücksetzung bei Fehler, Wiederholungssperre, Rechte, Kürzung und 120-Zeichen-Grenze. Sprachprüfung und lokale Release-Prüfung sind grün; native Swift-/UI-Ausführung, produktive Migration und visuelle Abnahme bleiben offen.
+
 ## Nächste Schritte
 
-Nach der verlangten lokalen Bündelung den aktuellen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests gemeinsam ausführen, echte neue Screenshots prüfen und anschließend den signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene vollständige Standort-/Stammgym-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorienformel-/KI- und Design-/Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
+Nach der verlangten lokalen Bündelung den aktuellen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests gemeinsam ausführen, echte neue Screenshots prüfen und anschließend den signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene native Standort-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorien-KI-, Design- und Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
 
 Primärquellen für lokale Timer-Hinweise: [Apple: lokale Mitteilungen](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app), [Apple: Zeitintervall-Trigger](https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger).

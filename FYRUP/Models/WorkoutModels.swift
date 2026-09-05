@@ -287,8 +287,14 @@ protocol WorkoutRepository: Sendable {
     func archiveWorkoutPlan(id: UUID) async throws
     func copyWorkoutPlan(id: UUID, requestID: UUID) async throws -> WorkoutPlan
     func shareWorkoutPlan(id: UUID, friendIDs: [UUID]) async throws
-    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession
     func workoutLog(activityID: UUID) async throws -> WorkoutLog
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog
+}
+
+extension WorkoutRepository {
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity {
+        try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: sessionID, placeName: nil)
+    }
 }

@@ -87,6 +87,34 @@ export function assembleFollowup(sources) {
 export const personalTrainingFile = '202609050012_personal_training.sql';
 export const supplementsFile = '202609050013_supplement_reminders.sql';
 export const profilePrivacyFile = '202609050014_profile_privacy_preservation.sql';
+export const activityPlaceFile = '202609050015_activity_place.sql';
+export function assembleActivityPlace(source) {
+  source = source?.replace(/\r\n/g, '\n').trimEnd();
+  if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid activity-place transaction wrapper');
+  const body = source.replace(/^begin;\n/m, '').replace(/\ncommit;$/, '');
+  if (body.includes('$migration_source$')) throw Error('SQL quote delimiter collision');
+  return `begin;
+set local lock_timeout = '4s';
+set local statement_timeout = '60s';
+do $preflight$ begin
+  if not exists(select 1 from supabase_migrations.schema_migrations where version='202609050014')
+    or exists(select 1 from supabase_migrations.schema_migrations where version='202609050015')
+    or exists(select 1 from information_schema.columns where table_schema='public' and table_name='activities' and column_name='place_name') then
+    raise exception 'unexpected activity place baseline; inspect before retrying';
+  end if;
+end $preflight$;
+insert into fyrup_deployment.schema_snapshots(version,routines,policies)
+select 'before-202609050015',
+  (select coalesce(jsonb_agg(jsonb_build_object('signature',p.oid::regprocedure::text,'definition',pg_get_functiondef(p.oid),'acl',p.proacl::text)),'[]')
+   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='public' and p.proname in ('start_activity','start_workout')), '[]'::jsonb;
+${body}
+insert into supabase_migrations.schema_migrations(version,name,statements)
+values ('202609050015','activity_place',array[$migration_source$${body}$migration_source$]);
+notify pgrst, 'reload schema';
+commit;
+`;
+}
 export function assembleProfilePrivacy(source) {
   source = source?.replace(/\r\n/g, '\n').trimEnd();
   if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid profile privacy transaction wrapper');

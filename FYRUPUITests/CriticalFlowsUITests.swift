@@ -86,6 +86,18 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("56-discover-selected-sport")
     }
 
+    func testImmediateActivityAcceptsAnOptionalPlace() {
+        let app = launchDemo()
+        app.buttons["JETZT LOS"].tap()
+        waitUntilReady(app.buttons["Laufen"])
+        app.buttons["Laufen"].tap()
+        let place = app.textFields["activity-place"]
+        revealAndTap(place, in: app)
+        place.typeText("Rheinpark")
+        XCTAssertEqual(place.value as? String, "Rheinpark")
+        capture("75-immediate-activity-place")
+    }
+
     func testFyrupIsOneTap() {
         let app = launchDemo()
         let nudge = app.buttons["FYR UP 🔥"].firstMatch

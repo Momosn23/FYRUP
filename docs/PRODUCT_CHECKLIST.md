@@ -21,7 +21,8 @@
 - [x] Direkter Tippweg zur nach Serverprüfung bestätigten eigenen Session ergänzt.
 - [x] Vier fokussierte lokale Testfälle und erweiterte Stammgym-Kompatibilitätstests vorbereitet.
 - [ ] Native Swift-/UI-Tests, visuelle Prüfung und reale iPhone-Ankunft mit Hintergrund, Sperrbildschirm, ungefährer Position und verweigerter Freigabe ausführen.
-- [ ] Ort bei sofort gestarteten Aktivitäten ergänzen; der aktuelle Block gilt nur für geplante Sessions.
+- [x] Ort bei sofort gestarteten Aktivitäten im Quellstand ergänzt: Stammgym-Vorauswahl, Änderung/Leeren, Freitext/Kartensuche und serverseitig begrenzter Ortsname; Kartenkoordinaten bleiben lokal.
+- [x] Atomare Wegwerf-Datenbankprüfung für Migration 015, Rücksetzung, Wiederholungssperre, Rechte, Kürzung und Längengrenze bestanden; produktive Anwendung bleibt getrennt offen.
 - [ ] Gebündelten Stand erst nach weiteren offenen lokalen Punkten gemeinsam hochladen und bauen. Seit der Guthabenaktivierung wurde durch diesen Block kein neuer Build ausgelöst.
 
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
@@ -32,7 +33,7 @@ Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsa
 
 **Aktueller lokaler Funktionsblock:** Eigene Intervallzeiten/Runden auf Heute und LIVE, Satzpause im Blind Workout, Fortsetzung der unvollständigen Einrichtung und Schutz vor erneutem LIVE-Anzeigen nach bestätigt abgeschlossenem/abgebrochenem Vorgang bei Netzfehler. 13 native Einzeltests sowie neue/erweiterte Bedienabläufe vorbereitet, noch nicht ausgeführt. Sprachprüfung für 103 Textdateien und zehn Tests des Release-Prüfskripts lokal grün. Keine Haken für die vollständige Produkt-/iPhone-Abnahme gesetzt.
 
-**Weiterer lokaler Fortschritt nach dem Guthabenstopp:** Stammgym im Profil und in der Einrichtung speichern, ändern und entfernen; neue geplante Gym-Sessions übernehmen den Namen, bewusste Änderungen/Leeren bleiben erhalten. [Umfang und Grenzen](LOCAL_CONTINUATION_2026-09-05.md): noch kein GPS/Ankunftshinweis und kein Ort bei Sofortstart. Sieben Einzeltests, ein Bedienablauf und zwei Prüfungen für isolierte Demo-Satzpausen vorbereitet; noch nicht nativ ausgeführt. Aktuell 100 App-Textdateien in der Sprachprüfung und 10 Tests des Release-Prüfskripts grün. Keine neue installierbare Version.
+**Historischer lokaler Zwischenstand nach dem Guthabenstopp:** Stammgym im Profil und in der Einrichtung speichern, ändern und entfernen; neue geplante Gym-Sessions übernehmen den Namen, bewusste Änderungen/Leeren bleiben erhalten. Die damals noch offenen GPS-/Ankunfts- und Sofortstart-Ortspunkte sind in den neueren Blöcken am Anfang dieser Liste auf Quellcodeebene ergänzt. Native Abnahme und Auslieferung stehen weiterhin aus.
 
 **Weiterarbeit nach Guthabenstopp (ab 19:01 CEST):** Nutzer füllt GitHub später auf; keine neuen Pushes/Cloud-Läufe oder kostenpflichtige Aktivierung. [Aktueller lokaler Fortschritt und produktive Profil-Datenschutzkorrektur](LOCAL_CONTINUATION_2026-09-05.md): Migration 014 ist produktiv nachgeprüft, 991 lokale Datenbanktests grün. Eigene Satzpausendauer und freiwillige Ablauf-Erinnerung sind im lokalen Code ergänzt; native Prüfung steht aus. GitHub 49 wurde wegen Konto-/Ausgabenlimit nicht gestartet, nicht wegen eines nachgewiesenen neuen Codefehlers. Der letzte hochgeladene Stand ist `08c9bc3`; spätere Arbeit wird zunächst lokal gesammelt.
 

@@ -56,7 +56,7 @@ struct ActivityComposerView: View {
                 if let sport {
                     Button(mode == 0 ? (sport == .gym ? "WORKOUT STARTEN" : "JETZT LOS") : "SESSION PLANEN") {
                         Task {
-                            if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID, workoutPlanID: workoutPlan?.id) }
+                            if mode == 0 { await store.start(sport: sport, subtype: storedSubtype, linked: linkedActivityID, workoutPlanID: workoutPlan?.id, placeName: placeDraft.value.trimmedNil) }
                             else {
                                 let planned = await store.plan(sport: sport, subtype: storedSubtype, startsAt: startsAt, duration: duration, note: note.trimmedNil, placeName: placeDraft.value.trimmedNil, friendsCanJoin: friendsCanJoin, invitees: invitesEnabled ? Array(invitees) : [], workoutPlanID: workoutPlan?.id, arrivalPlace: arrivalReminderEnabled ? arrivalPlace : nil)
                                 if planned { dismiss() }
@@ -65,7 +65,7 @@ struct ActivityComposerView: View {
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(store.isBusy || (mode == 1 && placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120))
+                    .disabled(store.isBusy || placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120)
                     .accessibilityIdentifier("confirm-activity")
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(.ultraThinMaterial)
@@ -147,8 +147,39 @@ struct ActivityComposerView: View {
             if mode == 1 {
                 planningDetails
                 invitationPicker
+            } else {
+                immediatePlaceDetails
             }
         }
+    }
+
+    private var immediatePlaceDetails: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: "mappin.and.ellipse").frame(width: 22).foregroundStyle(FYColor.muted)
+                TextField("Ort (optional)", text: Binding(get: { placeDraft.value }, set: { value in
+                    placeDraft.edit(value)
+                    if value != arrivalPlace?.name { arrivalPlace = nil }
+                })).accessibilityIdentifier("activity-place")
+            }
+            if placeDraft.usesFavorite {
+                Label("Aus deinem Stammgym vorausgefüllt", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(FYColor.lime)
+            } else if sport == .gym, let favorite = store.setup.value?.favoriteGymName {
+                Button("Stammgym übernehmen") { placeDraft.useFavorite(favorite); arrivalPlace = store.setup.value?.favoriteGymPlace }
+                    .font(.caption.bold()).frame(minHeight: 44)
+            }
+            Button { showsPlacePicker = true } label: {
+                Label("Ort auswählen", systemImage: "map.fill").font(.caption.bold()).frame(minHeight: 44)
+            }.accessibilityIdentifier("choose-activity-place")
+            Text("Optional für diese Aktivität. Die Kartenkoordinate wird dabei nicht hochgeladen.")
+                .font(.caption2).foregroundStyle(FYColor.muted)
+            if placeDraft.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 120 {
+                Text("Bitte kürze den Ort auf höchstens 120 Zeichen.").font(.caption).foregroundStyle(FYColor.coral)
+            }
+        }
+        .padding(14)
+        .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
     }
 
     private var gymPlanChoices: some View {

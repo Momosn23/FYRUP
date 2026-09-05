@@ -139,17 +139,26 @@ actor DemoRepository: AppRepository {
             .filter { $0.userID == userID && $0.status == .completed }
             .sorted { ($0.endedAt ?? .distantPast) > ($1.endedAt ?? .distantPast) }
     }
-    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
+    func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?, placeName: String?) async throws -> Activity {
         guard userID == meID else { throw AppError.authentication }
         try await restoreWorkoutActivities()
         if let plannedSessionID, let planID = try await workoutStorage.planID(sessionID: plannedSessionID, userID: meID, friends: Set(crew.map(\.id))) {
-            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID)
+            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID, placeName: placeName)
         }
         if let linkedActivityID, let planID = try await workoutStorage.planID(activityID: linkedActivityID, userID: meID, friends: Set(crew.map(\.id))) {
-            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID)
+            return try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: plannedSessionID, placeName: placeName)
         }
         guard !activities.contains(where: { $0.userID == meID && $0.status == .live }) else { throw AppError.conflict("Du bist bereits LIVE.") }
-        let activity = Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .live, plannedAt: nil, startedAt: now(), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: nil)
+        if let plannedSessionID,
+           let index = activities.firstIndex(where: { $0.userID == meID && $0.plannedSessionID == plannedSessionID && [.planned, .ready].contains($0.status) }) {
+            activities[index].status = .live
+            activities[index].startedAt = now()
+            activities[index].placeName = placeName?.trimmedNil ?? hosted.first(where: { $0.id == plannedSessionID })?.session.placeName ?? activities[index].placeName
+            if let hostedIndex = hosted.firstIndex(where: { $0.id == plannedSessionID }) { hosted[hostedIndex].session.status = "live" }
+            return activities[index]
+        }
+        var activity = Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .live, plannedAt: nil, startedAt: now(), endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: plannedSessionID)
+        activity.placeName = placeName?.trimmedNil ?? hosted.first(where: { $0.id == plannedSessionID })?.session.placeName
         activities.append(activity); return activity
     }
     func completeActivity(id: UUID, distanceMeters: Int?) async throws -> Activity {
@@ -223,7 +232,9 @@ actor DemoRepository: AppRepository {
         let session = PlannedSession(id: sessionID, hostID: meID, sport: sport, subtype: subtype, startsAt: startsAt, durationMinutes: duration, note: note, placeName: placeName, friendsCanJoin: friendsCanJoin, status: "planned")
         let participants = crew.filter { friendIDs.contains($0.id) }.map { SessionParticipant(profile: $0, status: .pending) }
         hosted.append(HostedSession(session: session, participants: participants))
-        activities.append(Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID))
+        var plannedActivity = Activity(id: UUID(), userID: meID, sport: sport, subtype: subtype, status: .planned, plannedAt: startsAt, startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: duration, note: note, plannedSessionID: sessionID)
+        plannedActivity.placeName = placeName
+        activities.append(plannedActivity)
         return session
     }
     func invitations() async throws -> [SessionInvitation] { try await workoutStorage.invitations(userID: meID, friends: Set(crew.map(\.id))) + demoInvitations }

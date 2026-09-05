@@ -560,6 +560,6 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog {
         try await checkpoint(.saveLog); savedLogs[log.activityID] = log; return log
     }
-    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity { throw WorkoutStoreStubError.failed }
+    func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity { throw WorkoutStoreStubError.failed }
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession { throw WorkoutStoreStubError.failed }
 }
