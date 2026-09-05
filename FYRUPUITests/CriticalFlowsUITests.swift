@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class CriticalFlowsUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
@@ -49,8 +50,11 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testFyrupIsOneTap() {
         let app = launchDemo()
-        XCTAssertTrue(app.buttons["FYR UP 🔥"].waitForExistence(timeout: 4))
-        app.buttons["FYR UP 🔥"].tap()
+        let nudge = app.buttons["FYR UP 🔥"].firstMatch
+        XCTAssertTrue(nudge.waitForExistence(timeout: 4))
+        nudge.tap()
+        XCTAssertTrue(app.staticTexts["Guten Morgen"].exists)
+        XCTAssertFalse(app.alerts["Hinweis"].exists)
     }
 
     func testPlanWorkoutFlow() {

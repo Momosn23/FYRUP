@@ -43,6 +43,8 @@ workflows:
         script: swift scripts/make_contact_sheet.swift /tmp/fyrup-screenshots /tmp/fyrup-contact-sheet.png
     artifacts:
       - /tmp/fyrup-contact-sheet.png
+      - /tmp/fyrup-screenshots/*.png
+      - build/FYRUP.xcresult
 
   ios-testflight:
     name: FYRUP Signed TestFlight Build
