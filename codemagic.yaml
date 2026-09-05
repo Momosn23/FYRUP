@@ -67,9 +67,9 @@ workflows:
         - fyrup_backend
       ios_signing:
         provisioning_profiles:
-          - profile: fyrup_app_store_healthkit
+          - profile: fyrup_app_store_appgroup
             environment_variable: FYRUP_SIGNING_PROFILE
-          - profile: fyrup_live_app_store
+          - profile: fyrup_live_app_store_appgroup
             environment_variable: FYRUP_LIVE_SIGNING_PROFILE
         certificates:
           - FYRUP Apple Distribution

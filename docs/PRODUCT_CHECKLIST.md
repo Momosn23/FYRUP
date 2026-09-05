@@ -22,10 +22,11 @@
 - [x] Vier fokussierte lokale Testfälle und erweiterte Stammgym-Kompatibilitätstests vorbereitet.
 - [ ] Native Swift-/UI-Tests, visuelle Prüfung und reale iPhone-Ankunft mit Hintergrund, Sperrbildschirm, ungefährer Position und verweigerter Freigabe ausführen.
 - [x] Ort bei sofort gestarteten Aktivitäten im Quellstand ergänzt: Stammgym-Vorauswahl, Änderung/Leeren, Freitext/Kartensuche und serverseitig begrenzter Ortsname; Kartenkoordinaten bleiben lokal.
-- [x] Atomare Wegwerf-Datenbankprüfung für Migration 015, Rücksetzung, Wiederholungssperre, Rechte, Kürzung und Längengrenze bestanden; produktive Anwendung bleibt getrennt offen.
+- [x] Atomare Wegwerf-Datenbankprüfung für Migration 015, Rücksetzung, Wiederholungssperre, Rechte, Kürzung und Längengrenze bestanden. Am 05.09.2026 produktiv angewendet; frische Kontrolle bestätigte Verlaufseintrag, Spalte, Constraint, authentifizierte RPC-Rechte und anonyme Sperre jeweils mit `true`.
 - [x] Echte App-Intent-Satzpause und kleines Homescreen-Widget im Quellstand ergänzt; gemeinsamer privater Timerzustand und freiwillige Ablauf-Mitteilung verdrahtet.
 - [x] Apple App Group `group.app.fyrup.shared` registriert, beiden Kennungen (`app.fyrup.ios`, `app.fyrup.ios.live`) zugeordnet und beide App-Store-Profile am 05.09.2026 erneuert.
-- [ ] Erneuerte Profile in Codemagic aktualisieren sowie Widget/Live-Aktion nativ und auf dem iPhone prüfen.
+- [x] Erneuerte Profile als `fyrup_app_store_appgroup` und `fyrup_live_app_store_appgroup` in Codemagic gespeichert und Workflow-Zuordnung aktualisiert; alte Profile vorerst nicht gelöscht.
+- [ ] Widget/Live-Aktion nativ und auf dem iPhone prüfen.
 - [ ] Gebündelten Stand erst nach weiteren offenen lokalen Punkten gemeinsam hochladen und bauen. Seit der Guthabenaktivierung wurde durch diesen Block kein neuer Build ausgelöst.
 
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
