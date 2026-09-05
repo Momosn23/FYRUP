@@ -27,7 +27,9 @@
 - [x] Apple App Group `group.app.fyrup.shared` registriert, beiden Kennungen (`app.fyrup.ios`, `app.fyrup.ios.live`) zugeordnet und beide App-Store-Profile am 05.09.2026 erneuert.
 - [x] Erneuerte Profile als `fyrup_app_store_appgroup` und `fyrup_live_app_store_appgroup` in Codemagic gespeichert und Workflow-Zuordnung aktualisiert; alte Profile vorerst nicht gelöscht.
 - [ ] Widget/Live-Aktion nativ und auf dem iPhone prüfen.
-- [ ] Gebündelten Stand erst nach weiteren offenen lokalen Punkten gemeinsam hochladen und bauen. Seit der Guthabenaktivierung wurde durch diesen Block kein neuer Build ausgelöst.
+- [x] Acht lokale Commits gebündelt bis `4896581` hochgeladen und genau einen automatischen Mac-Test ausgelöst; keine parallelen oder zwischenzeitlichen Builds gestartet.
+
+Nachtrag nach Bündelung: Acht Commits wurden bis `4896581` gemeinsam auf `main` geladen. [Codemagic 38](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c72d8fac9a246beda8329) bestand die Vorprüfungen, stoppte aber nach 39 Sekunden an drei Swift-6-Nebenläufigkeitsfehlern im neuen App Intent. Die unveränderlichen Angaben sind im Folgequellstand als Konstanten korrigiert. Noch kein vollständiger nativer Test, Screenshot oder neues TestFlight-Artefakt aus diesem Block.
 
 Stand: 05.09.2026. Verbindliche Arbeitsliste für die vier letzten Erweiterungsaufträge und deren Integration in das helle Design mit dezenten Animationen. Sie ersetzt widersprüchliche alte Umfangsangaben, nicht die ursprünglichen Anforderungen.
 

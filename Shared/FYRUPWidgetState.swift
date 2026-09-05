@@ -62,9 +62,9 @@ struct WidgetRestClock: Codable, Equatable, Sendable {
 }
 
 struct ToggleFYRUPRestIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "Satzpause starten oder beenden"
-    static var description = IntentDescription("Steuert die Satzpause deiner aktuell laufenden FYRUP-Session.")
-    static var isDiscoverable = false
+    static let title: LocalizedStringResource = "Satzpause starten oder beenden"
+    static let description = IntentDescription("Steuert die Satzpause deiner aktuell laufenden FYRUP-Session.")
+    static let isDiscoverable = false
 
     @Parameter(title: "Aktivität") var activityID: String
     @Parameter(title: "Konto") var ownerID: String

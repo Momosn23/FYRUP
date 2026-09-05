@@ -105,3 +105,7 @@ Nutzer hat zweimal ausdrücklich angewiesen, trotz erschöpftem GitHub-Guthaben 
 Nach der verlangten lokalen Bündelung den aktuellen Stand kontrolliert hochladen, Compilerkorrektur samt allen neuen Tests gemeinsam ausführen, echte neue Screenshots prüfen und anschließend den signierten TestFlight-Build erstellen. Vorher lokal an der Produktliste weiterarbeiten. Offene native Standort-/Ankunfts-, Kontakte-/Einladungs-, AppIntent-/Homescreen-, Intervall-, Kalorien-KI-, Design- und Geräteprüfungen bleiben offen; die jetzigen Ergänzungen ersetzen sie nicht.
 
 Primärquellen für lokale Timer-Hinweise: [Apple: lokale Mitteilungen](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app), [Apple: Zeitintervall-Trigger](https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger).
+
+## Nativer Korrekturlauf nach der Bündelung
+
+[Codemagic 38](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c72d8fac9a246beda8329) für `4896581` bestand Katalog-, Datenbank-, Sprach-, Konfigurations- und Projektprüfungen. Xcode stoppte nach 39 Sekunden in der Widget-Erweiterung: `title`, `description` und `isDiscoverable` des App Intents waren unveränderlich, aber als globale `static var` deklariert und damit unter Swift 6 nicht nebenläufigkeitssicher. Sie sind im Folgequellstand `static let`. Testausführung, Screenshots und Artefakte dieses Laufs wurden wegen des Compilerfehlers nicht erreicht; ein Korrekturlauf ist erforderlich.
