@@ -2,6 +2,8 @@
 
 Zusatzauftrag vom 05.09.2026: in die Checkliste aufnehmen. Noch nicht implementiert oder abgenommen; bestehende Standort-Textfelder allein erfüllen diese Anforderungen nicht.
 
+Nachtrag: [Lokale Umsetzung und getrennte Nachweise](LOCAL_CONTINUATION_2026-09-05.md). Live-Aktivität, gemeinsame Satzpause sowie eigene Dauer und freiwillige einmalige Ablauf-Mitteilung sind in Arbeit. Fehlendes Cloud-Guthaben blockiert die native Prüfung, nicht die lokale Weiterarbeit. Die Haken unten bleiben bis zur jeweiligen Abnahme offen.
+
 ## Trainingsort und Stammgym
 
 - [ ] PLACE-01 Pro Training freiwillig einen Ort eintragen/auswählen; Name und bei gewählter Ankunftserinnerung eindeutige Koordinaten speichern.

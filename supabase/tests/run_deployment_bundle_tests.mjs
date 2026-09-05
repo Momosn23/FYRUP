@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles, assemblePersonalTraining, personalTrainingFile, assembleSupplements, supplementsFile } from '../../scripts/deployment-bundle.mjs';
+import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles, assemblePersonalTraining, personalTrainingFile, assembleSupplements, supplementsFile, assembleProfilePrivacy, profilePrivacyFile } from '../../scripts/deployment-bundle.mjs';
 const require = createRequire(resolve('.qa/workout-db/package.json'));
 const { PGlite } = require('@electric-sql/pglite');
 const { citext } = require('@electric-sql/pglite/contrib/citext');
@@ -76,5 +76,18 @@ try {
   await assert.rejects(db.exec(assembleSupplements(supplements)));
   await db.exec('rollback;');
   assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 13);
-  console.log('PASS: atomic base/followup/personal/supplement deployments; failure rollbacks including previous token binding; thirteen exact history entries; private recovery snapshots; protected receipts/CAS; duplicate-deployment refusal. No hosted database contacted.');
+  const profilePrivacy = await readFile(resolve('supabase/migrations', profilePrivacyFile), 'utf8');
+  const oldProfileSave = (await db.query("select pg_get_functiondef('public.upsert_profile(citext,text,text,smallint,text,text,public.sport_kind[],smallint,text)'::regprocedure) as value")).rows[0].value;
+  await assert.rejects(db.exec(assembleProfilePrivacy(profilePrivacy.replace(/commit;\s*$/, 'select missing_deliberate_validation_failure();\ncommit;'))));
+  await db.exec('rollback;');
+  assert.equal((await db.query("select pg_get_functiondef('public.upsert_profile(citext,text,text,smallint,text,text,public.sport_kind[],smallint,text)'::regprocedure) as value")).rows[0].value, oldProfileSave);
+  assert.equal((await db.query("select count(*)::integer as count from fyrup_deployment.schema_snapshots where version='before-202609050014'")).rows[0].count, 0);
+  await db.exec(assembleProfilePrivacy(profilePrivacy));
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 14);
+  const savedProfileRoutine = (await db.query("select routines->0->>'definition' as value from fyrup_deployment.schema_snapshots where version='before-202609050014'")).rows[0].value;
+  assert.equal(savedProfileRoutine, oldProfileSave);
+  await assert.rejects(db.exec(assembleProfilePrivacy(profilePrivacy)));
+  await db.exec('rollback;');
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 14);
+  console.log('PASS: atomic base/followup/personal/supplement/profile-privacy deployments; failure rollbacks including existing routines; fourteen exact history entries; private recovery snapshots; protected receipts/CAS; duplicate-deployment refusal. No hosted database contacted.');
 } finally { await db.close(); }

@@ -121,6 +121,9 @@ struct PersonalSetupView: View {
                 SystemNotificationSettingsRow()
             }.fyCard()
             LiveActivitySetupCard()
+            NavigationLink { WorkoutRestSettingsView() } label: {
+                setupLink("Deine Satzpause", subtitle: "Eigene Dauer und freiwillige Ablauf-Erinnerung", symbol: "timer")
+            }.buttonStyle(FYPressStyle())
             VStack(alignment: .leading, spacing: 10) {
                 Label("Nur, was du wirklich nutzt", systemImage: "hand.raised.fill").font(.headline)
                 Text("Beim Profilbild wählst du einzelne Fotos aus. FYRUP braucht keinen Zugriff auf deine gesamte Fotomediathek. Kontakte und Standort werden hier nicht vorsorglich freigegeben.")

@@ -12,6 +12,14 @@ enum HomePresentation {
     }
 }
 
+enum RestDurationInput {
+    static func seconds(from input: String) -> Int? {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, text.utf8.allSatisfy({ (48...57).contains($0) }), let value = Int(text), (15...600).contains(value) else { return nil }
+        return value
+    }
+}
+
 struct WorkoutRestClock: Codable, Equatable, Sendable {
     let activityID: UUID
     let startedAt: Date

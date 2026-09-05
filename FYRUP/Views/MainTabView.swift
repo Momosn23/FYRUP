@@ -57,6 +57,7 @@ struct MainTabView: View {
             await store.deliverPendingNotification()
             await store.refresh()
             store.deliverPendingLiveLink()
+            store.deliverPendingRestReminder()
             store.synchronizeLiveSurface()
             guard !Task.isCancelled, store.route == .main, let userID = store.session?.userID, store.profile?.id == userID else { return }
             await store.steps.activate(userID: userID)

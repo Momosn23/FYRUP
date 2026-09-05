@@ -68,6 +68,8 @@ select is(public.get_weekly_state(auth.uid(),null)->'current_week'->>'weekly_goa
 select is(public.confirm_weekly_goal(4,'UTC')->'current_week'->>'id',(select value->'current_week'->>'id' from qa_week_state where key='confirmed'),'same confirmation is idempotent');
 select throws_ok($$select public.confirm_weekly_goal(3,'UTC')$$,'P0001','weekly_goal_already_confirmed','repeat confirm cannot lower current target');
 select lives_ok($$select public.upsert_profile('qa_week_01','Renamed',null,null,null,null,'{}',1::smallint,'nobody')$$,'legacy profile editing remains compatible');
+-- Visibility is a separate, consciously reviewed write, never a profile field replay.
+update public.profiles set activity_visibility='nobody' where id=auth.uid();
 select is((select weekly_goal::int from public.profiles where id=auth.uid()),4,'legacy upsert target parameter cannot bypass current goal');
 select is(public.get_weekly_state(auth.uid(),null)->>'goal_confirmed','true','profile editing retains confirmation');
 select throws_ok($$update public.profiles set weekly_goal=3 where id=auth.uid()$$,'42501','permission denied for table profiles','real authenticated direct legacy target write is forbidden');

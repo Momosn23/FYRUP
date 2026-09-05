@@ -72,4 +72,21 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["FORTSETZEN"].waitForExistence(timeout: 4))
         capture("82-paused-session")
     }
+
+    func testCustomRestDurationCanBeSavedWithoutEnablingNotifications() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
+        tap(app.buttons["JETZT LOS"], in: app); tap(app.buttons["Gym"], in: app); tap(app.buttons["Push"], in: app)
+        tap(app.buttons["confirm-activity"], in: app); tap(app.buttons["rest-options"], in: app)
+        let seconds = app.textFields["custom-rest-seconds"]
+        tap(seconds, in: app)
+        let old = seconds.value as? String ?? ""
+        seconds.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count) + "123")
+        tap(app.buttons["save-custom-rest"], in: app)
+        XCTAssertTrue(app.staticTexts["Gespeichert: 123 Sekunden"].waitForExistence(timeout: 4))
+        XCTAssertEqual(app.switches["rest-reminder-enabled"].value as? String, "0")
+        capture("83-custom-rest-duration")
+        tap(app.navigationBars.buttons["Fertig"], in: app)
+        tap(app.buttons["start-rest-timer"], in: app)
+        XCTAssertTrue(app.staticTexts["rest-countdown"].waitForExistence(timeout: 4))
+    }
 }

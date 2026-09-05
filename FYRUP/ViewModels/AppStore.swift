@@ -35,6 +35,7 @@ final class AppStore {
     var opensNotifications = false
     var showsLiveSession = false
     private var pendingLiveLink: SessionLiveLink?
+    private var pendingRestReminder: WorkoutRestReminderTap?
     var suggestedDisplayName = ""
     private(set) var session: AuthSession? {
         didSet {
@@ -79,7 +80,8 @@ final class AppStore {
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
         self.trackingDrafts = trackingDrafts ?? WorkoutTrackingDraftStore()
-        self.rest = WorkoutRestStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest") ?? .standard : .standard)
+        self.rest = WorkoutRestStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.rest") ?? .standard : .standard,
+            notifications: repository is DemoRepository ? SilentWorkoutRestNotifications() : SystemWorkoutRestNotifications())
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
         self.energy = ActiveEnergyStore(setup: setup)
@@ -149,7 +151,7 @@ final class AppStore {
         guard !isBusy else { return }
         isBusy = true
         liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
-        showsLiveSession = false; pendingLiveLink = nil
+        showsLiveSession = false; pendingLiveLink = nil; pendingRestReminder = nil
         UIApplication.shared.unregisterForRemoteNotifications()
         supplements.activate(userID: nil)
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
@@ -236,6 +238,7 @@ final class AppStore {
 
     func saveProfile(displayName: String, username: String, birthYear: Int? = nil, city: String? = nil, avatarJPEG: Data? = nil, sports: [SportKind]? = nil) async {
         guard let userID = session?.userID else { return }
+        let generation = accountGeneration
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else { errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."; return }
         var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "friends", onboardingStep: "sports")
@@ -248,11 +251,14 @@ final class AppStore {
             if let avatarJPEG {
                 let path = try await self.repository.uploadAvatar(userID: userID, data: avatarJPEG)
                 value.avatarPath = path
+                guard self.session?.userID == userID, self.accountGeneration == generation else { return }
                 if let image = UIImage(data: avatarJPEG) { self.avatarCache[path] = image }
             }
             try await self.repository.saveProfile(value)
-            self.profile = value
-            self.route = value.sports.isEmpty ? .sportsSetup : .onboardingComplete
+            guard let confirmed = try await self.repository.profile(userID: userID), confirmed.id == userID else { throw AppError.server }
+            guard self.session?.userID == userID, self.accountGeneration == generation else { return }
+            self.profile = confirmed
+            self.route = confirmed.sports.isEmpty ? .sportsSetup : .onboardingComplete
         }
     }
 
@@ -302,6 +308,7 @@ final class AppStore {
 
     func updateProfile(displayName: String, username: String, birthYear: Int?, city: String, bio: String, sports: [SportKind], avatarJPEG: Data?) async {
         guard let userID = session?.userID, var value = profile else { return }
+        let generation = accountGeneration
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else {
             errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."
@@ -317,10 +324,14 @@ final class AppStore {
             if let avatarJPEG {
                 let path = try await self.repository.uploadAvatar(userID: userID, data: avatarJPEG)
                 value.avatarPath = path
+                guard self.session?.userID == userID, self.accountGeneration == generation else { return }
                 if let image = UIImage(data: avatarJPEG) { self.avatarCache[path] = image }
             }
             try await self.repository.saveProfile(value)
-            self.profile = value
+            guard let confirmed = try await self.repository.profile(userID: userID), confirmed.id == userID else { throw AppError.server }
+            guard self.session?.userID == userID, self.accountGeneration == generation else { return }
+            self.profile = confirmed
+            await self.refreshActivityPrivacy()
         }
     }
 
@@ -371,6 +382,7 @@ final class AppStore {
                 friendAccessRevision += 1
             }
             myActivity = result.0; crew = result.1
+            rest.confirmActivity(result.0)
             if let clock = rest.clock, result.0?.id != clock.activityID || result.0?.status != .live { rest.stop(activityID: clock.activityID) }
             synchronizeLiveSurface(confirmedEmpty: true)
             friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) }
@@ -526,7 +538,7 @@ final class AppStore {
             let userID = self.session?.userID
             try await self.repository.deleteAccount()
             self.liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
-            self.showsLiveSession = false; self.pendingLiveLink = nil
+            self.showsLiveSession = false; self.pendingLiveLink = nil; self.pendingRestReminder = nil
             if let userID { FeedCache.clear(userID: userID) }
             if let userID { self.workouts.clearCopyRequests(userID: userID) }
             self.workouts.activate(userID: nil)
@@ -599,6 +611,22 @@ final class AppStore {
         guard generation == accountGeneration else { return }
         if notificationRouting.presentation != nil { selectedTab = 0 }
         if let message = notificationRouting.errorMessage { errorMessage = message }
+    }
+
+    func receiveRestReminder(_ payload: WorkoutRestReminderTap) async {
+        pendingRestReminder = payload
+        if route == .main { await refresh(); deliverPendingRestReminder() }
+    }
+    func canPresentRestReminder(_ payload: WorkoutRestReminderTap) -> Bool {
+        route == .main && rest.reminderEnabled && payload.matches(ownerID: session?.userID, clock: rest.clock)
+            && myActivity?.id == payload.activityID && myActivity?.userID == session?.userID && myActivity?.status == .live
+    }
+    func deliverPendingRestReminder() {
+        guard let pending = pendingRestReminder else { return }
+        guard route == .main else { if route == .signedOut { pendingRestReminder = nil }; return }
+        pendingRestReminder = nil
+        guard canPresentRestReminder(pending) else { return }
+        showsActivityComposer = false; weekly.dismissCelebration(); selectedTab = 0; showsLiveSession = true
     }
 
     func handleNotificationTap(notification: AppNotification) async {

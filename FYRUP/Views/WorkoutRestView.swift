@@ -5,6 +5,7 @@ struct WorkoutRestView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let activityID: UUID
     var compact = false
+    @State private var showsOptions = false
     private var ownsLiveSession: Bool {
         store.session?.userID == store.myActivity?.userID && store.myActivity?.id == activityID && store.myActivity?.status == .live
     }
@@ -35,6 +36,10 @@ struct WorkoutRestView: View {
                 if !compact || clock == nil {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 48))], spacing: 6) { durationButtons }
                 }
+                Button { showsOptions = true } label: {
+                    HStack { Text("\(store.rest.selectedDuration) s · Dauer & Erinnerung"); Spacer(); Image(systemName: "slider.horizontal.3") }
+                        .font(.caption.weight(.semibold)).frame(minHeight: 44)
+                }.accessibilityIdentifier("rest-options").disabled(!ownsLiveSession)
                 HStack(spacing: 10) {
                     Button(clock == nil ? "Satzpause starten" : "Neue Satzpause") {
                         store.rest.start(activityID: activityID); Haptics.impact(.light)
@@ -44,9 +49,11 @@ struct WorkoutRestView: View {
                             .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("stop-rest-timer")
                     }
                 }.disabled(!ownsLiveSession)
+                if let message = store.rest.reminderMessage { Text(message).font(.caption).foregroundStyle(FYColor.coral) }
             }.fyCard()
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: clock == nil)
         }.accessibilityIdentifier("rest-timer-panel")
+            .sheet(isPresented: $showsOptions) { NavigationStack { WorkoutRestSettingsView() } }
     }
 
     private var durationButtons: some View {

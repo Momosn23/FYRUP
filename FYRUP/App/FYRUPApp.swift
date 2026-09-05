@@ -19,6 +19,7 @@ struct FYRUPApp: App {
                     await appDelegate.deliverPendingNotification()
                     await store.bootstrap()
                     await store.deliverPendingNotification()
+                    store.deliverPendingRestReminder()
                 }
         }
     }
@@ -28,6 +29,7 @@ struct FYRUPApp: App {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     weak var store: AppStore?
     private var pendingNotification: NotificationTapPayload?
+    private var pendingRestReminder: WorkoutRestReminderTap?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         let taken = UNNotificationAction(identifier: "FYRUP_SUPPLEMENT_TAKEN", title: "Genommen", options: [.foreground, .authenticationRequired])
@@ -43,6 +45,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         Task { await store?.registerDeviceToken(token) }
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        if let rest = WorkoutRestReminderTap(requestIdentifier: notification.request.identifier, userInfo: notification.request.content.userInfo) {
+            return await canPresentRest(rest) ? [.banner, .sound] : []
+        }
         guard let payload = NotificationTapPayload(userInfo: notification.request.content.userInfo), await canPresent(payload) else { return [] }
         return [.banner, .sound, .badge]
     }
@@ -51,15 +56,28 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         return payload.recipientID == owner
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        guard response.actionIdentifier != UNNotificationDismissActionIdentifier else { return }
+        if let rest = WorkoutRestReminderTap(requestIdentifier: response.notification.request.identifier, userInfo: response.notification.request.content.userInfo) {
+            await deliverRestReminder(rest); return
+        }
         guard response.actionIdentifier != UNNotificationDismissActionIdentifier,
               var payload = NotificationTapPayload(userInfo: response.notification.request.content.userInfo) else { return }
         payload.marksSupplementTaken = response.actionIdentifier == "FYRUP_SUPPLEMENT_TAKEN" && payload.type == "supplement_reminder"
         await deliverNotification(payload)
     }
     func deliverPendingNotification() async {
+        if let store, let pendingRestReminder {
+            self.pendingRestReminder = nil
+            await store.receiveRestReminder(pendingRestReminder)
+        }
         guard let store, let pendingNotification else { return }
         self.pendingNotification = nil
         await store.handleNotificationTap(pendingNotification)
+    }
+    private func canPresentRest(_ payload: WorkoutRestReminderTap) -> Bool { store?.canPresentRestReminder(payload) == true }
+    private func deliverRestReminder(_ payload: WorkoutRestReminderTap) async {
+        guard let store else { pendingRestReminder = payload; return }
+        await store.receiveRestReminder(payload)
     }
     private func deliverNotification(_ payload: NotificationTapPayload) async {
         guard let store else { pendingNotification = payload; return }

@@ -302,10 +302,7 @@ final class WeeklyFlameRepositoryTests: XCTestCase {
         for _ in 0..<3 { _ = try await complete(momo, clock: clock) }
         _ = try await momo.setNextWeeklyGoal(7)
         _ = try await state(momo, timezone: "Asia/Tokyo")
-        let ownProfile = try await momo.profile(userID: momoID)
-        var privateActivities = try XCTUnwrap(ownProfile)
-        privateActivities.activityVisibility = "private"
-        try await momo.saveProfile(privateActivities)
+        _ = try await momo.saveActivityVisibility(userID: momoID, value: .nobody, expected: .friends)
         let friend = try await state(max, userID: momoID, timezone: nil)
         XCTAssertEqual(friend.currentWeek?.completedWorkouts, 3)
         XCTAssertNil(friend.nextWeeklyGoal)

@@ -84,7 +84,14 @@ actor DemoRepository: AppRepository {
     }
     func saveProfile(_ profile: Profile) async throws {
         guard profile.id == meID else { throw AppError.authentication }
-        me = profile; profileExists = true
+        var metadata = profile
+        if profileExists {
+            metadata.activityVisibility = me.activityVisibility
+            metadata.weeklyGoal = me.weeklyGoal
+            metadata.onboardingStep = me.onboardingStep
+            metadata.gymFocus = me.gymFocus
+        }
+        me = metadata; profileExists = true
     }
     func saveActivityVisibility(userID: UUID, value: ActivityVisibility, expected: ActivityVisibility) async throws -> Profile {
         guard profileExists, userID == meID else { throw AppError.accessDenied }
