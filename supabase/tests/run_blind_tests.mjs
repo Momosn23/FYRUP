@@ -53,7 +53,7 @@ try {
     await db.exec(await readFile(resolve('supabase/migrations', filename), 'utf8'));
     console.log(`Applied ${filename}`);
   }
-  for (const filename of [...(includeSupplements ? ['supplement_reminders.sql'] : []), ...(includePersonalTraining ? ['personal_training.sql'] : []), ...(includePreferenceCAS ? ['notification_preference_cas.sql'] : []), ...(includeCopies ? ['workout_copy_idempotency.sql'] : []), ...(includeShots ? ['call_my_shot.sql'] : []), 'blind_workouts.sql', 'weekly_flames.sql', 'workout_plans.sql', 'activity_pause.sql', 'daily_steps.sql']) {
+  for (const filename of ['activity_privacy.sql', ...(includeSupplements ? ['supplement_reminders.sql'] : []), ...(includePersonalTraining ? ['personal_training.sql'] : []), ...(includePreferenceCAS ? ['notification_preference_cas.sql'] : []), ...(includeCopies ? ['workout_copy_idempotency.sql'] : []), ...(includeShots ? ['call_my_shot.sql'] : []), 'blind_workouts.sql', 'weekly_flames.sql', 'workout_plans.sql', 'activity_pause.sql', 'daily_steps.sql']) {
     console.log(`Suite: ${filename}`);
     let sql = await readFile(resolve('supabase/tests', filename), 'utf8');
     if (includeCopies && filename === 'workout_plans.sql') {

@@ -102,6 +102,17 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["Laufen"].tap()
         app.segmentedControls.buttons["SESSION PLANEN"].tap()
         capture("05-plan-workout")
+        let date = app.buttons["session-date"]
+        XCTAssertTrue(date.isHittable)
+        let selectedDate = date.value as? String ?? ""
+        XCTAssertFalse(selectedDate.isEmpty)
+        XCTAssertNotNil(selectedDate.range(of: "\\b[0-9]{4}\\b", options: .regularExpression), "Show the entire date including its year")
+        date.tap()
+        XCTAssertTrue(app.navigationBars["Datum wählen"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.datePickers["session-calendar"].exists)
+        capture("70-session-calendar")
+        app.buttons["confirm-session-date"].tap()
+        XCTAssertEqual(app.buttons["session-date"].value as? String, selectedDate)
         let joinToggle = app.switches["Freunde dürfen sich anschließen"]
         XCTAssertTrue(joinToggle.exists)
         let confirm = app.buttons.matching(identifier: "confirm-activity").element
@@ -192,6 +203,19 @@ final class CriticalFlowsUITests: XCTestCase {
         let privacyHeading = app.staticTexts["privacy-visibility-heading"]
         XCTAssertTrue(privacyHeading.waitForExistence(timeout: 3))
         XCTAssertEqual(privacyHeading.label, "Wer sieht meine Aktivitäten?")
+        let nobody = app.buttons["activity-visibility-nobody"]
+        waitUntilReady(nobody)
+        nobody.tap()
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true AND enabled == true"), object: nobody)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 4), .completed)
+        capture("72-privacy-confirmed")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["Privatsphäre"].tap()
+        waitUntilReady(nobody)
+        XCTAssertTrue(nobody.isSelected, "Reopening must load the confirmed server value")
+        app.buttons["activity-visibility-friends"].tap()
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true AND enabled == true"), object: app.buttons["activity-visibility-friends"])
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 4), .completed)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
         XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))

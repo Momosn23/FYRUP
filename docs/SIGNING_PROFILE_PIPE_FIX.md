@@ -8,4 +8,6 @@ Die Prüfung liegt nun in `scripts/verify-signing-profile.py`. Sie liest die Byt
 
 Sieben lokale Python-Tests bestanden: XML/Binärformat, echte stdin-Pipe für beide Formate, leere/defekte Daten, falsche Struktur, falsche und jeweils fehlende Berechtigungen sowie nicht erfolgreicher Prozessausgang bei falschem Push-Umfeld. Die Testdateien enthalten ausschließlich synthetische Daten. Die gleiche Testsuite läuft vor jeder echten Profilprüfung in Codemagic.
 
-Der tatsächliche Profil-/IPA-/TestFlight-Nachtest bleibt offen. Diese isolierte Skriptkorrektur wird getrennt vorbereitet, damit GitHub-Lauf 45 und Simulator-Build 35 ihre bereits laufenden App-Prüfungen abschließen können.
+Die isolierte Skriptkorrektur wurde als `7472300` separat hochgeladen, ohne GitHub-Lauf 45 oder Simulator-Build 35 abzubrechen. Beide haben ihre App-Prüfungen inzwischen erfolgreich abgeschlossen.
+
+**Nachtest gegen das echte Apple-Profil bestanden:** [Signierter Build 9](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c07536942048ebcb1f844), Zweig `codex/signing-profile-pipe`, hat sieben Tests in 0,064 s ausgeführt und anschließend ausdrücklich „Verified FYRUP profile: HealthKit, Apple sign-in and production push“ protokolliert. Danach startet die vollständige native Testsuite. IPA-Bau und Apple-Upload bleiben zum Zeitpunkt dieser Kontrolle noch offen. Die nachfolgenden lokalen Datenschutz-/Layoutänderungen sind nicht Teil dieses Builds.

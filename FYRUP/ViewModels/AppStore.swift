@@ -39,6 +39,7 @@ final class AppStore {
             accountGeneration = UUID(); isRefreshing = false
             currentDeviceToken = nil
             notificationSettings.activate(userID: session?.userID)
+            activityPrivacy.activate(userID: session?.userID)
             trackingDrafts.activate(userID: session?.userID)
             personal.activate(userID: session?.userID)
             supplements.activate(userID: session?.userID)
@@ -58,6 +59,7 @@ final class AppStore {
     let blind: BlindWorkoutStore
     let shot: CallMyShotStore
     let notificationSettings: NotificationPreferenceStore
+    let activityPrivacy: ActivityPrivacyStore
     let notificationRouting: NotificationRoutingStore
     private let analytics: any AnalyticsTracking
     private var appleNonce: String?
@@ -79,6 +81,12 @@ final class AppStore {
             read: { try await repository.notificationPreferences() },
             write: { try await repository.saveNotificationPreferences($0, expected: $1) }
         )
+        self.activityPrivacy = ActivityPrivacyStore(read: { owner in
+            guard let profile = try await repository.profile(userID: owner) else { throw AppError.accessDenied }
+            return profile
+        }, write: { owner, value, expected in
+            try await repository.saveActivityVisibility(userID: owner, value: value, expected: expected)
+        })
     }
 
     static func make() -> AppStore {
@@ -161,6 +169,25 @@ final class AppStore {
         if status == .authorized || status == .provisional {
             UIApplication.shared.registerForRemoteNotifications()
         }
+    }
+    func refreshActivityPrivacy() async {
+        let request = accountGeneration
+        await activityPrivacy.refresh()
+        synchronizeActivityPrivacy(generation: request)
+    }
+
+    func saveActivityPrivacy(_ value: ActivityVisibility) async {
+        let request = accountGeneration
+        await activityPrivacy.save(value)
+        synchronizeActivityPrivacy(generation: request)
+    }
+
+    private func synchronizeActivityPrivacy(generation: UUID) {
+        guard generation == accountGeneration, profile?.id == session?.userID,
+              activityPrivacy.userID == session?.userID,
+              let value = activityPrivacy.confirmedValue else { return }
+        // Update this field only; do not replace other profile edits with an old snapshot.
+        profile?.activityVisibility = value.rawValue
     }
     func registerDeviceToken(_ token: String) async {
         guard session?.userID != nil, route == .main else { return }
@@ -583,6 +610,7 @@ private actor DemoRepositoryPlaceholder: AppRepository {
     func setFlameReaction(weekID: UUID, reaction: ReactionKind?) async throws -> Bool { throw AppError.configuration }
     func claimFlameCelebration(weekID: UUID) async throws -> Bool { throw AppError.configuration }
     func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile { throw AppError.configuration }
+    func saveActivityVisibility(userID: UUID, value: ActivityVisibility, expected: ActivityVisibility) async throws -> Profile { throw AppError.configuration }
     func stepSharingPreference(userID: UUID) async throws -> StepSharingPreference { throw AppError.configuration }
     func setStepSharing(userID: UUID, enabled: Bool) async throws -> StepSharingPreference { throw AppError.configuration }
     func syncSteps(userID: UUID, localDate: String, timezone: String, steps: Int?, sharingRevision: Int, observedAt: Date) async throws -> Bool { throw AppError.configuration }

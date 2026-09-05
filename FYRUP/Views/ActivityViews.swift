@@ -184,9 +184,7 @@ struct ActivityComposerView: View {
 
     private var planningDetails: some View {
         VStack(spacing: 0) {
-            DatePicker(selection: $startsAt, in: Date()..., displayedComponents: .date) {
-                HStack(spacing: 12) { Image(systemName: "calendar").frame(width: 22).foregroundStyle(FYColor.muted); Text("Datum") }
-            }.datePickerStyle(.compact).padding(14).accessibilityIdentifier("session-date")
+            SessionDateRow(selection: $startsAt)
             Divider().overlay(FYColor.line).padding(.leading, 44)
             DatePicker(selection: $startsAt, in: Date()..., displayedComponents: .hourAndMinute) {
                 HStack(spacing: 12) { Image(systemName: "clock").frame(width: 22).foregroundStyle(FYColor.muted); Text("Uhrzeit") }
@@ -257,6 +255,50 @@ struct ActivityComposerView: View {
         let areas = GymBodyArea.allCases.filter(gymAreas.contains).map(\.title)
         if let subtype, !areas.isEmpty { return "\(subtype) (\(areas.joined(separator: ", ")))" }
         return subtype ?? (areas.isEmpty ? nil : areas.joined(separator: ", "))
+    }
+}
+
+/// The compact system date pill truncates its year on some iOS versions. Show
+/// the complete date as ordinary text and open the native calendar separately.
+private struct SessionDateRow: View {
+    @Binding var selection: Date
+    @State private var showsCalendar = false
+    private var dateLabel: String { selection.formatted(date: .abbreviated, time: .omitted) }
+
+    var body: some View {
+        Button { showsCalendar = true } label: {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    Label("Datum", systemImage: "calendar")
+                    Spacer(minLength: 12)
+                    Text(dateLabel).fixedSize()
+                    Image(systemName: "chevron.right").font(.caption.bold())
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Datum", systemImage: "calendar")
+                    Text(dateLabel).fixedSize(horizontal: false, vertical: true)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.foregroundStyle(FYColor.ink).padding(14)
+        }.buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Datum").accessibilityValue(dateLabel)
+            .accessibilityIdentifier("session-date")
+            .sheet(isPresented: $showsCalendar) {
+                NavigationStack {
+                    ScrollView {
+                        DatePicker("Datum", selection: $selection, in: Date()..., displayedComponents: .date)
+                            .datePickerStyle(.graphical).padding(16)
+                            .accessibilityIdentifier("session-calendar")
+                    }.background(FYColor.background)
+                        .navigationTitle("Datum wählen").navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Übernehmen") { showsCalendar = false }
+                                    .accessibilityIdentifier("confirm-session-date")
+                            }
+                        }
+                }.tint(FYColor.lime).preferredColorScheme(.light)
+            }
     }
 }
 

@@ -259,7 +259,28 @@ private struct PrivacyView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Sichtbarkeit", selection: visibilityBinding) { Text("Freunde").tag("friends"); Text("Niemand").tag("nobody") }.pickerStyle(.inline)
+                if let selected = store.activityPrivacy.value {
+                    ForEach(ActivityVisibility.allCases, id: \.self) { value in
+                        Button { Task { await store.saveActivityPrivacy(value) } } label: {
+                            HStack {
+                                Text(value.title).foregroundStyle(FYColor.ink)
+                                Spacer()
+                                if selected == value && store.activityPrivacy.isConfirmed { Image(systemName: "checkmark").foregroundStyle(FYColor.lime) }
+                            }.frame(minHeight: 36)
+                        }.disabled(store.activityPrivacy.isBusy || !store.activityPrivacy.isConfirmed)
+                            .accessibilityIdentifier("activity-visibility-\(value.rawValue)")
+                            .accessibilityAddTraits(selected == value && store.activityPrivacy.isConfirmed ? [.isSelected] : [])
+                    }
+                }
+                if store.activityPrivacy.isBusy { ProgressView(store.activityPrivacy.isSaving ? "Wird bestätigt …" : "Wird geladen …") }
+                if let error = store.activityPrivacy.errorMessage {
+                    Text(error).font(.footnote).foregroundStyle(FYColor.muted)
+                        .accessibilityIdentifier("activity-privacy-error")
+                }
+                if !store.activityPrivacy.isConfirmed && !store.activityPrivacy.isBusy {
+                    Button("Sichtbarkeit erneut laden") { Task { await store.refreshActivityPrivacy() } }
+                        .accessibilityIdentifier("reload-activity-privacy")
+                }
             } header: {
                 Text("Wer sieht meine Aktivitäten?").textCase(nil)
                     .accessibilityIdentifier("privacy-visibility-heading")
@@ -267,8 +288,8 @@ private struct PrivacyView: View {
             Section { NavigationLink { StepSettingsView() } label: { Label("Schritte", systemImage: "figure.walk") }.accessibilityIdentifier("privacy-steps") }
             Section { Text("FYRUP zeigt in V1 weder Live-Standort noch GPS-Daten. Deine Aktivitäten sind niemals öffentlich.") }
         }.scrollContentBackground(.hidden).background(FYColor.background).navigationTitle("Datenschutz")
+            .task { await store.refreshActivityPrivacy() }
     }
-    private var visibilityBinding: Binding<String> { Binding(get: { store.profile?.activityVisibility ?? "friends" }, set: { value in guard var profile = store.profile else { return }; profile.activityVisibility = value; Task { try? await store.repository.saveProfile(profile); await MainActor.run { store.profile = profile } } }) }
 }
 
 struct SystemNotificationSettingsRow: View {

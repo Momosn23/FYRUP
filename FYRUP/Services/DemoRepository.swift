@@ -86,6 +86,12 @@ actor DemoRepository: AppRepository {
         guard profile.id == meID else { throw AppError.authentication }
         me = profile; profileExists = true
     }
+    func saveActivityVisibility(userID: UUID, value: ActivityVisibility, expected: ActivityVisibility) async throws -> Profile {
+        guard profileExists, userID == meID else { throw AppError.accessDenied }
+        guard me.activityVisibility == expected.rawValue else { throw AppError.conflict("Bitte lade den aktuellen Stand.") }
+        me.activityVisibility = value.rawValue
+        return me
+    }
     func uploadAvatar(userID: UUID, data: Data) async throws -> String { let path = "\(userID.uuidString.lowercased())/avatar.jpg"; avatarObjects[path] = data; return path }
     func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile {
         guard ["sports", "gym", "weekly_goal", "friends", "complete", "done"].contains(step) else { throw AppError.server }

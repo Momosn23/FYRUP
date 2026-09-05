@@ -30,6 +30,16 @@ final class SupplementFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Guten Morgen"].waitForExistence(timeout: 8))
         tap(app.buttons["open-supplements"], in: app)
         XCTAssertTrue(app.navigationBars["Supplements"].waitForExistence(timeout: 5))
+        let purpose = app.staticTexts["supplement-purpose"]
+        let recommendation = app.staticTexts["supplement-no-recommendation"]
+        let streak = app.staticTexts["supplement-no-streak-impact"]
+        XCTAssertEqual(purpose.label, "Freiwillige Erinnerungen für deine eigene Auswahl.")
+        XCTAssertEqual(recommendation.label, "Keine Produktempfehlung.")
+        XCTAssertEqual(streak.label, "Ohne Einfluss auf deine Streak.")
+        XCTAssertGreaterThan(recommendation.frame.minY, purpose.frame.maxY)
+        XCTAssertGreaterThan(streak.frame.minY, recommendation.frame.maxY)
+        XCTAssertTrue(streak.isHittable)
+        capture("71-supplement-purpose")
         tap(app.buttons["add-supplement"], in: app)
         let name = app.textFields["supplement-name"]
         tap(name, in: app); name.typeText("Meine persönliche Auswahl\n")

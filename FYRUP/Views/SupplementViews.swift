@@ -44,10 +44,16 @@ struct SupplementsView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Label("Nur für dich", systemImage: "lock.fill").font(.caption.bold()).foregroundStyle(FYColor.lime)
                     Text("Deine Auswahl. Deine Zeiten.").font(.title2.bold())
-                    Text("Eine freiwillige Erinnerungsliste. Keine Produktempfehlung und kein Einfluss auf deine Streak.")
-                        .font(.subheadline).foregroundStyle(FYColor.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("supplement-purpose")
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Freiwillige Erinnerungen für deine eigene Auswahl.")
+                            .accessibilityIdentifier("supplement-purpose")
+                        Text("Keine Produktempfehlung.")
+                            .accessibilityIdentifier("supplement-no-recommendation")
+                        Text("Ohne Einfluss auf deine Streak.")
+                            .accessibilityIdentifier("supplement-no-streak-impact")
+                    }.font(.subheadline).foregroundStyle(FYColor.muted)
+                        .lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     SupplementStatusMessages()
                     if store.supplements.isLoading && store.supplements.snapshot == nil { ProgressView("Liste wird geladen …") }
                     if let snapshot = store.supplements.snapshot {
@@ -99,7 +105,7 @@ struct SupplementsView: View {
                     } else if !store.supplements.isLoading {
                         Button("Liste laden") { Task { await store.supplements.refresh() } }.buttonStyle(PrimaryButtonStyle())
                     }
-                }.padding(20).padding(.bottom, 36)
+                }.padding(20).padding(.bottom, 76)
             }.background(FYColor.background).navigationTitle("Supplements").navigationBarTitleDisplayMode(.inline)
                 .refreshable { await store.supplements.refresh() }
                 .task {

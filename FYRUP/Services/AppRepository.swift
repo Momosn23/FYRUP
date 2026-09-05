@@ -13,6 +13,7 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func signOut() async
     func profile(userID: UUID) async throws -> Profile?
     func saveProfile(_ profile: Profile) async throws
+    func saveActivityVisibility(userID: UUID, value: ActivityVisibility, expected: ActivityVisibility) async throws -> Profile
     func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile
     func uploadAvatar(userID: UUID, data: Data) async throws -> String
     func avatarData(path: String) async throws -> Data
@@ -80,6 +81,18 @@ actor LiveAppRepository: AppRepository {
             enum CodingKeys: String, CodingKey { case pStep = "p_step", pGymFocus = "p_gym_focus" }
         }
         return try await client.rpc("save_onboarding_state", body: Body(pStep: step, pGymFocus: gymFocus))
+    }
+
+    func saveActivityVisibility(userID: UUID, value: ActivityVisibility, expected: ActivityVisibility) async throws -> Profile {
+        let profiles: [Profile] = try await client.mutate("profiles", method: .patch, query: [
+            .init(name: "id", value: "eq.\(userID.uuidString.lowercased())"),
+            .init(name: "activity_visibility", value: "eq.\(expected.rawValue)")
+        ], body: ["activity_visibility": value.rawValue])
+        guard profiles.count == 1, let profile = profiles.first,
+              profile.id == userID, profile.activityVisibility == value.rawValue else {
+            throw AppError.conflict("Deine Sichtbarkeit wurde inzwischen geändert. Bitte lade den aktuellen Stand.")
+        }
+        return profile
     }
 
     func uploadAvatar(userID: UUID, data: Data) async throws -> String {

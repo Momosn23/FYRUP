@@ -68,8 +68,8 @@ actor SupabaseRESTClient {
         try await databaseRequest(path: path, method: .get, query: query, body: Optional<String>.none)
     }
 
-    func mutate<Body: Encodable, Result: Decodable>(_ path: String, method: Method = .post, body: Body) async throws -> Result {
-        try await databaseRequest(path: path, method: method, query: [], body: body)
+    func mutate<Body: Encodable, Result: Decodable>(_ path: String, method: Method = .post, query: [URLQueryItem] = [], body: Body) async throws -> Result {
+        try await databaseRequest(path: path, method: method, query: query, body: body)
     }
 
     func rpc<Body: Encodable, Result: Decodable>(_ name: String, body: Body) async throws -> Result {
