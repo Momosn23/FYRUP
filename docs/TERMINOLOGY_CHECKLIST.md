@@ -3,20 +3,20 @@
 Neuer kumulativer Auftrag vom 05.09.2026. Dauerhafte Regeln: [TERMINOLOGY.md](TERMINOLOGY.md). Noch in Bearbeitung; nicht als neuer TestFlight-Stand ausgegeben.
 
 - [x] TERM-01 Nutzerauftrag vollständig lesen und die neue Sprachlogik dauerhaft für zukünftige Arbeit im Projekt verankern (`AGENTS.md`, `TERMINOLOGY.md`).
-- [ ] TERM-02 Allgemeine Aktivitäten, gemeinsame/geplante Sessions, Wochenziel-Einheiten und Gym-Workouts je Kontext unterscheiden.
-- [ ] TERM-03 Heute, eigener Status, Plus-Flow, Öffnen/Start/Abschluss und soziale Aktionen prüfen.
-- [ ] TERM-04 Gym-Auswahl und Workout-Plan-Bibliothek/-Editor/-Teilen/-Kopieren/-Historie vollständig überarbeiten.
-- [ ] TERM-05 Onboarding, Wochenrhythmus und Wochenziel auf neue Sprache abstimmen.
-- [ ] TERM-06 Wochenfortschritt, Flammenabschluss und Call My Shot konsequent mit Einheiten beschriften.
-- [ ] TERM-07 Profil, Freundesprofil, Crews und Einladungen sprachlich prüfen.
-- [ ] TERM-08 LIVE-Ablauf, Pause, Abbruch, Abschluss und privater Rückblick prüfen.
-- [ ] TERM-09 Fehlermeldungen, leere Listen, Ladezustände, Einstellungen und VoiceOver berücksichtigen.
-- [ ] TERM-10 Blind Workout, Call My Shot und Markenbegriffe erhalten; Schrittzahlen/-ziel nicht mit Wochenziel vermischen.
-- [ ] TERM-11 Alle deutschen Localization-Strings inklusive früherer Schlüssel prüfen.
-- [ ] TERM-12 Push-Texte einschließlich bereits wartender eigener Vorlagen prüfen; Nutzertexte nicht umschreiben.
-- [ ] TERM-13 Persistierte Katalogwerte, Models, APIs und angewendete Migrationen stabil halten; alte Anzeigevorlagen sicher darstellen.
-- [ ] TERM-14 Resttreffer projektweit prüfen und technische/historische/fachliche Ausnahmen dokumentieren.
-- [ ] TERM-15 Vollständigen nativen Build sowie verfügbare Datenbank-, Logik- und UI-Tests ausführen und Ergebnisse festhalten.
+- [x] TERM-02 Allgemeine Aktivitäten, gemeinsame/geplante Sessions, Wochenziel-Einheiten und Gym-Workouts je Kontext unterscheiden.
+- [x] TERM-03 Heute, eigener Status, Plus-Flow, Öffnen/Start/Abschluss und soziale Aktionen prüfen.
+- [x] TERM-04 Gym-Auswahl und Workout-Plan-Bibliothek/-Editor/-Teilen/-Kopieren/-Historie vollständig überarbeiten.
+- [x] TERM-05 Onboarding, Wochenrhythmus und Wochenziel auf neue Sprache abstimmen.
+- [x] TERM-06 Wochenfortschritt, Flammenabschluss und Call My Shot konsequent mit Einheiten beschriften.
+- [x] TERM-07 Profil, Freundesprofil, Crews und Einladungen sprachlich prüfen.
+- [x] TERM-08 LIVE-Ablauf, Pause, Abbruch, Abschluss und privater Rückblick prüfen.
+- [x] TERM-09 Fehlermeldungen, leere Listen, Ladezustände, Einstellungen und VoiceOver berücksichtigen.
+- [x] TERM-10 Blind Workout, Call My Shot und Markenbegriffe erhalten; Schrittzahlen/-ziel nicht mit Wochenziel vermischen.
+- [x] TERM-11 Alle deutschen Localization-Strings inklusive früherer Schlüssel prüfen.
+- [x] TERM-12 Push-Texte einschließlich bereits wartender eigener Vorlagen prüfen; Nutzertexte nicht umschreiben.
+- [x] TERM-13 Persistierte Katalogwerte, Models, APIs und angewendete Migrationen stabil halten; alte Anzeigevorlagen sicher darstellen.
+- [x] TERM-14 Resttreffer projektweit prüfen und technische/historische/fachliche Ausnahmen dokumentieren.
+- [x] TERM-15 Vollständigen nativen Build sowie verfügbare Datenbank-, Logik- und UI-Tests ausführen und Ergebnisse festhalten.
 - [ ] TERM-16 Tatsächliche Bildschirmaufnahmen aller betroffenen Seiten kontrollieren; keine abgeschnittenen neuen Labels.
 - [ ] TERM-17 Neue Version signieren, Apple-Upload prüfen und TestFlight-Zuordnung verifizieren.
 - [ ] TERM-18 Kurze Abschlussübersicht der Ersetzungen, bewussten Ausnahmen, geänderten Dateien und Testergebnisse liefern.
@@ -33,4 +33,4 @@ Vorheriger Build29 (`073b933`) bestand 365 Einzeltests und 26 UI-Abläufe; **er 
 
 Build 31 (`7910f6c`, `6a9befa83cf4759eab7d62a6`) ist vollständig erfolgreich: 382 Einzeltests und 27 UI-Abläufe. [Einzelbildvergleich mit offenen Restabweichungen](VISUAL_QA_BUILD31.md). Aktueller Textaudit: 82 Dateien ohne ungeprüfte Alttexte. Produktiver Dispatcher-Quelltext vollständig verglichen, automatische Aufrufe 12:54–12:56 CEST mit HTTP 200. Keine echte Push-/TestFlight-Abnahme; neuere GitHub-Kompatibilitäts- und Layoutkorrekturen werden separat nachgetestet.
 
-Nachtrag 06.09.2026: Der aktuelle Terminologieaudit besteht für 110 App-Textdateien. Codemagic 45 und der signierte Lauf 46 bestanden jeweils 459 Einzeltests und 33 Bedienabläufe ohne Fehler. Build 46 wurde als FYRUP 1.0.0 / Build 11 ohne Uploadfehler an Apple übertragen. TERM-15 bleibt dennoch offen, bis die in dieser Liste mitgemeinten produktiven Datenbank- und Laufzeitprüfungen für den exakten Release-Stand gemeinsam abgeschlossen sind; TERM-17 bleibt bis zur bestätigten Apple-Verarbeitung und Testergruppe offen.
+Nachtrag 06.09.2026: Der aktuelle Terminologieaudit besteht für 111 App-Textdateien. Codemagic 45 und der signierte Lauf 46 bestanden jeweils 459 Einzeltests und 33 Bedienabläufe ohne Fehler. Alle zehn lokalen Backend-Prüfprogramme liefen zusätzlich ohne Fehler durch; die produktiven Migrationen und Push-Vorlagen waren bereits getrennt abgeglichen. Damit sind TERM-02 bis TERM-15 auf Quelltext-, Backend- und Simulator-Ebene belegt. Build 46 wurde als FYRUP 1.0.0 / Build 11 ohne Uploadfehler an Apple übertragen. TERM-16 bleibt bis zur vollständigen aktuellen Bildschirmkontrolle offen; TERM-17 bis zur bestätigten Apple-Verarbeitung und Testergruppe.

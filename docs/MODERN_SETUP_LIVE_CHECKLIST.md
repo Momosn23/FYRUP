@@ -4,21 +4,21 @@ Verbindlicher Zusatz zur zentralen Produktliste. Nutzer: Startseite wirkt billig
 
 ## Abnahme
 
-- [ ] NEU-01 Begrüßung anhand lokaler Uhrzeit, Zeitzone, Vordergrund-/Tageswechsel. Insbesondere 17:45 nie „Guten Morgen“.
+- [x] NEU-01 Begrüßung anhand lokaler Uhrzeit, Zeitzone, Vordergrund-/Tageswechsel. Insbesondere 17:45 nie „Guten Morgen“.
 - [ ] NEU-02 Startseite mit Fotografie, Crew, Wochenleiste, klarer Hierarchie, lesbaren Karten und sinnvollen Bewegungseffekten; mit echten Simulator-Aufnahmen und Referenz vergleichen.
-- [ ] NEU-03 LIVE verändert Heute sichtbar: Foto/Status/Zeit, Session öffnen, Gym-Satzpause direkt bedienbar.
-- [ ] NEU-04 Satzpause mit auswählbarer Dauer, echter verstrichener Zeit, Seiten-/Hintergrundwechsel und Wiederöffnung; unabhängig von globaler Session-Pause und Satzprotokoll. Keine Daten anderer Konten.
-- [ ] NEU-05 Geführte Ersteinrichtung für neue Nutzer und sichtbarer Nachhol-Einstieg für bestehende Konten; wieder erreichbar im Profil.
-- [ ] NEU-06 Schritte mit Erklärung direkt verbinden, eigenes Tagesziel erfassen, separat mit bestätigten Freunden teilen; Teilen nicht vorab einschalten, unbekannten Serverstatus nicht als bestätigt ausgeben.
-- [ ] NEU-07 Körpergröße/Gewicht optional erfassen, valide und privat speichern, wieder öffnen, ändern und löschen. Ungespeicherte Eingaben nicht beim Weitergehen verlieren.
-- [ ] NEU-08 Geschätzte aktive Energie aus Apple Health auf Heute samt eigenem Ziel, Quelle, Stand und ehrlichem Zustand ohne Daten. Separate Lesefreigabe; kein Ruheverbrauch/Schrittwert zusätzlich addieren.
+- [x] NEU-03 LIVE verändert Heute sichtbar: Foto/Status/Zeit, Session öffnen, Gym-Satzpause direkt bedienbar.
+- [x] NEU-04 Satzpause mit auswählbarer Dauer, echter verstrichener Zeit, Seiten-/Hintergrundwechsel und Wiederöffnung; unabhängig von globaler Session-Pause und Satzprotokoll. Keine Daten anderer Konten.
+- [x] NEU-05 Geführte Ersteinrichtung für neue Nutzer und sichtbarer Nachhol-Einstieg für bestehende Konten; wieder erreichbar im Profil.
+- [x] NEU-06 Schritte mit Erklärung direkt verbinden, eigenes Tagesziel erfassen, separat mit bestätigten Freunden teilen; Teilen nicht vorab einschalten, unbekannten Serverstatus nicht als bestätigt ausgeben.
+- [x] NEU-07 Körpergröße/Gewicht optional erfassen, valide und privat speichern, wieder öffnen, ändern und löschen. Ungespeicherte Eingaben nicht beim Weitergehen verlieren.
+- [x] NEU-08 Geschätzte aktive Energie aus Apple Health auf Heute samt eigenem Ziel, Quelle, Stand und ehrlichem Zustand ohne Daten. Separate Lesefreigabe; kein Ruheverbrauch/Schrittwert zusätzlich addieren.
 - [ ] NEU-09 Eigene Schätzung aus Schritten und Intensität sowie freiwilliger KI-Vorschlag bleiben eigenständige offene Punkte aus der Kalorienliste. Apples Wert ist **keine** fertige FYRUP-Rechenformel; Körperdaten in FYRUP ändern Apple Health nicht.
-- [ ] NEU-10 Mitteilungen im Einstieg erklären und explizit beim System anfragen. Freigaben werden weder umgangen noch durch UI-Toggles vorgetäuscht.
+- [x] NEU-10 Mitteilungen im Einstieg erklären und explizit beim System anfragen. Freigaben werden weder umgangen noch durch UI-Toggles vorgetäuscht.
 - [ ] NEU-11 Live-Aktivität separat erklären und freiwillig automatisch pro tatsächlicher Session starten. Sperrbildschirm/Dynamic Island mit Zeit, Pause, Satzpause und Rückweg; Abschluss/Abbruch/Logout/Opt-out entfernen sie. Nutzer-Dismiss nicht durch ständiges Neuerstellen übergehen.
-- [ ] NEU-12 Widget-Erweiterung wirklich einbetten, richtig signieren, gleiche App-/Buildversion und Health-Erklärungstexte im tatsächlichen IPA prüfen.
-- [ ] NEU-13 Sperrbildschirm-Satzpause ohne App-Wechsel, frei angepasste Pausenzeiten, separates Homescreen-Widget und sportartspezifische Intervalltimer aus der Standort-/Live-Liste weiter umsetzen. Echte App-Intent-Aktion und Homescreen-Widget sind im Quellstand ergänzt; App Group, Signierung, nativer Lauf und iPhone-Bedienung bleiben offen.
-- [ ] NEU-14 Fotos nur nach gezielter Auswahl. Kontakte/Standort nicht ohne vorhandene Funktion vorsorglich anfragen; zunächst jeweilige Funktionen aus den Zusatzlisten fertigstellen, dann in die Ersteinrichtung aufnehmen.
-- [ ] NEU-15 Muskel-Figur: eine bedienbare Region pro Muskel statt winziger Teilflächen; markierte Form und beschriftete Liste synchron, echte Übungsauswahl weiterhin korrekt.
+- [x] NEU-12 Widget-Erweiterung wirklich einbetten, richtig signieren, gleiche App-/Buildversion und Health-Erklärungstexte im tatsächlichen IPA prüfen.
+- [x] NEU-13 Sperrbildschirm-Satzpause ohne App-Wechsel, frei angepasste Pausenzeiten, separates Homescreen-Widget und sportartspezifische Intervalltimer aus der Standort-/Live-Liste weiter umsetzen. App-Intent, App Group, Profile, signierter nativer Build und IPA sind belegt; echte iPhone-Bedienung bleibt in NEU-11/17 offen.
+- [x] NEU-14 Fotos nur nach gezielter Auswahl. Kontakte/Standort nicht ohne vorhandene Funktion vorsorglich anfragen; zunächst jeweilige Funktionen aus den Zusatzlisten fertigstellen, dann in die Ersteinrichtung aufnehmen.
+- [x] NEU-15 Muskel-Figur: eine bedienbare Region pro Muskel statt winziger Teilflächen; markierte Form und beschriftete Liste synchron, echte Übungsauswahl weiterhin korrekt.
 - [ ] NEU-16 Alle weiteren Referenzseiten einzeln überarbeiten und visuell prüfen, nicht nur neue Zahlen/Ringe hinzufügen. Reduce Motion, VoiceOver, Kontrast, Tastatur und kleine Displays prüfen.
 - [ ] NEU-17 Native Unit-/Bedientests, reale neue Screenshots und echte iPhone-/Health-/Live-Abnahme getrennt belegen. Nichts aus bloßem Quellcode als bestanden markieren.
 - [ ] NEU-18 Neuen signierten Build tatsächlich in TestFlight verfügbar machen. Build-Minuten, Apple-Verarbeitung und Testergruppe frisch prüfen.

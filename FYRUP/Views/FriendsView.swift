@@ -53,7 +53,7 @@ struct FriendsView: View {
                 }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("share-fyrup-profile")
             }
             Text("Es gibt noch keinen bestätigten öffentlichen App-Store- oder TestFlight-Link. FYRUP verschickt nie automatisch SMS, WhatsApp-Nachrichten oder Freundschaftsanfragen.")
-                .font(.caption2).foregroundStyle(FYColor.muted)
+                .font(.caption2).foregroundStyle(FYColor.muted).accessibilityIdentifier("external-invite-limit")
         }.fyCard()
     }
 }

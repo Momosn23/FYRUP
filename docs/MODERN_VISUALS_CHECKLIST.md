@@ -16,15 +16,15 @@ Die folgenden Kästchen bleiben bis zur jeweiligen vollständigen Abnahme offen.
 
 ## Interaktive Körperfigur
 
-- [ ] BODY-01 Bei der Muskelgruppenauswahl eine hochwertige Körperfigur mit Vorder- und Rückansicht anzeigen; beide Ansichten ohne umständliche Navigation erreichbar.
-- [ ] BODY-02 Muskelbereich direkt antippen oder über die beschriftete Auswahlliste wählen; Figur und Liste bleiben in beide Richtungen synchron.
-- [ ] BODY-03 Gewählte Muskelbereiche passend zur FYRUP-Farbwelt hervorheben, mit kurzem Aufleuchten/dezentem Übergang. Erneutes Antippen entfernt die Auswahl.
-- [ ] BODY-04 Mehrfachauswahl ermöglichen; Auswahlzustand auch mit Text/Markierung vermitteln, nicht ausschließlich durch Farbe.
-- [ ] BODY-05 Körpermitte, Oberkörper, Unterkörper und Ganzkörper als verständliche Gruppenauswahl abbilden; Zuordnung zu den vorhandenen einzelnen Muskelgruppen konsistent halten.
-- [ ] BODY-06 Alle vorhandenen Muskelgruppen korrekt abdecken, einschließlich kleinerer Bereiche wie Unterarme und Waden; primäre/sekundäre Muskeln bei Übungsdarstellung verständlich unterscheiden.
-- [ ] BODY-07 Auswahl mit passenden Übungen und Plan-/Gym-Filtern verbinden. Keine rein dekorative Figur, deren Antippen die tatsächliche Auswahl unverändert lässt.
-- [ ] BODY-08 Eigene skalierbare Grafik mit getrennten antippbaren Bereichen verwenden; keine unscharfe Kopie des beigefügten Werbescreenshots. Anatomische Zuordnung prüfen.
-- [ ] BODY-09 Ausreichende Trefferflächen und beschriftete Listenalternative für kleine Bereiche, VoiceOver, große Schrift und reduzierte Bewegung vorsehen.
+- [x] BODY-01 Bei der Muskelgruppenauswahl eine hochwertige Körperfigur mit Vorder- und Rückansicht anzeigen; beide Ansichten ohne umständliche Navigation erreichbar.
+- [x] BODY-02 Muskelbereich direkt antippen oder über die beschriftete Auswahlliste wählen; Figur und Liste bleiben in beide Richtungen synchron.
+- [x] BODY-03 Gewählte Muskelbereiche passend zur FYRUP-Farbwelt hervorheben, mit kurzem Aufleuchten/dezentem Übergang. Erneutes Antippen entfernt die Auswahl.
+- [x] BODY-04 Mehrfachauswahl ermöglichen; Auswahlzustand auch mit Text/Markierung vermitteln, nicht ausschließlich durch Farbe.
+- [x] BODY-05 Körpermitte, Oberkörper, Unterkörper und Ganzkörper als verständliche Gruppenauswahl abbilden; Zuordnung zu den vorhandenen einzelnen Muskelgruppen konsistent halten.
+- [x] BODY-06 Alle vorhandenen Muskelgruppen korrekt abdecken, einschließlich kleinerer Bereiche wie Unterarme und Waden; primäre/sekundäre Muskeln bei Übungsdarstellung verständlich unterscheiden.
+- [x] BODY-07 Auswahl mit passenden Übungen und Plan-/Gym-Filtern verbinden. Keine rein dekorative Figur, deren Antippen die tatsächliche Auswahl unverändert lässt.
+- [x] BODY-08 Eigene skalierbare Grafik mit getrennten antippbaren Bereichen verwenden; keine unscharfe Kopie des beigefügten Werbescreenshots. Anatomische Zuordnung prüfen.
+- [x] BODY-09 Ausreichende Trefferflächen und beschriftete Listenalternative für kleine Bereiche, VoiceOver, große Schrift und reduzierte Bewegung vorsehen.
 
 ## Einheitliche moderne Bildsprache
 
