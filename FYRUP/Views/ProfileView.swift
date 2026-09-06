@@ -288,7 +288,8 @@ struct SupportView: View {
                 }.fyCard()
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("KUNDENSERVICE").sectionTitle()
+                    Text("KUNDENSERVICE")
+                        .font(.caption.weight(.black)).foregroundStyle(FYColor.muted).padding(.top, 10)
                     Text(FyrupSupportContact.email).font(.body.weight(.semibold)).textSelection(.enabled)
                         .accessibilityIdentifier("support-email-address")
                     Button {
@@ -328,7 +329,8 @@ struct AboutFyrupView: View {
                         .accessibilityIdentifier("about-version")
                 }.frame(maxWidth: .infinity).fyCard()
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("ÜBER FYRUP").sectionTitle()
+                    Text("ÜBER FYRUP")
+                        .font(.caption.weight(.black)).foregroundStyle(FYColor.muted).padding(.top, 10)
                     Text("FYRUP verbindet deine Aktivitäten, Sessions, Workout-Pläne und deine Crew an einem Ort.")
                         .font(.subheadline).foregroundStyle(FYColor.muted)
                     NavigationLink { SupportView() } label: {
