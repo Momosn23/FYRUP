@@ -2,6 +2,8 @@
 
 Siebter Prüflauf: `e317917` wurde in [Codemagic 45](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9cd7873cf4759eab7f4c28) vollständig gebaut. **459 von 459 Einzeltests und 33 von 33 Bedienabläufen bestanden; `TEST SUCCEEDED`.** Darin enthalten sind unter anderem die korrigierte Einrichtung mit verpflichtenden Körperdaten, Muskel-/Übungsfilter, Wochenrhythmus, „Deine Streak“, Supplemente, Health-Einrichtung, Satzpausen/Intervalle, Workout-Entwürfe, Satzdaten, Blind Workout und Call My Shot. Der einmalig gestartete [signierte TestFlight-Folgelauf 46](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9cdff81f365de10aeeec57) bestand dieselben **459 Einzeltests und 33 Bedienabläufe erneut ohne Fehler**, erzeugte die signierte IPA und lud FYRUP `1.0.0` / Build `11` am 06.09.2026 um 06:11 CEST ohne Uploadfehler zu Apple. Apple-Verarbeitung, Testergruppenzuordnung und echte iPhone-Abnahme sind noch nicht bestätigt.
 
+Frische lokale Backend-Gesamtprüfung am 06.09.2026: Alle zehn vorhandenen Prüfprogramme endeten mit Exitcode 0. Sie decken die atomaren Migrationen 001–015, Onboarding, Einstellungen, Pläne/Katalog/Satzdaten, Schritte, Wochenziel und Deine Streak, Blind Workout, Call My Shot, Supplemente sowie Zugriffsschutz und Rücksetzpfade ab. Der separate Katalogabgleich bestätigte 122 stabile Übungen und 127 geforderte Muskelzuordnungen. Diese isolierten PostgreSQL-Nachweise ersetzen weder den produktiven Supabase-Abgleich noch echte Parallelität, Pushzustellung oder iPhone-Tests.
+
 Sechster Korrekturlauf: `9b2c943` wurde in [Codemagic 44](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c8c75fac9a246bedab98f) vollständig gebaut. **458 von 459 Einzeltests und 32 von 33 Bedienabläufen bestanden.** Die vorher verdeckten Satzpausen-/Intervallaktionen und der neue Leeren-Weg für den Session-Ort sind damit nativ erreichbar. Die zwei verbliebenen roten Prüfungen sind als Testfehler eingegrenzt: ein Test erzeugte kurz vor Mitternacht absichtlich erst morgen liegende Sessions und erwartete sie trotzdem in „Heute“; der Onboarding-Test ließ die inzwischen verpflichtenden Körperdaten für die persönliche Verbrauchsschätzung leer. Beide Testdatenwege sind im Folgequellstand korrigiert; Produktregeln werden dafür nicht aufgeweicht. Ein grüner Folgelauf, visuelle Abnahme und TestFlight stehen noch aus.
 
 ## Danach lokal ergänzt: Kalorienschätzung und externe Einladungswege
@@ -160,7 +162,7 @@ Verbindliche Regeln bei Überschneidungen:
 
 ### Bibliothek – T §§5–19, 26, 46
 
-- [ ] LIB-01 Jede verlangte Übung anhand der [vollständigen Katalog-Checkliste](EXERCISE_CATALOG_CHECKLIST.md) prüfen; eine Gesamtanzahl allein genügt nicht.
+- [x] LIB-01 Jede verlangte Übung anhand der [vollständigen Katalog-Checkliste](EXERCISE_CATALOG_CHECKLIST.md) prüfen; eine Gesamtanzahl allein genügt nicht. *(122 stabile Einträge, 127 geforderte Zuordnungen, App-/SQL-Gleichheit, native Einzelprüfung und Bibliothek-Bedienablauf bestätigt.)*
 - [ ] LIB-02 Stabile IDs, Name, Haupt-/Nebenmuskeln, Equipment, Übungstyp, Standard/Custom, Ersteller vollständig; App- und Backend-Katalog identisch.
 - [ ] LIB-03 Filter: Brust, Rücken, Schulter, Bizeps, Trizeps, Quadrizeps, Beinbeuger, Gesäß, Waden, Adduktoren, Bauch/Core, Trapez, Unterarme, Ganzkörper, Sonstiges.
 - [ ] LIB-04 Standard- und eigene Übungen gemeinsam suchen; Suchtext und Muskelgruppenfilter kombinieren; auch Nebenmuskel-Zuordnungen auffindbar.
