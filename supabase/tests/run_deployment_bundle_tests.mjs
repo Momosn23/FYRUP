@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles, assemblePersonalTraining, personalTrainingFile, assembleSupplements, supplementsFile, assembleProfilePrivacy, profilePrivacyFile, assembleActivityPlace, activityPlaceFile } from '../../scripts/deployment-bundle.mjs';
+import { assembleDeployment, loadDeploymentSources, assembleFollowup, followupFiles, assemblePersonalTraining, personalTrainingFile, assembleSupplements, supplementsFile, assembleProfilePrivacy, profilePrivacyFile, assembleActivityPlace, activityPlaceFile, assembleExercisePerformance, exercisePerformanceFile } from '../../scripts/deployment-bundle.mjs';
 const require = createRequire(resolve('.qa/workout-db/package.json'));
 const { PGlite } = require('@electric-sql/pglite');
 const { citext } = require('@electric-sql/pglite/contrib/citext');
@@ -112,5 +112,58 @@ try {
   await assert.rejects(db.exec(assembleActivityPlace(activityPlace)));
   await db.exec('rollback;');
   assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 15);
-  console.log('PASS: atomic base/followup/personal/supplement/profile-privacy/activity-place deployments; failure rollbacks including existing routines and columns; fifteen exact history entries; private recovery snapshots; protected receipts/CAS; duplicate-deployment refusal. No hosted database contacted.');
+  const performance = await readFile(resolve('supabase/migrations', exercisePerformanceFile), 'utf8');
+  await assert.rejects(db.exec(assembleExercisePerformance(performance.replace(/commit;\s*$/, 'select missing_deliberate_validation_failure();\ncommit;'))));
+  await db.exec('rollback;');
+  assert.equal((await db.query("select to_regprocedure('public.get_exercise_performance(uuid[])') is not null as value")).rows[0].value, false);
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 15);
+  await db.exec(assembleExercisePerformance(performance));
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 16);
+  assert.equal((await db.query("select has_function_privilege('authenticated','public.get_exercise_performance(uuid[])','EXECUTE') as value")).rows[0].value, true);
+  assert.equal((await db.query("select has_function_privilege('anon','public.get_exercise_performance(uuid[])','EXECUTE') as value")).rows[0].value, false);
+  const performanceUser = '22222222-2222-4222-8222-222222222222';
+  const otherPerformanceUser = '33333333-3333-4333-8333-333333333333';
+  const performanceExercise = '44444444-4444-4444-8444-444444444444';
+  await db.exec(`
+    insert into auth.users(id) values ('${performanceUser}'),('${otherPerformanceUser}');
+    insert into public.profiles(id,username,display_name) values
+      ('${performanceUser}','performance_owner','Performance Owner'),
+      ('${otherPerformanceUser}','performance_other','Performance Other');
+    insert into public.exercises(id,name,primary_muscle_group,equipment,exercise_type,is_custom,created_by)
+      values ('${performanceExercise}','Private Press','chest','barbell','strength',true,'${performanceUser}');
+    insert into public.activities(id,user_id,sport,status,started_at,ended_at) values
+      ('50000000-0000-4000-8000-000000000001','${performanceUser}','gym','completed','2026-09-01T09:00:00Z','2026-09-01T10:00:00Z'),
+      ('50000000-0000-4000-8000-000000000002','${performanceUser}','gym','completed','2026-09-02T09:00:00Z','2026-09-02T10:00:00Z'),
+      ('50000000-0000-4000-8000-000000000003','${performanceUser}','gym','live','2026-09-03T09:00:00Z',null),
+      ('50000000-0000-4000-8000-000000000004','${otherPerformanceUser}','gym','completed','2026-09-04T09:00:00Z','2026-09-04T10:00:00Z');
+    insert into public.workout_records(activity_id,owner_id,plan_name) values
+      ('50000000-0000-4000-8000-000000000001','${performanceUser}','First'),
+      ('50000000-0000-4000-8000-000000000002','${performanceUser}','Latest'),
+      ('50000000-0000-4000-8000-000000000003','${performanceUser}','Live'),
+      ('50000000-0000-4000-8000-000000000004','${otherPerformanceUser}','Foreign');
+    insert into public.workout_exercise_logs(id,activity_id,exercise_id,exercise_snapshot,sort_order,target_sets,target_reps_min,target_reps_max) values
+      ('60000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000001','${performanceExercise}','{}',0,2,1,20),
+      ('60000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000002','${performanceExercise}','{}',0,2,1,20),
+      ('60000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000003','${performanceExercise}','{}',0,1,1,20),
+      ('60000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000004','${performanceExercise}','{}',0,1,1,20);
+    insert into public.workout_set_logs(workout_exercise_log_id,set_number,weight,reps,completed) values
+      ('60000000-0000-4000-8000-000000000001',1,100,5,true),
+      ('60000000-0000-4000-8000-000000000001',2,150,12,false),
+      ('60000000-0000-4000-8000-000000000002',1,80,10,true),
+      ('60000000-0000-4000-8000-000000000002',2,85,8,true),
+      ('60000000-0000-4000-8000-000000000003',1,200,20,true),
+      ('60000000-0000-4000-8000-000000000004',1,300,30,true);
+    select set_config('request.jwt.claim.sub','${performanceUser}',false);
+  `);
+  const performanceResult = (await db.query(`select public.get_exercise_performance(array['${performanceExercise}'::uuid]) as value`)).rows[0].value[0];
+  assert.equal(Number(performanceResult.last_weight), 85, 'Latest completed workout wins, using its strongest completed set');
+  assert.equal(performanceResult.last_reps, 8);
+  assert.equal(Number(performanceResult.best_weight), 100, 'Personal best ignores unfinished, live and foreign sets');
+  assert.equal(performanceResult.best_reps, 5);
+  await assert.rejects(db.query(`select public.get_exercise_performance(array[]::uuid[])`));
+  await assert.rejects(db.query(`select public.get_exercise_performance(array_fill('${performanceExercise}'::uuid,array[41]))`));
+  await assert.rejects(db.exec(assembleExercisePerformance(performance)));
+  await db.exec('rollback;');
+  assert.equal((await db.query('select count(*)::integer as count from supabase_migrations.schema_migrations')).rows[0].count, 16);
+  console.log('PASS: atomic base/followup/personal/supplement/profile-privacy/activity-place/exercise-performance deployments; failure rollbacks including existing routines and columns; sixteen exact history entries; private recovery snapshots; protected receipts/CAS; duplicate-deployment refusal. No hosted database contacted.');
 } finally { await db.close(); }

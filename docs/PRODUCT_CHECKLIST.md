@@ -17,7 +17,8 @@ Sechster Korrekturlauf: `9b2c943` wurde in [Codemagic 44](https://codemagic.io/a
 - [x] Kein erfundener öffentlicher Store-/TestFlight-Link: Die UI kennzeichnet den aktuellen privaten iPhone-Test ausdrücklich.
 - [x] Transparente Zielhilfe im Quellstand ergänzt: drei Niveaus, Vorschau, manuell änderbare Übernahme, rein lokale Berechnung und keine Addition überlappender Schritt-/Wochenplanwerte. Fünf Rechentests und ein Bedienablauf vorbereitet.
 - [ ] Externer KI-Zielvorschlag bleibt bis zu Anbieterwahl, Einwilligung, serverseitigem Schlüssel, fachlicher Eingrenzung und Kostenlimit offen; die lokale Zielhilfe wird nicht fälschlich als externe KI ausgegeben.
-- [ ] Telefonnummern/Kontaktabgleich bleiben bis zu Verifizierung, Backend-Datenschutzregeln und Missbrauchsschutz offen.
+- [ ] Freunde aus den iPhone-Kontakten finden: Telefonnummer freiwillig verifizieren, Auffindbarkeit gesondert freigeben, Kontakte erst nach nativer Zustimmung datensparsam abgleichen und niemals das Adressbuch ungefragt hochladen. Backend-Datenschutzregeln, Blockierung und Missbrauchsschutz sind vor Freigabe Pflicht. Details: [Freunde einladen und über Kontakte finden](FRIEND_INVITES_CHECKLIST.md).
+- [x] Die bisher wirkungslosen Einstellungszeilen „Freunde“, „Hilfe & Support“ und „Über FYRUP“ haben im lokalen Quellstand echte Ziele; Support bereitet eine Nachricht an `Kundenservice@objektsignal.com` vor und versendet nie automatisch. Native Bedienprüfung und TestFlight-Abnahme sind noch offen.
 - [ ] Alle neuen Swift-/UI-Tests und die tatsächlichen Teilen-/Deep-Link-Abläufe nativ auf iOS prüfen.
 
 ## Neuester lokaler Block: Kartenort und Ankunftserinnerung (noch nicht ausgeliefert)
@@ -98,6 +99,8 @@ Neueste Bildreferenz: [moderne Bildsprache auf allen Seiten und interaktive Kör
 `[ ]` = noch nicht vollständig abgenommen. `[x]` = umgesetzt und durch einen konkreten Prüfnachweis belegt. Vorbereiteter Code, ein grüner Build oder ein einzelner Screenshot bedeuten jeweils noch keine vollständige Funktionsabnahme.
 
 Nachweise werden getrennt geführt: **Code integriert → Backend geprüft/ausgerollt → automatisierte Tests → manuell bedient/visuell verglichen → echtes iPhone/TestFlight**. Nicht zutreffende Schritte begründen. Nicht ausgeführte oder fehlgeschlagene Tests bleiben offen.
+
+Gezielte Analyse der wiederkehrenden TestFlight-Verbindungsfehler samt Ursachen, Quellkorrekturen, sicherem Logging und ehrlicher Gerätetest-Matrix: [TESTFLIGHT_CONNECTIVITY_AUDIT_2026-09-06.md](TESTFLIGHT_CONNECTIVITY_AUDIT_2026-09-06.md). Native Release-Prüfung und echte iPhone-Netzwechsel bleiben offen.
 
 | Bereich | Belegter Stand | Noch nicht abgenommen |
 | --- | --- | --- |
@@ -202,6 +205,7 @@ Verbindliche Regeln bei Überschneidungen:
 - [ ] TRACK-06 Abschluss mit Dauer, Übungen, optional Sätzen/Trainingspartner; „Fertig“ und „Mit Freunden teilen“ funktionieren.
 - [ ] TRACK-07 Feed nur mit freigegebener Zusammenfassung, nicht automatisch Gewichte/Wiederholungen/komplette Satzprotokolle veröffentlichen.
 - [ ] TRACK-08 Historische Übungsnamen/Zielvorgaben/Satzdaten trotz späterer Änderungen erhalten; Speichern/Retry erzeugt keine Duplikate oder doppelten Wochen-Credits.
+- [ ] TRACK-09 Bei jeder Übung im laufenden Gym-Workout die zuletzt bestätigten eigenen Satzwerte und die persönliche Bestleistung anzeigen: höchstes tatsächlich gespeichertes Gewicht samt Wiederholungen und Datum. Nur abgeschlossene eigene Sätze berücksichtigen, keine Zielwerte oder fremden Daten als Leistung ausgeben; nach einem späteren Workout korrekt aktualisieren.
 
 ## 5. Apple Health und Schritte – H §§1–19
 

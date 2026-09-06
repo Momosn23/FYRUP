@@ -299,6 +299,21 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(app.textFields["set-weight"].waitForExistence(timeout: 4))
         XCTAssertEqual(app.textFields["set-weight"].value as? String, "80")
         XCTAssertEqual(app.textFields["set-reps"].value as? String, "8")
+        tap(app.buttons["Abbrechen"], in: app)
+        tap(app.buttons["complete-workout-exercise-0"], in: app)
+        tap(app.buttons["finish-plan-workout"], in: app)
+        tap(app.sheets.buttons["Workout abschließen"], in: app)
+        XCTAssertTrue(container("workout-completed-summary", in: app).waitForExistence(timeout: 6))
+        tap(app.buttons["finish-workout-summary"], in: app)
+        XCTAssertTrue(app.navigationBars["Workout-Plan"].waitForExistence(timeout: 5))
+        tap(app.buttons["start-workout-plan"], in: app)
+        let performance = container("exercise-performance-10000000-0000-0000-0000-000000000001", in: app)
+        XCTAssertTrue(performance.waitForExistence(timeout: 6))
+        XCTAssertTrue(performance.label.contains("Zuletzt"))
+        XCTAssertTrue(performance.label.contains("80 kg"))
+        XCTAssertTrue(performance.label.contains("8"))
+        XCTAssertTrue(performance.label.contains("Bestwert"))
+        capture("62-exercise-last-and-best")
     }
 
     func testUnconfirmedSetTextSurvivesRealRelaunchAndCanBeExplicitlyDiscarded() {

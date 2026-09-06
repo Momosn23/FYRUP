@@ -257,6 +257,16 @@ struct WorkoutTrackingView: View {
                         Text("Zielgewicht: \(weight.formatted(.number.precision(.fractionLength(0...2)))) kg · keine erfasste Leistung")
                             .font(.caption).foregroundStyle(FYColor.muted)
                     }
+                    if let value = store.workouts.performance[exercise.exercise.id] {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Label("Dein letzter Stand", systemImage: "chart.line.uptrend.xyaxis")
+                                .font(.caption.bold()).foregroundStyle(FYColor.ink)
+                            Text("Zuletzt: \(performanceValue(weight: value.lastWeight, reps: value.lastReps, unit: exercise.exercise.repetitionUnit)) · \(value.lastCompletedAt.formatted(date: .abbreviated, time: .omitted))")
+                            Text("Bestwert: \(performanceValue(weight: value.bestWeight, reps: value.bestReps, unit: exercise.exercise.repetitionUnit))")
+                        }
+                        .font(.caption).foregroundStyle(FYColor.muted).padding(.top, 3)
+                        .accessibilityIdentifier("exercise-performance-\(exercise.exercise.id.uuidString)")
+                    }
                 }
                 Spacer(minLength: 0)
                 if confirmed?.exercises.first(where: { $0.id == exercise.id })?.completed == true {
@@ -292,6 +302,12 @@ struct WorkoutTrackingView: View {
             }.buttonStyle(.plain).foregroundStyle(FYColor.ink).disabled(controlsDisabled)
                 .accessibilityIdentifier("complete-workout-exercise-\(index)")
         }.fyCard().accessibilityElement(children: .contain).accessibilityIdentifier("workout-exercise-\(index)")
+    }
+
+    private func performanceValue(weight: Double?, reps: Int?, unit: String) -> String {
+        let repetitions = reps.map { "\($0) \(unit)" }
+        let load = weight.map { "\($0.formatted(.number.precision(.fractionLength(0...2)))) kg" }
+        return [load, repetitions].compactMap { $0 }.joined(separator: " × ")
     }
 
     private func draftContext(exerciseID: UUID, setID: UUID) -> WorkoutSetDraftContext? {

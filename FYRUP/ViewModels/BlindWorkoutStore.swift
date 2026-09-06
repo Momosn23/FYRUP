@@ -103,7 +103,7 @@ final class BlindWorkoutStore {
             guard isCurrent(request, revision: revision), readVersions[id] == version,
                   selectionID == id, !Task.isCancelled else { return nil }
             forget(id: id)
-            errorMessage = "Dieses Blind Workout ist gerade nicht verfügbar. Prüfe deine Verbindung oder lade es erneut."
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription
             return nil
         }
     }

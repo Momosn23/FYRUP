@@ -165,7 +165,8 @@ final class StepStore {
             if generation == request, privacyGeneration == privacy {
                 // An interrupted response might have reached the server. Its actual state is unknown.
                 sharingEnabled = nil; preference = nil; isSharingPreferenceCurrent = false
-                message = "Die Freigabe wurde nicht bestätigt. Prüfe die Verbindung und versuche es erneut."
+                let reason = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription ?? "Die Daten konnten nicht geladen werden."
+                message = "Die Freigabe wurde nicht bestätigt. \(reason)"
             }
         }
         guard generation == request, privacyGeneration == privacy else { return }

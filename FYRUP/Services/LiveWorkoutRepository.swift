@@ -88,6 +88,15 @@ extension LiveAppRepository {
         try await client.rpc("get_workout_log", body: ["p_activity": activityID.uuidString])
     }
 
+    func exercisePerformance(exerciseIDs: [UUID]) async throws -> [ExercisePerformance] {
+        struct Body: Encodable {
+            let exercises: [UUID]
+            enum CodingKeys: String, CodingKey { case exercises = "p_exercises" }
+        }
+        guard !exerciseIDs.isEmpty else { return [] }
+        return try await client.rpc("get_exercise_performance", body: Body(exercises: Array(Set(exerciseIDs))))
+    }
+
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog {
         if let message = log.validationMessage { throw AppError.validation(message) }
         struct Body: Encodable {

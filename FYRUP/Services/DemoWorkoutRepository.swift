@@ -338,6 +338,39 @@ actor DemoWorkoutStorage {
         return log
     }
 
+    func exercisePerformance(exerciseIDs: [UUID], userID: UUID) throws -> [ExercisePerformance] {
+        try checkLoaded()
+        let requested = Set(exerciseIDs)
+        struct Entry {
+            let exerciseID: UUID
+            let endedAt: Date
+            let weight: Double?
+            let reps: Int?
+        }
+        let entries: [Entry] = state.logs.flatMap { activityID, log in
+            guard let activity = state.activities[activityID], activity.userID == userID,
+                  activity.status == .completed, let endedAt = activity.endedAt else { return [] }
+            return log.exercises.flatMap { exercise -> [Entry] in
+                guard requested.contains(exercise.exercise.id) else { return [] }
+                return exercise.sets.filter { $0.completed && ($0.weight != nil || $0.reps != nil) }
+                    .map { Entry(exerciseID: exercise.exercise.id, endedAt: endedAt, weight: $0.weight, reps: $0.reps) }
+            }
+        }
+        func stronger(_ left: Entry, than right: Entry) -> Bool {
+            if (left.weight ?? -1) != (right.weight ?? -1) { return (left.weight ?? -1) > (right.weight ?? -1) }
+            return (left.reps ?? -1) > (right.reps ?? -1)
+        }
+        return requested.compactMap { id in
+            let own = entries.filter { $0.exerciseID == id }
+            guard let latestDate = own.map(\.endedAt).max(),
+                  let latest = own.filter({ $0.endedAt == latestDate }).sorted(by: stronger).first,
+                  let best = own.sorted(by: stronger).first else { return nil }
+            return ExercisePerformance(exerciseID: id, lastCompletedAt: latest.endedAt, lastWeight: latest.weight,
+                                       lastReps: latest.reps, bestCompletedAt: best.endedAt,
+                                       bestWeight: best.weight, bestReps: best.reps)
+        }
+    }
+
     func saveLog(_ input: WorkoutLog, userID: UUID) throws -> WorkoutLog {
         var saved = try workoutLog(activityID: input.activityID, userID: userID)
         guard let activity = state.activities[input.activityID], [.live, .completed].contains(activity.status) else {
@@ -537,6 +570,9 @@ extension DemoRepository {
     func workoutLog(activityID: UUID) async throws -> WorkoutLog {
         if let blind = try await blindWorkoutLog(activityID: activityID) { return blind }
         return try await workoutStorage.workoutLog(activityID: activityID, userID: meID)
+    }
+    func exercisePerformance(exerciseIDs: [UUID]) async throws -> [ExercisePerformance] {
+        try await workoutStorage.exercisePerformance(exerciseIDs: exerciseIDs, userID: meID)
     }
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog { try await workoutStorage.saveLog(log, userID: meID) }
 }

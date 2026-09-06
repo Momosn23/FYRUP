@@ -148,7 +148,10 @@ final class SupplementStore {
                 }
                 pendingError = saved.status == change.status ? nil : "Der Eintrag wurde zwischenzeitlich auf einem anderen Gerät geändert. Angezeigt wird der aktuelle Stand."
             } catch {
-                if epoch == generation { pendingError = "Lokal vorgemerkt, noch nicht abgeglichen. Bei Verbindung erneut versuchen. Bei einem Konflikt die Vormerkung verwerfen und den aktuellen Stand laden." }
+                if epoch == generation {
+                    let reason = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription ?? "Die Daten konnten nicht geladen werden."
+                    pendingError = "Lokal vorgemerkt, noch nicht abgeglichen. \(reason) Die Vormerkung bleibt für einen sicheren neuen Versuch erhalten."
+                }
                 return
             }
         }

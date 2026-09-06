@@ -278,6 +278,31 @@ final class CriticalFlowsUITests: XCTestCase {
         assertRegistration(in: app)
     }
 
+    func testSettingsDestinationsWork() {
+        let app = launchDemo()
+        app.tabBars.buttons["Profil"].tap()
+        revealAndTap(app.buttons["Einstellungen"], in: app)
+        XCTAssertTrue(app.navigationBars["Einstellungen"].waitForExistence(timeout: 3))
+
+        revealAndTap(app.buttons["settings-about"], in: app)
+        XCTAssertTrue(app.navigationBars["Über FYRUP"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["about-version"].exists)
+        capture("73-about-fyrup")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        revealAndTap(app.buttons["settings-support"], in: app)
+        XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["support-email-address"].label, "Kundenservice@objektsignal.com")
+        XCTAssertTrue(app.buttons["support-compose-email"].exists)
+        capture("74-help-support")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        revealAndTap(app.buttons["settings-friends"], in: app)
+        XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.tabBars.buttons["Freunde"].isSelected)
+        capture("75-settings-friends")
+    }
+
     func testCrewGoalReferenceScreen() {
         let app = launchDemo()
         revealAndTap(app.buttons["crew-goal"], in: app)

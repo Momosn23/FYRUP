@@ -14,3 +14,4 @@ Nutzerergänzung vom 05.09.2026; teilweise im lokalen Quellstand, noch nicht nat
 - [x] INVITE-08 Keine automatischen SMS, WhatsApp-Nachrichten oder Freundesanfragen; Empfänger und Versand wählt der Nutzer. *(Quellstand.)*
 - [ ] INVITE-09 Ablehnung/Widerruf, Nummernnormalisierung, Blockierung, Deep-Link-Login-Fortsetzung und Konto-/Gerätewechsel testen.
 - [ ] INVITE-10 SMS-Versandkonfiguration und tatsächlich nutzbaren Einladungslink prüfen; mögliche externe Freigabe-/Dienstkosten nicht stillschweigend einrichten.
+- [ ] INVITE-11 Auf „Freunde“ einen klaren Einstieg „Aus Kontakten finden“ anbieten. Vor dem iOS-Dialog erklären, warum der Zugriff benötigt wird; Ablehnen, beschränkten Zugriff und späteres Aktivieren unterstützen. Rohkontakte und nicht benötigte Namen niemals an FYRUP übertragen.

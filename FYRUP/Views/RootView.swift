@@ -36,6 +36,9 @@ struct RootView: View {
         .sheet(item: Binding(get: { store.weekly.celebration }, set: { if $0 == nil { store.weekly.dismissCelebration() } })) { celebration in
             FlameCelebrationView(celebration: celebration)
         }
+        .onReceive(NotificationCenter.default.publisher(for: ConnectivityMonitor.didReconnect)) { _ in
+            Task { await store.handleNetworkReturn() }
+        }
         .alert("Hinweis", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }

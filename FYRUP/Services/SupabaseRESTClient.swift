@@ -1,16 +1,21 @@
 import Foundation
+import OSLog
 
 actor SupabaseRESTClient {
     enum Method: String { case get = "GET", post = "POST", patch = "PATCH", delete = "DELETE" }
     private let configuration: AppConfiguration
     private let urlSession: URLSession
     private let sessionStore: SecureSessionStore
+    private let connectivity: ConnectivityMonitor
+    private let logger = Logger(subsystem: "app.fyrup.ios", category: "Backend")
     private var session: AuthSession?
+    private var refreshTask: Task<AuthSession?, Error>?
 
-    init(configuration: AppConfiguration, urlSession: URLSession = .shared, sessionStore: SecureSessionStore = .init()) {
+    init(configuration: AppConfiguration, urlSession: URLSession = .shared, sessionStore: SecureSessionStore = .init(), connectivity: ConnectivityMonitor = .shared) {
         self.configuration = configuration
         self.urlSession = urlSession
         self.sessionStore = sessionStore
+        self.connectivity = connectivity
         self.session = sessionStore.load()
     }
 
@@ -54,14 +59,7 @@ actor SupabaseRESTClient {
     }
 
     func restore() async throws -> AuthSession? {
-        guard let existing = session else { return nil }
-        if existing.expiresAt > Date().addingTimeInterval(60) { return existing }
-        let response: AuthResponse = try await authRequest(
-            path: "/auth/v1/token",
-            query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
-            body: ["refresh_token": existing.refreshToken]
-        )
-        return try persist(response)
+        try await refreshSession(force: false)
     }
 
     func select<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> T {
@@ -77,16 +75,16 @@ actor SupabaseRESTClient {
     }
 
     func invokeFunction<Result: Decodable>(_ name: String) async throws -> Result {
-        guard let token = session?.accessToken else { throw AppError.authentication }
+        let token = try await validAccessToken()
         var request = URLRequest(url: configuration.supabaseURL.appending(path: "functions/v1/\(name)"))
         request.httpMethod = "POST"
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        return try await execute(request)
+        return try await executeAuthorized(request, operation: "function.\(name)")
     }
 
     func uploadObject(bucket: String, path: String, data: Data, contentType: String) async throws {
-        guard let token = session?.accessToken else { throw AppError.authentication }
+        let token = try await validAccessToken()
         var request = URLRequest(url: storageURL(parts: ["object", bucket] + path.split(separator: "/").map(String.init)))
         request.httpMethod = "POST"
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
@@ -94,18 +92,15 @@ actor SupabaseRESTClient {
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         request.setValue("true", forHTTPHeaderField: "x-upsert")
         request.httpBody = data
-        let (_, response) = try await urlSession.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw AppError.server }
+        let _: EmptyResponse = try await executeAuthorized(request, operation: "storage.upload")
     }
 
     func downloadObject(bucket: String, path: String) async throws -> Data {
-        guard let token = session?.accessToken else { throw AppError.authentication }
+        let token = try await validAccessToken()
         var request = URLRequest(url: storageURL(parts: ["object", "authenticated", bucket] + path.split(separator: "/").map(String.init)))
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await urlSession.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw AppError.server }
-        return data
+        return try await executeDataAuthorized(request, operation: "storage.download")
     }
 
     private func storageURL(parts: [String]) -> URL {
@@ -115,7 +110,7 @@ actor SupabaseRESTClient {
     }
 
     private func databaseRequest<Body: Encodable, Result: Decodable>(path: String, method: Method, query: [URLQueryItem], body: Body?) async throws -> Result {
-        guard let token = session?.accessToken else { throw AppError.authentication }
+        let token = try await validAccessToken()
         var components = URLComponents(url: configuration.supabaseURL.appending(path: "rest/v1/\(path)"), resolvingAgainstBaseURL: false)!
         components.queryItems = query.isEmpty ? nil : query
         var request = URLRequest(url: components.url!)
@@ -125,7 +120,7 @@ actor SupabaseRESTClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("return=representation", forHTTPHeaderField: "Prefer")
         if let body { request.httpBody = try JSONEncoder.supabase.encode(body) }
-        return try await execute(request)
+        return try await executeAuthorized(request, operation: "database.\(path)", retryTransient: method == .get)
     }
 
     private func authRequest<Result: Decodable, Body: Encodable>(
@@ -143,7 +138,7 @@ actor SupabaseRESTClient {
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = data
-        return try await execute(request)
+        return try await execute(request, operation: "auth.\(path)")
     }
 
     static func requestURL(baseURL: URL, path: String, query: [URLQueryItem]) -> URL {
@@ -161,29 +156,150 @@ actor SupabaseRESTClient {
         request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         if let body { request.httpBody = try JSONEncoder.supabase.encode(body) }
-        let (data, response) = try await urlSession.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw AppError.server }
-        return data
+        return try await executeData(request, operation: "auth.logout")
     }
 
-    private func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
+    private func validAccessToken() async throws -> String {
+        guard let restored = try await refreshSession(force: false) else { throw AppError.authentication }
+        return restored.accessToken
+    }
+
+    private func refreshSession(force: Bool) async throws -> AuthSession? {
+        guard let existing = session else { return nil }
+        if !force && existing.expiresAt > Date().addingTimeInterval(60) { return existing }
+        if let refreshTask { return try await refreshTask.value }
+        logger.info("Auth refresh started; auth=present network=\(self.connectivity.logLabel, privacy: .public)")
+        let task = Task { try await self.performSessionRefresh(refreshToken: existing.refreshToken) }
+        refreshTask = task
         do {
-            let (data, response) = try await urlSession.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw AppError.network }
-            guard 200..<300 ~= http.statusCode else {
-                let backend = try? JSONDecoder().decode(BackendError.self, from: data)
-                throw Self.appError(status: http.statusCode, code: backend?.code, message: backend?.message)
+            let result = try await task.value
+            refreshTask = nil
+            logger.info("Auth refresh succeeded")
+            return result
+        } catch {
+            refreshTask = nil
+            if error as? AppError == .authentication {
+                session = nil
+                sessionStore.clear()
+                logger.error("Auth refresh rejected; local session cleared")
+            } else {
+                logger.error("Auth refresh failed without clearing the local session")
             }
-            if data.isEmpty, T.self == EmptyResponse.self { return EmptyResponse() as! T }
-            return try JSONDecoder.supabase.decode(T.self, from: data)
-        } catch let error as AppError { throw error }
-        catch is URLError { throw AppError.network }
-        catch { throw AppError.server }
+            throw error
+        }
+    }
+
+    private func performSessionRefresh(refreshToken: String) async throws -> AuthSession? {
+        let response: AuthResponse = try await authRequest(
+            path: "/auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
+            body: ["refresh_token": refreshToken]
+        )
+        guard let renewed = try persist(response) else { throw AppError.server }
+        return renewed
+    }
+
+    private func executeAuthorized<T: Decodable>(_ original: URLRequest, operation: String, retryTransient: Bool = false) async throws -> T {
+        do {
+            return try await execute(original, operation: operation, retryTransient: retryTransient)
+        } catch AppError.authentication {
+            guard let renewed = try await sessionAfterUnauthorized(original) else { throw AppError.authentication }
+            var retry = original
+            retry.setValue("Bearer \(renewed.accessToken)", forHTTPHeaderField: "Authorization")
+            logger.info("Retrying request after auth refresh operation=\(operation, privacy: .public)")
+            return try await execute(retry, operation: operation, retryTransient: retryTransient)
+        }
+    }
+
+    private func executeDataAuthorized(_ original: URLRequest, operation: String) async throws -> Data {
+        do { return try await executeData(original, operation: operation) }
+        catch AppError.authentication {
+            guard let renewed = try await sessionAfterUnauthorized(original) else { throw AppError.authentication }
+            var retry = original
+            retry.setValue("Bearer \(renewed.accessToken)", forHTTPHeaderField: "Authorization")
+            logger.info("Retrying data request after auth refresh operation=\(operation, privacy: .public)")
+            return try await executeData(retry, operation: operation)
+        }
+    }
+
+    private func sessionAfterUnauthorized(_ request: URLRequest) async throws -> AuthSession? {
+        let rejected = request.value(forHTTPHeaderField: "Authorization")?.replacingOccurrences(of: "Bearer ", with: "")
+        // Another in-flight request may already have rotated the token while this
+        // response was travelling. Reuse that result instead of rotating twice.
+        if let current = session, rejected != current.accessToken { return current }
+        return try await refreshSession(force: true)
+    }
+
+    private func execute<T: Decodable>(_ request: URLRequest, operation: String, retryTransient: Bool = false) async throws -> T {
+        let data = try await executeData(request, operation: operation, retryTransient: retryTransient)
+        if data.isEmpty, T.self == EmptyResponse.self { return EmptyResponse() as! T }
+        do { return try JSONDecoder.supabase.decode(T.self, from: data) }
+        catch {
+            logger.error("Response decoding failed operation=\(operation, privacy: .public)")
+            throw AppError.server
+        }
+    }
+
+    private func executeData(_ request: URLRequest, operation: String, retryTransient: Bool = false) async throws -> Data {
+        let requestID = String(UUID().uuidString.prefix(8))
+        let maximumAttempts = retryTransient ? 3 : 1
+        for attempt in 1...maximumAttempts {
+            logger.info("Request started id=\(requestID, privacy: .public) operation=\(operation, privacy: .public) method=\(request.httpMethod ?? "GET", privacy: .public) attempt=\(attempt, privacy: .public) auth=\(request.value(forHTTPHeaderField: "Authorization") == nil ? "none" : "present", privacy: .public) network=\(self.connectivity.logLabel, privacy: .public)")
+            do {
+                let (data, response) = try await urlSession.data(for: request)
+                guard let http = response as? HTTPURLResponse else { throw AppError.serverUnavailable }
+                guard 200..<300 ~= http.statusCode else {
+                    let backend = try? JSONDecoder().decode(BackendError.self, from: data)
+                    let mapped = Self.appError(status: http.statusCode, code: backend?.code, message: backend?.message)
+                    logger.error("Request failed id=\(requestID, privacy: .public) operation=\(operation, privacy: .public) http=\(http.statusCode, privacy: .public) code=\(backend?.code ?? "none", privacy: .public) network=\(self.connectivity.logLabel, privacy: .public)")
+                    if attempt < maximumAttempts, mapped == .serverUnavailable {
+                        logger.info("Transient retry scheduled id=\(requestID, privacy: .public)")
+                        try await Task.sleep(for: .milliseconds(250 * attempt))
+                        continue
+                    }
+                    throw mapped
+                }
+                logger.info("Request succeeded id=\(requestID, privacy: .public) operation=\(operation, privacy: .public) http=\(http.statusCode, privacy: .public)")
+                return data
+            } catch let error as AppError {
+                throw error
+            } catch let error as URLError {
+                let mapped = Self.appError(urlError: error, networkAvailable: connectivity.isAvailable)
+                logger.error("Request transport failure id=\(requestID, privacy: .public) operation=\(operation, privacy: .public) urlCode=\(error.errorCode, privacy: .public) network=\(self.connectivity.logLabel, privacy: .public)")
+                if attempt < maximumAttempts {
+                    logger.info("Transport retry scheduled id=\(requestID, privacy: .public)")
+                    try await Task.sleep(for: .milliseconds(250 * attempt))
+                    continue
+                }
+                throw mapped
+            } catch {
+                logger.error("Request failed without transport or backend code id=\(requestID, privacy: .public) operation=\(operation, privacy: .public)")
+                throw AppError.server
+            }
+        }
+        throw AppError.serverUnavailable
+    }
+
+    static func appError(urlError: URLError, networkAvailable: Bool?) -> AppError {
+        if networkAvailable == false { return .offline }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+            return .offline
+        case .timedOut, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+             .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
+             .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid:
+            return .serverUnavailable
+        default:
+            return .serverUnavailable
+        }
     }
 
     static func appError(status: Int, code: String?, message: String?) -> AppError {
         let text = [code, message].compactMap { $0 }.joined(separator: " ").lowercased()
         if status == 401 { return .authentication }
+        if status == 403 { return .accessDenied }
+        if status == 408 || status == 429 || (500...599).contains(status) { return .serverUnavailable }
+        if text.contains("refresh_token") || text.contains("refresh token") || text.contains("invalid_grant") { return .authentication }
         if text.contains("invalid login credentials") { return .conflict("E-Mail oder Passwort ist falsch.") }
         if text.contains("email not confirmed") { return .conflict("Bitte bestätige zuerst deine E-Mail-Adresse.") }
         if text.contains("user already registered") { return .conflict("Für diese E-Mail gibt es bereits ein Konto.") }

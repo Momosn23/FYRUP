@@ -40,6 +40,19 @@ final class AppConfigurationTests: XCTestCase {
         ]))
     }
 
+    func testTemplateResourceDoesNotMaskValidBuildSettings() throws {
+        let configuration = try XCTUnwrap(AppConfiguration.load(values: [
+            "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
+            "SUPABASE_PUBLISHABLE_KEY": "YOUR_PUBLISHABLE_KEY"
+        ], fallbackValues: [
+            "SUPABASE_URL": "https://release.supabase.co",
+            "SUPABASE_PUBLISHABLE_KEY": "release-public-key",
+            "APP_ENVIRONMENT": "production"
+        ]))
+        XCTAssertEqual(configuration.supabaseURL.absoluteString, "https://release.supabase.co")
+        XCTAssertEqual(configuration.environment, "production")
+    }
+
     func testRejectsNonHTTPSBackendURL() {
         XCTAssertNil(AppConfiguration.load(values: [
             "SUPABASE_URL": "http://example.supabase.co",

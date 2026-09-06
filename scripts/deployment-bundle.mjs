@@ -88,6 +88,29 @@ export const personalTrainingFile = '202609050012_personal_training.sql';
 export const supplementsFile = '202609050013_supplement_reminders.sql';
 export const profilePrivacyFile = '202609050014_profile_privacy_preservation.sql';
 export const activityPlaceFile = '202609050015_activity_place.sql';
+export const exercisePerformanceFile = '202609060016_exercise_performance.sql';
+export function assembleExercisePerformance(source) {
+  source = source?.replace(/\r\n/g, '\n').trimEnd();
+  if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid exercise-performance transaction wrapper');
+  const body = source.replace(/^begin;\n/m, '').replace(/\ncommit;$/, '');
+  if (body.includes('$migration_source$')) throw Error('SQL quote delimiter collision');
+  return `begin;
+set local lock_timeout = '4s';
+set local statement_timeout = '60s';
+do $preflight$ begin
+  if not exists(select 1 from supabase_migrations.schema_migrations where version='202609050015')
+    or exists(select 1 from supabase_migrations.schema_migrations where version='202609060016')
+    or to_regprocedure('public.get_exercise_performance(uuid[])') is not null then
+    raise exception 'unexpected exercise performance baseline; inspect before retrying';
+  end if;
+end $preflight$;
+${body}
+insert into supabase_migrations.schema_migrations(version,name,statements)
+values ('202609060016','exercise_performance',array[$migration_source$${body}$migration_source$]);
+notify pgrst, 'reload schema';
+commit;
+`;
+}
 export function assembleActivityPlace(source) {
   source = source?.replace(/\r\n/g, '\n').trimEnd();
   if (!source || !/^begin;$/m.test(source) || !/\ncommit;$/.test(source)) throw Error('Invalid activity-place transaction wrapper');

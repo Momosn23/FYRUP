@@ -8,6 +8,7 @@ final class WorkoutStore {
     var exercises: [GymExercise] = []
     var favorites = Set<UUID>()
     var logs: [UUID: WorkoutLog] = [:]
+    var performance: [UUID: ExercisePerformance] = [:]
     var isLoadingPlans = false
     var isLoadingLibrary = false
     var isBusy = false
@@ -32,7 +33,7 @@ final class WorkoutStore {
         self.userID = userID
         generation = UUID()
         plansRevision = 0; libraryRevision = 0; logRevisions = [:]; errorRevision = 0
-        plans = []; exercises = []; favorites = []; logs = [:]
+        plans = []; exercises = []; favorites = []; logs = [:]; performance = [:]
         revokedFriends = []; accessRevision = 0
         isLoadingPlans = false; isLoadingLibrary = false; isBusy = false; errorMessage = nil
     }
@@ -183,6 +184,12 @@ final class WorkoutStore {
             guard userID != nil, generation == request else { return nil }
             guard logRevisions[activityID, default: 0] == revision else { return logs[activityID] }
             logs[activityID] = log
+            let exerciseIDs = Array(Set(log.exercises.map(\.exercise.id)))
+            if let values = try? await repository.exercisePerformance(exerciseIDs: exerciseIDs),
+               userID != nil, generation == request, logRevisions[activityID, default: 0] == revision {
+                for id in exerciseIDs { performance.removeValue(forKey: id) }
+                for value in values where exerciseIDs.contains(value.exerciseID) { performance[value.exerciseID] = value }
+            }
             return log
         } catch { if generation == request && logRevisions[activityID, default: 0] == revision { present(error) }; return nil }
     }

@@ -157,7 +157,8 @@ final class WeeklyFlameStore {
         } catch {
             if generation == request {
                 isStateConfirmed = false
-                present("Dein Wochenziel wurde nicht bestätigt. Deine Auswahl bleibt erhalten. Prüfe die Verbindung und versuche es erneut.")
+                let reason = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription ?? "Die Daten konnten nicht geladen werden."
+                present("Dein Wochenziel wurde nicht bestätigt. Deine Auswahl bleibt erhalten. \(reason)")
             }
             return false
         }

@@ -141,6 +141,53 @@ final class WorkoutRepositoryTests: XCTestCase {
         XCTAssertTrue(recent.contains { $0.id == activity.id && $0.status == .completed })
     }
 
+    func testExercisePerformanceSeparatesLatestWorkoutFromPersonalBest() async throws {
+        let repository = DemoRepository(workoutStorage: DemoWorkoutStorage(library: library))
+        let plan = try await makePlan(in: repository)
+        let exerciseID = try XCTUnwrap(plan.exercises.first?.exercise.id)
+
+        func finish(weight: Double, reps: Int) async throws {
+            let activity = try await repository.startWorkout(planID: plan.id, linkedActivityID: nil, sessionID: nil)
+            var log = try await repository.workoutLog(activityID: activity.id)
+            log.exercises[0].sets[0].weight = weight
+            log.exercises[0].sets[0].reps = reps
+            log.exercises[0].sets[0].completed = true
+            log.exercises[0].completed = true
+            _ = try await repository.saveWorkoutLog(log)
+            _ = try await repository.completeActivity(id: activity.id, distanceMeters: nil)
+        }
+
+        try await finish(weight: 100, reps: 5)
+        try await finish(weight: 85, reps: 8)
+        let values = try await repository.exercisePerformance(exerciseIDs: [exerciseID])
+        let value = try XCTUnwrap(values.first)
+        XCTAssertEqual(value.lastWeight, 85)
+        XCTAssertEqual(value.lastReps, 8)
+        XCTAssertEqual(value.bestWeight, 100)
+        XCTAssertEqual(value.bestReps, 5)
+
+        let live = try await repository.startWorkout(planID: plan.id, linkedActivityID: nil, sessionID: nil)
+        var liveLog = try await repository.workoutLog(activityID: live.id)
+        liveLog.exercises[0].sets[0].weight = 150
+        liveLog.exercises[0].sets[0].reps = 10
+        liveLog.exercises[0].sets[0].completed = true
+        _ = try await repository.saveWorkoutLog(liveLog)
+        let whileLive = try XCTUnwrap(try await repository.exercisePerformance(exerciseIDs: [exerciseID]).first)
+        XCTAssertEqual(whileLive.lastWeight, 85)
+        XCTAssertEqual(whileLive.bestWeight, 100)
+    }
+
+    func testExercisePerformanceDecodesSupabaseDocument() throws {
+        let id = UUID()
+        let data = Data("""
+        [{"exercise_id":"\(id.uuidString)","last_completed_at":"2026-09-05T10:00:00Z","last_weight":85,"last_reps":8,"best_completed_at":"2026-09-01T10:00:00Z","best_weight":100,"best_reps":5}]
+        """.utf8)
+        let value = try XCTUnwrap(try JSONDecoder.supabase.decode([ExercisePerformance].self, from: data).first)
+        XCTAssertEqual(value.exerciseID, id)
+        XCTAssertEqual(value.lastWeight, 85)
+        XCTAssertEqual(value.bestWeight, 100)
+    }
+
     func testSharedCopiesOwnTheirCustomExercisesAndDoNotChangeOriginal() async throws {
         let storage = DemoWorkoutStorage(library: library)
         let momo = DemoRepository(workoutStorage: storage)

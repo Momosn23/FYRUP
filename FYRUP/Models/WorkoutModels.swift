@@ -275,6 +275,22 @@ struct WorkoutLog: Codable, Sendable {
     }
 }
 
+struct ExercisePerformance: Codable, Identifiable, Hashable, Sendable {
+    let exerciseID: UUID
+    let lastCompletedAt: Date
+    let lastWeight: Double?
+    let lastReps: Int?
+    let bestCompletedAt: Date
+    let bestWeight: Double?
+    let bestReps: Int?
+    var id: UUID { exerciseID }
+    enum CodingKeys: String, CodingKey {
+        case exerciseID = "exercise_id", lastCompletedAt = "last_completed_at"
+        case lastWeight = "last_weight", lastReps = "last_reps"
+        case bestCompletedAt = "best_completed_at", bestWeight = "best_weight", bestReps = "best_reps"
+    }
+}
+
 protocol WorkoutRepository: Sendable {
     func exercises() async throws -> [GymExercise]
     func saveExercise(_ exercise: GymExercise) async throws -> GymExercise
@@ -290,6 +306,7 @@ protocol WorkoutRepository: Sendable {
     func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?, placeName: String?) async throws -> Activity
     func planWorkout(planID: UUID, startsAt: Date, duration: Int, note: String?, placeName: String?, friendsCanJoin: Bool, friendIDs: [UUID]) async throws -> PlannedSession
     func workoutLog(activityID: UUID) async throws -> WorkoutLog
+    func exercisePerformance(exerciseIDs: [UUID]) async throws -> [ExercisePerformance]
     func saveWorkoutLog(_ log: WorkoutLog) async throws -> WorkoutLog
 }
 
@@ -297,4 +314,5 @@ extension WorkoutRepository {
     func startWorkout(planID: UUID, linkedActivityID: UUID?, sessionID: UUID?) async throws -> Activity {
         try await startWorkout(planID: planID, linkedActivityID: linkedActivityID, sessionID: sessionID, placeName: nil)
     }
+    func exercisePerformance(exerciseIDs: [UUID]) async throws -> [ExercisePerformance] { [] }
 }

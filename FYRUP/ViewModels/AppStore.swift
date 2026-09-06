@@ -3,10 +3,12 @@ import CryptoKit
 import SwiftUI
 import UIKit
 import UserNotifications
+import OSLog
 
 @MainActor
 @Observable
 final class AppStore {
+    private let connectionLogger = Logger(subsystem: "app.fyrup.ios", category: "Reconnect")
     enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, personalSetup, onboardingComplete, main }
     var route: Route = .loading {
         didSet { notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID) }
@@ -18,6 +20,7 @@ final class AppStore {
     private(set) var revokedFriendIDs = Set<UUID>()
     private(set) var friendAccessRevision = 0
     private var feedRequestID: UUID?
+    private var reconnectRefreshRequested = false
     var friendRequests: [Profile] = []
     var notifications: [AppNotification] = []
     var notificationPreferences: NotificationPreferences? { notificationSettings.confirmedValue }
@@ -45,6 +48,7 @@ final class AppStore {
     private(set) var session: AuthSession? {
         didSet {
             accountGeneration = UUID(); isRefreshing = false
+            reconnectRefreshRequested = false
             isActivityCurrent = false
             currentDeviceToken = nil
             notificationSettings.activate(userID: session?.userID)
@@ -141,6 +145,7 @@ final class AppStore {
 
     func bootstrap() async {
         if repository is DemoRepositoryPlaceholder { route = .configuration; return }
+        errorMessage = nil
         do {
             guard let restored = try await repository.restoreSession() else { route = .signedOut; return }
             session = restored
@@ -371,20 +376,24 @@ final class AppStore {
         let requestID = UUID()
         feedRequestID = requestID
         isRefreshing = true
-        defer { if generation == accountGeneration, feedRequestID == requestID { isRefreshing = false; feedRequestID = nil } }
+        defer {
+            if generation == accountGeneration, feedRequestID == requestID {
+                isRefreshing = false; feedRequestID = nil
+                if reconnectRefreshRequested { Task { await self.handleNetworkReturn() } }
+            }
+        }
         do {
             let result = try await repository.today(userID: userID)
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
             async let requests = repository.requests(); async let notes = repository.notifications(); async let invites = repository.invitations(); async let hosted = repository.hostedSessions(); async let groups = repository.trainingGroups(); async let summary = repository.goalSummary(); async let recent = repository.recentActivities(userID: userID)
             async let preferenceRefresh: Void = notificationSettings.refresh()
-            let loadedRequests = (try? await requests) ?? []
-            let loadedNotifications = (try? await notes) ?? []
-            let loadedInvitations = (try? await invites) ?? []
-            let loadedHosted: [HostedSession]?
-            do { loadedHosted = try await hosted } catch { loadedHosted = nil }
-            let loadedGroups = (try? await groups) ?? []
-            let loadedSummary = (try? await summary) ?? .empty
-            let loadedRecent = (try? await recent) ?? []
+            let loadedRequests = try? await requests
+            let loadedNotifications = try? await notes
+            let loadedInvitations = try? await invites
+            let loadedHosted = try? await hosted
+            let loadedGroups = try? await groups
+            let loadedSummary = try? await summary
+            let loadedRecent = try? await recent
             await preferenceRefresh
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
             let currentFriends = Set(result.1.map(\.id))
@@ -402,18 +411,26 @@ final class AppStore {
             intervals.confirmActivity(result.0)
             if let clock = rest.clock, result.0?.id != clock.activityID || result.0?.status != .live { rest.stop(activityID: clock.activityID) }
             synchronizeLiveSurface(confirmedEmpty: true)
-            friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) }
-            notifications = loadedNotifications
-            invitations = loadedInvitations.filter { !revokedFriendIDs.contains($0.host.id) }
+            if let loadedRequests { friendRequests = loadedRequests.filter { !revokedFriendIDs.contains($0.id) } }
+            else { friendRequests.removeAll { revokedFriendIDs.contains($0.id) } }
+            if let loadedNotifications { notifications = loadedNotifications }
+            if let loadedInvitations { invitations = loadedInvitations.filter { !revokedFriendIDs.contains($0.host.id) } }
+            else { invitations.removeAll { revokedFriendIDs.contains($0.host.id) } }
             if let loadedHosted {
                 hostedSessions = loadedHosted.map { HostedSession(session: $0.session, participants: $0.participants.filter { !revokedFriendIDs.contains($0.id) }) }
                 arrival.reconcile(hostedSessions.map(\.session))
             }
-            trainingGroups = loadedGroups.filter { !revokedFriendIDs.contains($0.ownerID) }.map { group in
+            if let loadedGroups { trainingGroups = loadedGroups.filter { !revokedFriendIDs.contains($0.ownerID) }.map { group in
                 TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name, members: group.members.filter { !revokedFriendIDs.contains($0.id) })
+            } }
+            else {
+                trainingGroups.removeAll { revokedFriendIDs.contains($0.ownerID) }
+                trainingGroups = trainingGroups.map { group in
+                    TrainingGroup(id: group.id, ownerID: group.ownerID, name: group.name, members: group.members.filter { !revokedFriendIDs.contains($0.id) })
+                }
             }
-            goals = loadedSummary
-            recentActivities = loadedRecent
+            if let loadedSummary { goals = loadedSummary }
+            if let loadedRecent { recentActivities = loadedRecent }
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
         } catch {
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
@@ -496,6 +513,33 @@ final class AppStore {
         }
     }
 
+    func handleNetworkReturn() async {
+        guard route == .main, session?.userID != nil else {
+            if session == nil && route != .configuration { await bootstrap() }
+            return
+        }
+        reconnectRefreshRequested = true
+        guard !isRefreshing else {
+            connectionLogger.info("Reconnect refresh queued behind an active feed request")
+            return
+        }
+        reconnectRefreshRequested = false
+        connectionLogger.info("Reconnect refresh started; auth=present")
+        errorMessage = nil
+        await refresh()
+        await supplements.refresh()
+        await steps.refresh(force: true)
+        await energy.refresh(force: true)
+        await weekly.refresh(force: true)
+        await weekly.refreshFriends()
+        await blind.refreshSummaries()
+        if errorMessage == nil {
+            connectionLogger.info("Reconnect refresh succeeded")
+        } else {
+            connectionLogger.error("Reconnect refresh finished with a classified failure")
+        }
+    }
+
     /// Accept only the recipient's own activity from an acknowledged Blind
     /// mutation. The subsequent feed refresh may fail without undoing its result.
     func acceptConfirmedBlindActivity(_ state: BlindWorkoutState?) {
@@ -532,7 +576,7 @@ final class AppStore {
     func deliverPendingLiveLink() {
         guard route == .main, let link = pendingLiveLink, let owner = session?.userID else { return }
         pendingLiveLink = nil
-        guard isActivityCurrent else { errorMessage = "Der aktuelle Session-Stand ist noch nicht bestätigt. Prüfe deine Verbindung und aktualisiere Heute."; return }
+        guard isActivityCurrent else { errorMessage = "Der aktuelle Session-Stand ist noch nicht bestätigt. Aktualisiere Heute und versuche es erneut."; return }
         guard let activity = myActivity, activity.id == link.sessionID, activity.userID == owner, activity.status == .live else {
             errorMessage = "Diese Session ist nicht mehr LIVE oder gehört nicht zu deinem Konto."; return
         }
@@ -776,7 +820,26 @@ final class AppStore {
         do { try await operation() } catch { present(error) }
     }
 
-    private func present(_ error: Error) { errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription }
+    private func present(_ error: Error) {
+        if error as? AppError == .authentication { clearAfterAuthenticationLoss() }
+        errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription
+    }
+
+    private func clearAfterAuthenticationLoss() {
+        if let id = session?.userID { FeedCache.clear(userID: id) }
+        liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
+        UIApplication.shared.unregisterForRemoteNotifications()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        showsLiveSession = false; pendingLiveLink = nil; pendingRestReminder = nil
+        pendingArrivalReminder = nil; pendingProfileLink = nil; arrivalDestination = nil; sharedProfileDestination = nil
+        arrival.clearCurrentAccount(); workouts.activate(userID: nil)
+        workoutDrafts.clearCurrentAccount(); trackingDrafts.clearCurrentAccount()
+        steps.reset(); weekly.reset(); blind.reset(); shot.reset(); supplements.activate(userID: nil)
+        session = nil; profile = nil; myActivity = nil; crew = []; recentActivities = []
+        invitations = []; hostedSessions = []; notifications = []; trainingGroups = []; avatarCache = [:]
+        goals = .empty; friendRequests = []; userSearchResults = []; revokedFriendIDs = []
+        friendAccessRevision += 1; feedRequestID = nil; route = .signedOut
+    }
     private static func sha256(_ value: String) -> String { SHA256.hash(data: Data(value.utf8)).compactMap { String(format: "%02x", $0) }.joined() }
     private static func randomNonce() -> String { String((0..<32).compactMap { _ in "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._".randomElement() }) }
 }

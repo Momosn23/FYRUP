@@ -44,4 +44,22 @@ final class SupabaseRESTClientTests: XCTestCase {
         XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "weekly_goal_already_reached"), .conflict("Du hast dein Wochenziel bereits erreicht. Ein neuer Call ist nächste Woche möglich."))
         XCTAssertTrue(SupabaseRESTClient.appError(status: 403, code: "42501", message: "permission denied").isAccessDenied)
     }
+
+    func testNetworkAuthServerAndPermissionFailuresStayDistinct() {
+        XCTAssertEqual(SupabaseRESTClient.appError(urlError: URLError(.notConnectedToInternet), networkAvailable: false), .offline)
+        XCTAssertEqual(SupabaseRESTClient.appError(urlError: URLError(.timedOut), networkAvailable: true), .serverUnavailable)
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 401, code: nil, message: nil), .authentication)
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "refresh_token_not_found", message: "Invalid Refresh Token"), .authentication)
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 403, code: nil, message: nil), .accessDenied)
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 503, code: nil, message: nil), .serverUnavailable)
+        XCTAssertEqual(SupabaseRESTClient.appError(status: 400, code: "P0001", message: "unknown_failure"), .server)
+    }
+
+    func testConnectionMessagesDoNotCallEveryFailureOffline() {
+        XCTAssertTrue(AppError.offline.errorDescription?.contains("Kein Internet") == true)
+        XCTAssertTrue(AppError.serverUnavailable.errorDescription?.contains("Server") == true)
+        XCTAssertTrue(AppError.authentication.errorDescription?.contains("melde dich erneut") == true)
+        XCTAssertTrue(AppError.accessDenied.errorDescription?.contains("keinen Zugriff") == true)
+        XCTAssertTrue(AppError.server.errorDescription?.contains("Daten konnten nicht geladen") == true)
+    }
 }

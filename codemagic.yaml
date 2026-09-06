@@ -40,6 +40,8 @@ workflows:
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
+          : "${SUPABASE_URL:?Missing SUPABASE_URL in fyrup_backend}"
+          : "${SUPABASE_PUBLISHABLE_KEY:?Missing SUPABASE_PUBLISHABLE_KEY in fyrup_backend}"
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
           plutil -replace SUPABASE_PUBLISHABLE_KEY -string "$SUPABASE_PUBLISHABLE_KEY" FYRUP/Resources/BackendConfig.plist
           plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
@@ -112,6 +114,8 @@ workflows:
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
+          : "${SUPABASE_URL:?Missing SUPABASE_URL in fyrup_backend}"
+          : "${SUPABASE_PUBLISHABLE_KEY:?Missing SUPABASE_PUBLISHABLE_KEY in fyrup_backend}"
           plutil -replace SUPABASE_URL -string "$SUPABASE_URL" FYRUP/Resources/BackendConfig.plist
           plutil -replace SUPABASE_PUBLISHABLE_KEY -string "$SUPABASE_PUBLISHABLE_KEY" FYRUP/Resources/BackendConfig.plist
           plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
@@ -129,6 +133,7 @@ workflows:
           xcodebuild test \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
+            -configuration Release \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP-Release.xcresult \
             CODE_SIGNING_ALLOWED=NO

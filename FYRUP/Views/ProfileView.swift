@@ -245,15 +245,98 @@ private struct SettingsView: View {
                 VStack(spacing: 0) {
                     NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell") }
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
-                    Divider(); SettingsRow(title: "Freunde & Blockierte", symbol: "person.2")
-                    Divider(); SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle")
-                    Divider(); SettingsRow(title: "Über FYRUP", symbol: "info.circle")
+                    Divider(); Button { store.selectedTab = 1 } label: { SettingsRow(title: "Freunde", symbol: "person.2") }
+                        .accessibilityIdentifier("settings-friends")
+                    Divider(); NavigationLink { SupportView() } label: { SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle") }
+                        .accessibilityIdentifier("settings-support")
+                    Divider(); NavigationLink { AboutFyrupView() } label: { SettingsRow(title: "Über FYRUP", symbol: "info.circle") }
+                        .accessibilityIdentifier("settings-about")
                 }.background(.white, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
                 Button { Task { await store.logout() } } label: {
                     Label("Logout", systemImage: "rectangle.portrait.and.arrow.right").foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading).padding()
                 }.background(.white, in: RoundedRectangle(cornerRadius: 16))
             }.padding(18)
         }.background(FYColor.background).navigationTitle("Einstellungen")
+    }
+}
+
+enum FyrupSupportContact {
+    static let email = "Kundenservice@objektsignal.com"
+
+    static func emailURL(subject: String = "FYRUP Support") -> URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = email
+        components.queryItems = [URLQueryItem(name: "subject", value: subject)]
+        return components.url
+    }
+}
+
+struct SupportView: View {
+    @Environment(\.openURL) private var openURL
+    @State private var copied = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Image(systemName: "questionmark.bubble.fill")
+                        .font(.system(size: 42)).foregroundStyle(FYColor.lime)
+                    Text("Wie können wir helfen?").font(.title2.weight(.black))
+                    Text("Beschreibe kurz, wobei du Hilfe brauchst. Dein E-Mail-Programm öffnet sich mit unserer Adresse; versendet wird erst, wenn du selbst auf Senden tippst.")
+                        .font(.subheadline).foregroundStyle(FYColor.muted)
+                }.fyCard()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("KUNDENSERVICE").sectionTitle()
+                    Text(FyrupSupportContact.email).font(.body.weight(.semibold)).textSelection(.enabled)
+                        .accessibilityIdentifier("support-email-address")
+                    Button {
+                        if let url = FyrupSupportContact.emailURL() { openURL(url) }
+                    } label: {
+                        Label("E-MAIL VORBEREITEN", systemImage: "envelope.fill").frame(maxWidth: .infinity)
+                    }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("support-compose-email")
+                    Button {
+                        UIPasteboard.general.string = FyrupSupportContact.email
+                        copied = true
+                    } label: {
+                        Label(copied ? "Adresse kopiert" : "Adresse kopieren", systemImage: copied ? "checkmark" : "doc.on.doc")
+                            .frame(maxWidth: .infinity)
+                    }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("support-copy-email")
+                }.fyCard()
+            }.padding(20)
+        }.background(FYColor.background).navigationTitle("Hilfe & Support")
+    }
+}
+
+struct AboutFyrupView: View {
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "–"
+    }
+    private var build: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "–"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                VStack(spacing: 12) {
+                    Image(systemName: "flame.fill").font(.system(size: 56)).foregroundStyle(FYColor.lime)
+                    Text("FYRUP").font(.largeTitle.weight(.black))
+                    Text("Gemeinsam aktiv. Eine stärkere Crew.").font(.headline).multilineTextAlignment(.center)
+                    Text("Version \(version) · Build \(build)").font(.caption).foregroundStyle(FYColor.muted)
+                        .accessibilityIdentifier("about-version")
+                }.frame(maxWidth: .infinity).fyCard()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ÜBER FYRUP").sectionTitle()
+                    Text("FYRUP verbindet deine Aktivitäten, Sessions, Workout-Pläne und deine Crew an einem Ort.")
+                        .font(.subheadline).foregroundStyle(FYColor.muted)
+                    NavigationLink { SupportView() } label: {
+                        SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle")
+                    }.background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                }.fyCard()
+            }.padding(20)
+        }.background(FYColor.background).navigationTitle("Über FYRUP")
     }
 }
 
