@@ -265,6 +265,7 @@ struct WorkoutTrackingView: View {
                             Text("Bestwert: \(performanceValue(weight: value.bestWeight, reps: value.bestReps, unit: exercise.exercise.repetitionUnit))")
                         }
                         .font(.caption).foregroundStyle(FYColor.muted).padding(.top, 3)
+                        .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("exercise-performance-\(exercise.exercise.id.uuidString)")
                     }
                 }

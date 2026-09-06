@@ -121,17 +121,17 @@ struct WelcomeView: View {
                 .signInWithAppleButtonStyle(.white).frame(height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
-                .disabled(settledPage != 3 || store.isBusy)
+                .disabled(store.isBusy)
                 Button("Mit E-Mail anmelden") { authMode = .signIn }
                     .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 50)
                     .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.62)))
                     .buttonStyle(FYPressStyle())
-                    .accessibilityIdentifier("welcome-email-login").disabled(settledPage != 3 || store.isBusy)
+                    .accessibilityIdentifier("welcome-email-login").disabled(store.isBusy)
                 Button("Account erstellen") { authMode = .registration }
                     .font(.footnote.weight(.semibold)).foregroundStyle(.white).underline()
-                    .accessibilityIdentifier("welcome-create-account").disabled(settledPage != 3 || store.isBusy)
+                    .accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
                 Text("Mit der Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
                     .font(.caption2).foregroundStyle(.white.opacity(0.78)).multilineTextAlignment(.center)
             }
