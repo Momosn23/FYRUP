@@ -250,7 +250,7 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("03-onboarding-crew")
         app.buttons["welcome-crew-next"].tap()
         waitUntilReady(app.buttons["welcome-email-login"])
-        XCTAssertTrue(app.descendants(matching: .any)["welcome-login-full-hero"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Willkommen bei"].exists)
         capture("00-welcome")
         app.buttons["welcome-create-account"].tap()
         assertRegistration(in: app)

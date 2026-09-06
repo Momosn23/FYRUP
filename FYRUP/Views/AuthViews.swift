@@ -137,7 +137,6 @@ struct WelcomeView: View {
             }
             .padding(.horizontal, 26).padding(.bottom, 18)
         }
-        .accessibilityIdentifier("welcome-login-full-hero")
     }
 }
 
