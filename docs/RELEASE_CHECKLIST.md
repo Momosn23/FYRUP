@@ -2,7 +2,18 @@
 
 Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. Für den nächsten Release gelten zusätzlich alle Schranken der [zentralen Produkt-Checkliste](PRODUCT_CHECKLIST.md), insbesondere neue Features, Design, Animationen, Datenschutz und getrennte Simulator-/Gerätenachweise. Keine alte Buildnummer als aktuell installierte Version ausgeben. Gültige bisherige Gerätetests bleiben Pflicht.
 
-## Laufender Release-Kandidat am 05.09.2026
+## Aktueller Release-Kandidat am 06.09.2026
+
+- [x] [Signierter TestFlight-Build 46](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9cdff81f365de10aeeec57) für den geprüften Commit `e317917` vollständig ausgeführt.
+- [x] 459 von 459 Einzeltests und 33 von 33 Bedienabläufen im signierten Lauf bestanden; `TEST SUCCEEDED`.
+- [x] Erneuerte App-/Live-Activity-Profile angewendet, eindeutige Buildnummer gesetzt und eingebettete produktive Backend-Konfiguration geprüft.
+- [x] Signierte IPA als FYRUP `1.0.0` / Build `11` erzeugt und am 06.09.2026 um 06:11 CEST von App Store Connect ohne Uploadfehler angenommen (`UPLOAD SUCCEEDED with no errors`).
+- [ ] Apple-Verarbeitung von Build 11 abgeschlossen und Build in „FYRUP Intern“ sichtbar/installierbar.
+- [ ] Build 11 auf echtem iPhone mit Apple-Login, HealthKit, Live-Aktivität, Push und den Kernabläufen geprüft.
+
+Die App-Store-Connect-Websitzung war direkt nach dem erfolgreichen Upload abgelaufen. Deshalb ist die Annahme durch Apples Uploaddienst belegt, die spätere Verarbeitung und Gruppenzuordnung aber noch nicht. Der folgende Abschnitt bleibt als Fehlerhistorie von Build 9 erhalten.
+
+## Historischer Release-Kandidat am 05.09.2026
 
 - [x] Signierter [TestFlight-Build 9](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c07536942048ebcb1f844) mit `codex/signing-profile-pipe` / `7472300` gestartet. Vorgänger 8 scheiterte vor dem App-Bau am inzwischen korrigierten Parser.
 - [x] Sieben Parser-Prüfungen und das tatsächlich verwendete Apple-Profil auf HealthKit, Apple-Anmeldung und Production-Push geprüft; Ausgabe `Verified FYRUP profile: HealthKit, Apple sign-in and production push` im Lauf 9 gelesen.

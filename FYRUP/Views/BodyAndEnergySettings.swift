@@ -8,6 +8,7 @@ struct BodyAndEnergySettings: View {
     @State private var error: String?
     @State private var saved = false
     @State private var confirmsDelete = false
+    @State private var showsGoalSuggestion = false
     @State private var baseline: [String] = ["", "", ""]
     @FocusState private var focusedField: String?
     var onEditingChanged: (Bool) -> Void = { _ in }
@@ -36,6 +37,14 @@ struct BodyAndEnergySettings: View {
                 Text("Health-Werte stammen von Apple. Die FYRUP-Alternative nutzt eine angenommene mittlere Gehgeschwindigkeit und veröffentlichte MET-Richtwerte; sie ist keine Messung. Deine Angaben in FYRUP ändern Apple Health nicht.").font(.caption).foregroundStyle(FYColor.muted)
                 metricField("Dein Bewegungsziel pro Tag · optional", unit: "kcal", value: $goal, id: "setup-calorie-goal")
                 Text("Selbst gewählt, keine Empfehlung. Leer lassen, um das Ziel auszuschalten.").font(.caption).foregroundStyle(FYColor.muted)
+                Button("Ziel vorschlagen lassen") { showsGoalSuggestion = true }
+                    .buttonStyle(OutlineButtonStyle())
+                    .disabled(store.setup.value?.weightKG == nil)
+                    .accessibilityIdentifier("suggest-calorie-goal")
+                if store.setup.value?.weightKG == nil {
+                    Text("Speichere zuerst dein Gewicht, damit der Vorschlag persönlich berechnet werden kann.")
+                        .font(.caption).foregroundStyle(FYColor.muted)
+                }
                 if store.setup.value?.energyRequested == true {
                     Button("Energieanzeige in FYRUP ausschalten") { store.energy.disconnect() }.font(.caption).frame(minHeight: 44)
                 }
@@ -56,6 +65,13 @@ struct BodyAndEnergySettings: View {
                 Button("Körperdaten löschen", role: .destructive) { if store.setup.deleteMeasurements() { loadFields(); onEditingChanged(false) } }
                     .accessibilityIdentifier("confirm-delete-body-data")
                 Button("Behalten", role: .cancel) {}
+            }
+            .sheet(isPresented: $showsGoalSuggestion) {
+                MovementGoalSuggestionView { suggestion in
+                    goal = String(suggestion)
+                    saved = false
+                    showsGoalSuggestion = false
+                }
             }
     }
     private func metricField(_ title: String, unit: String, value: Binding<String>, id: String) -> some View {
@@ -86,6 +102,72 @@ struct BodyAndEnergySettings: View {
             $0.activeCalorieGoal = parsedGoal.map(Int.init)
         }
         if saved { baseline = [height, weight, goal]; onEditingChanged(false) }
+    }
+}
+
+private struct MovementGoalSuggestionView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var level: MovementGoalLevel = .balanced
+    let use: (Int) -> Void
+
+    private var suggestion: ActiveCalorieGoalSuggestion? {
+        ActiveCalorieGoalSuggestion.make(level: level,
+            heightCM: store.setup.value?.heightCM,
+            weightKG: store.setup.value?.weightKG,
+            stepGoal: store.steps.goal,
+            routine: store.personal.routine)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Label("Dein Bewegungsziel", systemImage: "sparkles").font(.title2.bold())
+                    Text("Wähle, wie fordernd dein tägliches Ziel sein soll. FYRUP berechnet einen transparenten Vorschlag aus deinem Gewicht und – falls vorhanden – deinem Schrittziel und Wochenplan.")
+                        .foregroundStyle(FYColor.muted)
+                    VStack(spacing: 10) {
+                        ForEach(MovementGoalLevel.allCases) { option in
+                            Button {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { level = option }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: level == option ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(level == option ? FYColor.lime : FYColor.muted)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(option.title).font(.headline)
+                                        Text(option.detail).font(.caption).foregroundStyle(FYColor.muted)
+                                    }
+                                    Spacer()
+                                }.padding(14).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                            }.buttonStyle(FYPressStyle()).accessibilityIdentifier("movement-level-\(option.rawValue)")
+                        }
+                    }
+                    if let suggestion {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("≈ \(suggestion.kilocalories) kcal täglich").font(.largeTitle.bold())
+                                .contentTransition(reduceMotion ? .identity : .numericText())
+                            Text(sourceText(suggestion)).font(.subheadline).foregroundStyle(FYColor.muted)
+                        }.fyCard().accessibilityIdentifier("calorie-goal-suggestion")
+                        Button("Vorschlag übernehmen") { use(suggestion.kilocalories) }
+                            .buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("use-calorie-goal-suggestion")
+                    }
+                    Text("Die Berechnung läuft nur auf deinem iPhone. Sie sendet keine Körper- oder Health-Daten an einen Server oder eine KI und ist keine medizinische Empfehlung. Du kannst den Wert vor dem Speichern jederzeit ändern.")
+                        .font(.caption).foregroundStyle(FYColor.muted).accessibilityIdentifier("calorie-goal-privacy")
+                }.padding(20)
+            }.background(FYColor.background)
+                .navigationTitle("Zielhilfe")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
+        }
+    }
+
+    private func sourceText(_ value: ActiveCalorieGoalSuggestion) -> String {
+        var sources = ["gewähltes Niveau"]
+        if value.usedStepGoal { sources.append("Schrittziel") }
+        if value.usedWeeklyRoutine { sources.append("Wochenplan") }
+        return "Berücksichtigt: " + sources.joined(separator: ", ") + ". Überlappende Werte werden nicht addiert."
     }
 }
 

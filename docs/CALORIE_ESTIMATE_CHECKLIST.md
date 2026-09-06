@@ -10,6 +10,8 @@ Fachliche Grundlage für die MET-Klassifikation ist das [2024 Adult Compendium o
 
 Fünf deterministische Rechentests für Health-Vorrang, fehlende Körperdaten, feste Schrittberechnung, explizite Gym-Intensität ohne Addition/Doppel-ID und Ausschluss unzulässiger Aktivitäten sind in Codemagic 45 bestanden. Die geführte Körperdaten-/Ziel-Einrichtung ist dort ebenfalls nativ durchgelaufen. Ein zusätzlicher Ablauf für späteres Ändern und gezieltes Löschen der privaten Messwerte ist im Folgequellstand ergänzt, aber noch nicht nativ ausgeführt.
 
+**Neue lokale Zielhilfe:** „Ziel vorschlagen lassen“ bietet drei bewusst gewählte Niveaus, zeigt den berechneten Wert vor der Übernahme und lässt ihn anschließend frei ändern. Die nachvollziehbare Rechnung läuft ausschließlich auf dem iPhone und verwendet Gewicht sowie optional Schrittziel und Wochenplan. Mögliche Überschneidungen werden nicht addiert. Fünf neue Rechentests und ein Bedienablauf sind vorbereitet. Das ist eine sofort nutzbare, datensparsame Zielhilfe, aber ausdrücklich keine vorgetäuschte externe KI: Anbieterwahl, Einwilligung, Server-Schlüssel, fachliche Grenzen und Kostenlimit aus KCAL-15 bis KCAL-18 bleiben offen.
+
 ## Einrichtung und Startseite
 
 - [x] KCAL-01 Körpergröße und Gewicht während der Registrierung/Ersteinrichtung erfassen, Einheiten erklären und Eingaben validieren; persönliche Verbrauchsschätzung erst mit den benötigten Angaben aktivieren. Fehlende Daten nicht erfinden. *(Quellstand; native UI-Abnahme offen.)*
@@ -31,7 +33,7 @@ Fünf deterministische Rechentests für Health-Vorrang, fehlende Körperdaten, f
 
 ## Freiwilliger KI-Zielvorschlag
 
-- [ ] KCAL-14 Aktion „Ziel vorschlagen lassen“ anbieten. Erst nach bewusster Auswahl die nötigen Angaben und gewünschte Zielart klären; Vorschlag vor Übernahme anzeigen und manuell änderbar lassen.
+- [x] KCAL-14 Aktion „Ziel vorschlagen lassen“ anbieten. Erst nach bewusster Auswahl die nötigen Angaben und gewünschte Zielart klären; Vorschlag vor Übernahme anzeigen und manuell änderbar lassen. *(Lokale, transparente Zielhilfe im Quellstand; nativer Bediennachtest offen. Noch keine externe KI.)*
 - [ ] KCAL-15 Berechnung mit überprüfbarer Rechenlogik durchführen; KI erklärt Ergebnis, Eingaben, Annahmen und Grenzen, erfindet aber keine Berechnungsgrundlage. Ohne gültige Grundlage keine Zahl vorschlagen.
 - [ ] KCAL-16 Keine automatische Defizit-, Gewichtsverlust- oder kompensatorische Sportvorgabe. Ungeeignete/extreme Ziele nicht mit mehr Training, Schuldtexten oder Push-Druck verstärken.
 - [ ] KCAL-17 Geltungsbereich und sichere Ausnahmen des gewählten Modells prüfen, insbesondere Minderjährige, Schwangerschaft/Stillzeit und individuelle gesundheitliche Einschränkungen; bei fehlender Eignung keine persönliche KI-Empfehlung vortäuschen.

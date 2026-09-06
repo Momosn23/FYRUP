@@ -75,6 +75,26 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         capture("89-private-body-data-deleted")
     }
 
+    func testMovementGoalSuggestionIsOptionalTransparentAndEditable() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
+        tap(app.buttons["active-energy-card"], in: app)
+        let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-calorie-goal"]
+        replaceText(in: height, with: "180", app: app)
+        replaceText(in: weight, with: "80", app: app)
+        tap(app.buttons["save-body-and-goal"], in: app)
+        tap(app.buttons["suggest-calorie-goal"], in: app)
+        XCTAssertTrue(app.navigationBars["Zielhilfe"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["calorie-goal-privacy"].exists)
+        tap(app.buttons["movement-level-ambitious"], in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["calorie-goal-suggestion"].firstMatch.exists)
+        capture("90-private-movement-goal-suggestion")
+        tap(app.buttons["use-calorie-goal-suggestion"], in: app)
+        XCTAssertNotEqual(goal.value as? String, "Optional")
+        replaceText(in: goal, with: "475", app: app)
+        tap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertEqual(goal.value as? String, "475", "The suggestion remains editable before it is saved")
+    }
+
     private func replaceText(in field: XCUIElement, with value: String, app: XCUIApplication) {
         tap(field, in: app)
         let existing = field.value as? String ?? ""
