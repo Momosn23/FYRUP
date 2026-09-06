@@ -28,7 +28,11 @@ final class DateLogicTests: XCTestCase {
     }
 
     func testNearestPlannedWorkoutWins() {
-        let now = Date()
+        // Keep both candidates inside the same local day. Using the wall clock made
+        // this test fail shortly before midnight when the planned times crossed
+        // into tomorrow, even though the production rule correctly shows only
+        // today's status.
+        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 5, hour: 12))!
         let later = Activity(id: UUID(), userID: UUID(), sport: .gym, subtype: "Pull", status: .planned, plannedAt: now.addingTimeInterval(4_000), startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: UUID())
         let next = Activity(id: UUID(), userID: later.userID, sport: .running, subtype: nil, status: .planned, plannedAt: now.addingTimeInterval(2_000), startedAt: nil, endedAt: nil, distanceMeters: nil, plannedDurationMinutes: nil, note: nil, plannedSessionID: UUID())
         XCTAssertEqual(DateLogic.status(for: [later, next], now: now, calendar: calendar)?.id, next.id)

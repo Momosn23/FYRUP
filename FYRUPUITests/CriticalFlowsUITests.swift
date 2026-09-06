@@ -378,11 +378,25 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Jeder Schritt zählt."].waitForExistence(timeout: 4))
         capture("73-setup-health")
         // Optional system permissions are not silently accepted during onboarding.
-        for page in 0..<4 {
-            let next = app.buttons["personal-setup-next"]
-            revealAndTap(next, in: app)
-            if page < 3 { capture("74-setup-page-\(page + 2)") }
-        }
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
+        capture("74-setup-page-2")
+
+        let height = app.textFields["setup-height"]
+        XCTAssertTrue(height.waitForExistence(timeout: 3))
+        height.tap()
+        height.typeText("182")
+        let weight = app.textFields["setup-weight"]
+        weight.tap()
+        weight.typeText("84")
+        app.buttons["Fertig"].tap()
+        revealAndTap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["body-data-saved"].firstMatch.waitForExistence(timeout: 3))
+
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
+        capture("74-setup-page-3")
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
+        capture("74-setup-page-4")
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
 
         XCTAssertTrue(app.staticTexts["Du bist startklar."].waitForExistence(timeout: 3))
         capture("onboarding-05-complete")

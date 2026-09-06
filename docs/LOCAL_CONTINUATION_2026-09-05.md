@@ -1,5 +1,14 @@
 # Weiterarbeit ohne Cloud-Guthaben – 05.09.2026
 
+## Fortsetzung am 06.09.2026 – Codemagic 44
+
+- Commit `9b2c943` baute App, Widget und beide Testziele vollständig.
+- 458/459 Einzeltests und 32/33 Bedienabläufe bestanden.
+- Die zuvor fehlerhaften Kennungen für Satzpause/Intervalle sowie das Leeren des vorausgefüllten Session-Orts sind im nativen Lauf erreichbar.
+- Verbliebener Einzeltest: `testNearestPlannedWorkoutWins` verwendete die echte Uhrzeit; kurz vor Mitternacht lagen beide erzeugten Sessions am Folgetag und durften korrekt nicht unter „Heute“ erscheinen. Der Test nutzt im Folgequellstand einen festen Mittag.
+- Verbliebener Bedienablauf: Die persönliche Einrichtung verlangt für die gewünschte Verbrauchsschätzung inzwischen Größe und Gewicht. Der ältere Onboarding-Test ließ beides leer und konnte die Seite deshalb absichtlich nicht verlassen. Er trägt nun gültige Testwerte ein, speichert sie und prüft danach den Abschluss.
+- Folgelauf, Kontaktbogen, signierter Build und echte iPhone-Abnahme bleiben bis zum Ergebnis offen.
+
 ## Gebündelter externer Einladungsblock (lokal, noch ohne Upload)
 
 - „Freunde“ enthält jetzt zwei getrennte native Teilen-Aktionen: eine allgemeine Einladung und den eigenen Profillink. Empfänger und Versand-App werden ausschließlich im iOS-Teilen-Menü gewählt.

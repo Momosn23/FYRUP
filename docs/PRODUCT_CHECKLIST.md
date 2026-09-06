@@ -1,5 +1,7 @@
 # FYRUP – zentrale Produkt- und Abnahmecheckliste
 
+Sechster Korrekturlauf: `9b2c943` wurde in [Codemagic 44](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9c8c75fac9a246bedab98f) vollständig gebaut. **458 von 459 Einzeltests und 32 von 33 Bedienabläufen bestanden.** Die vorher verdeckten Satzpausen-/Intervallaktionen und der neue Leeren-Weg für den Session-Ort sind damit nativ erreichbar. Die zwei verbliebenen roten Prüfungen sind als Testfehler eingegrenzt: ein Test erzeugte kurz vor Mitternacht absichtlich erst morgen liegende Sessions und erwartete sie trotzdem in „Heute“; der Onboarding-Test ließ die inzwischen verpflichtenden Körperdaten für die persönliche Verbrauchsschätzung leer. Beide Testdatenwege sind im Folgequellstand korrigiert; Produktregeln werden dafür nicht aufgeweicht. Ein grüner Folgelauf, visuelle Abnahme und TestFlight stehen noch aus.
+
 ## Danach lokal ergänzt: Kalorienschätzung und externe Einladungswege
 
 - [x] Health-Energie bleibt exklusiv; ohne Health-Wert steht eine grobe, offen erklärte Schritt-/Gym-Schätzung mit privaten Körperdaten bereit, ohne Addition überlappender Quellen.
