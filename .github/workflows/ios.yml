@@ -1,8 +1,10 @@
 name: iOS
 on:
+  workflow_dispatch:
   pull_request:
-  push:
-    branches: [main]
+# Main is validated by Codemagic. Keep GitHub's paid macOS runner manual while
+# that account has no Actions budget, so a normal push cannot create a known
+# billing failure and another failure notification.
 concurrency:
   group: ios-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

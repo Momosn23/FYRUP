@@ -54,6 +54,33 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertEqual(height.value as? String, "180.0"); XCTAssertEqual(weight.value as? String, "81.5")
         XCTAssertEqual(goal.value as? String, "450")
     }
+
+    func testPrivateBodyDataCanBeChangedAndDeletedWithoutRemovingTheGoal() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
+        tap(app.buttons["active-energy-card"], in: app)
+        let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-calorie-goal"]
+        replaceText(in: height, with: "182", app: app)
+        replaceText(in: weight, with: "84,5", app: app)
+        replaceText(in: goal, with: "500", app: app)
+        tap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["body-data-saved"].firstMatch.waitForExistence(timeout: 4))
+        XCTAssertEqual(height.value as? String, "182")
+        XCTAssertEqual(weight.value as? String, "84,5")
+        tap(app.buttons["delete-body-data"], in: app)
+        tap(app.buttons["confirm-delete-body-data"], in: app)
+        XCTAssertEqual(height.value as? String, "Optional")
+        XCTAssertEqual(weight.value as? String, "Optional")
+        XCTAssertEqual(goal.value as? String, "500", "Deleting measurements must not silently remove the user's movement goal")
+        XCTAssertFalse(app.buttons["delete-body-data"].exists)
+        capture("89-private-body-data-deleted")
+    }
+
+    private func replaceText(in field: XCUIElement, with value: String, app: XCUIApplication) {
+        tap(field, in: app)
+        let existing = field.value as? String ?? ""
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count) + value)
+        tap(app.toolbars.buttons["Fertig"], in: app)
+    }
     func testRestClockIsSharedByLiveScreenAndHome() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
         tap(app.buttons["JETZT LOS"], in: app); tap(app.buttons["Gym"], in: app); tap(app.buttons["Push"], in: app)

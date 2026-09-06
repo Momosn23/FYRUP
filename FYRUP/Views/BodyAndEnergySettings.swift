@@ -20,7 +20,9 @@ struct BodyAndEnergySettings: View {
                 metricField("Gewicht", unit: "kg", value: $weight, id: "setup-weight")
                 Text("Freiwillig und geschützt auf diesem iPhone. Keine Übertragung an Freunde, FYRUP-Server oder KI. Für die eigene grobe Schätzung werden Größe und Gewicht zusammen benötigt.").font(.caption).foregroundStyle(FYColor.muted)
                 if store.setup.value?.heightCM != nil || store.setup.value?.weightKG != nil {
-                    Button("Körperdaten löschen", role: .destructive) { confirmsDelete = true }.font(.caption).frame(minHeight: 44)
+                    Button("Körperdaten löschen", role: .destructive) { confirmsDelete = true }
+                        .font(.caption).frame(minHeight: 44)
+                        .accessibilityIdentifier("delete-body-data")
                 }
             }.fyCard()
             VStack(alignment: .leading, spacing: 13) {
@@ -52,6 +54,7 @@ struct BodyAndEnergySettings: View {
             .onChange(of: store.session?.userID) { _, _ in loadFields() }
             .confirmationDialog("Körperdaten auf diesem iPhone löschen?", isPresented: $confirmsDelete) {
                 Button("Körperdaten löschen", role: .destructive) { if store.setup.deleteMeasurements() { loadFields(); onEditingChanged(false) } }
+                    .accessibilityIdentifier("confirm-delete-body-data")
                 Button("Behalten", role: .cancel) {}
             }
     }
@@ -118,7 +121,7 @@ struct ActiveEnergyCard: View {
                         Image(systemName: "flame.fill").font(.title2).foregroundStyle(FYColor.coral)
                     }.frame(width: 60, height: 60).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Geschätzter Verbrauch heute").font(.headline)
+                        Text("Aktive Bewegung bis jetzt").font(.headline)
                         if let estimate {
                             let amount = estimate.kilocalories
                             Text("≈ \(Int(amount.rounded())) kcal").font(.title2.bold()).contentTransition(.numericText())
@@ -131,7 +134,7 @@ struct ActiveEnergyCard: View {
                                 Text("FYRUP-Schätzung · Stand \(updated.formatted(date: .omitted, time: .shortened))").font(.caption2).foregroundStyle(FYColor.muted)
                             }
                         } else { Text("Körperdaten und Schritte einrichten").font(.subheadline).foregroundStyle(FYColor.muted) }
-                        Text(estimate?.source == .appleHealth ? "Geschätzte aktive Energie aus Health, kein Gesamtbedarf" : "Grobe aktive Schätzung; Schritte und bewertete Gym-Zeit werden nicht addiert")
+                        Text(estimate?.source == .appleHealth ? "Aktive Energie aus Health bis jetzt, kein Gesamtbedarf" : "Grobe Schätzung bis jetzt; Schritte und bewertete Gym-Zeit werden nicht addiert")
                             .font(.caption2).foregroundStyle(FYColor.muted)
                     }
                     Spacer(minLength: 0); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
