@@ -80,8 +80,8 @@ struct TodayView: View {
         var candidates = store.recentActivities
         if let current = store.myActivity { candidates.append(current) }
         var seen = Set<UUID>()
-        let completedGym = candidates.filter { $0.userID == owner && $0.sport == .gym && $0.status == .completed }
-        for activity in completedGym.prefix(8) where seen.insert(activity.id).inserted {
+        let completedActivities = candidates.filter { $0.userID == owner && $0.status == .completed }
+        for activity in completedActivities.prefix(8) where seen.insert(activity.id).inserted {
             await store.personal.loadFeedback(activityID: activity.id)
         }
     }

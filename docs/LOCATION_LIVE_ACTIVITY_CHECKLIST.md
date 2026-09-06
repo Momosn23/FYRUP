@@ -32,19 +32,19 @@ Nachtrag: [Lokale Umsetzung und getrennte Nachweise](LOCAL_CONTINUATION_2026-09-
 
 ## Dauerhafte Trainingsanzeige und Homescreen
 
-- [ ] LIVEUI-01 Native iOS-Live-Aktivität mit aktivem Training, laufender Zeit und Pausenzustand auf dem Sperrbildschirm; Dynamic Island auf unterstützten Geräten.
-- [ ] LIVEUI-02 Zusätzlich kleines Homescreen-Widget mit sinnvollem Einstieg ins laufende Training und Satzpause; nicht mit einer dauerhaft eingeblendeten Android-Benachrichtigung verwechseln.
-- [ ] LIVEUI-03 Anzeigen starten erst bei tatsächlich begonnenem Training und enden bei Abschluss/Abbruch; keine verwaisten Timer nach Neustart oder Accountwechsel.
-- [ ] LIVEUI-04 Timerzustand gemeinsam mit der App halten; App im Hintergrund oder beendet verursacht keinen Neustart der verstrichenen Zeit.
-- [ ] LIVEUI-05 Keine automatische Anzeige privater Satzwerte/Übungsnamen auf dem Sperrbildschirm; Detailumfang freiwillig.
+- [x] LIVEUI-01 Native iOS-Live-Aktivität mit laufender aktiver Zeit und Pausenzustand sowie Dynamic-Island-Darstellung ist eingebettet und im signierten Build 46 kompiliert; echte Geräteanzeige bleibt unter RELEASE-LIVE-02 offen.
+- [x] LIVEUI-02 Kleines Homescreen-Widget mit Einstieg, Zeit und Satzpause ist über die private App Group eingebettet; es wird nicht als Android-Dauerbenachrichtigung bezeichnet.
+- [x] LIVEUI-03 Lebenszyklus ist an eine bestätigte eigene LIVE-Aktivität gebunden; Abschluss, Abbruch, Abmelden und Kontowechsel entfernen den Zustand, und eine geordnete Aktualisierung verhindert das Wiedererscheinen alter Anzeigen.
+- [x] LIVEUI-04 Timerreferenz und Satzpause liegen im gemeinsam signierten App-Group-Zustand; App, Live-Aktivität und Widget verwenden dieselben absoluten Zeitpunkte statt eines bei Wiederöffnung neu gestarteten Zählers.
+- [x] LIVEUI-05 Sperrbildschirm und Widget zeigen nur Sportart, aktive Zeit, Pause und die freiwillige Satzpause; Übungsnamen, Gewichte und Wiederholungen werden dort nicht veröffentlicht.
 
 ## Satzpausen und weitere Trainings-Timer
 
 Lokaler Nachtrag: Für Laufen/Fahrrad/Schwimmen/Kampfsport/Andere ist ein frei konfigurierbarer Intervalltimer in Heute und LIVE vorbereitet. Er folgt der aktiven Session-Zeit einschließlich Pause/Fortsetzen und behält seinen Zustand kontogetrennt bei. Keine Hintergrundtöne/-hinweise für Intervalle und keine vorgetäuschte Widget-Integration. Satzpause jetzt auch im Blind Workout. Acht Timer-Einzeltests und ergänzte Bedienabläufe vorbereitet, native Abnahme noch ausstehend; siehe [gebündelten Arbeitsstand](LOCAL_CONTINUATION_2026-09-05.md).
 
 - [x] TIMER-01 Pausendauer vorab wählbar, während des Workouts änderbar; schnell erreichbare Aktion „Satzpause“.
-- [ ] TIMER-02 Pause direkt über die zulässigen interaktiven Live-Aktivitäts-/Widget-Aktionen starten, fortsetzen, zurücksetzen oder beenden.
-- [ ] TIMER-03 Ablauf der Satzpause mit optionalem Ton/Haptik/Mitteilung melden; keine Werbung und keine mehrfachen Alarme.
+- [x] TIMER-02 Satzpause lässt sich über eine echte App-Intent-Aktion in Live-Aktivität und Homescreen-Widget starten oder beenden; die App übernimmt denselben Zustand.
+- [x] TIMER-03 Der Ablauf kann freiwillig einmalig mit Mitteilung und optionalem Ton gemeldet werden; Start/Beenden ersetzt beziehungsweise entfernt die feste Anfragekennung und erzeugt keine Werbung.
 - [x] TIMER-04 Satzpause, bewusst pausierte Session und laufende aktive Zeit eindeutig unterscheiden.
 - [x] TIMER-05 Für passende Sportarten optionale Intervall-/Runden-/Belastungs- und Erholungstimer vorsehen. Dauer und Wiederholungen wählt der Nutzer; keine vermeintlich individuellen Empfehlungen erfinden.
 - [ ] TIMER-06 Hintergrund, Prozessende, Uhrzeitänderung, Zeitzonenwechsel, mehrere Interaktionen und Offlinezustand testen.

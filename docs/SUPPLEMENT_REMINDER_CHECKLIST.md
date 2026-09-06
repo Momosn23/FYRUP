@@ -26,7 +26,7 @@ Technische Grundlagen: [Apple zu Benachrichtigungsaktionen](https://developer.ap
 - [x] SUPP-07 Nur erinnern, solange die betreffende Einnahme offen ist; „Genommen“, „Übersprungen“, Pausieren oder Entfernen löscht alle ausstehenden Erinnerungen dieser Einnahme.
 - [x] SUPP-08 Wiederholungen endlich begrenzen; Ruhezeiten berücksichtigen. Ausgelassene Einnahmen nicht automatisch auf den Folgetag übertragen oder zum Nachholen/zu einer zusätzlichen Einnahme auffordern.
 - [x] SUPP-09 Mitteilung öffnet den passenden heutigen Eintrag; eine native Aktion „Genommen“ nur eindeutig der richtigen Einnahme zuordnen und sicher gegen doppelte Verarbeitung machen.
-- [ ] SUPP-10 Berechtigung erst bei Aktivierung erklären/anfragen. Bei verweigerter oder widerrufener Mitteilungsfreigabe bleibt die Startseiten-Liste nutzbar; keine garantierte oder sekundengenaue Zustellung versprechen.
+- [x] SUPP-10 Berechtigung erst bei freiwilliger Aktivierung erklären/anfragen. Der aktuelle Systemstatus, der bewusste Freigabeknopf und der Weg in die iPhone-Einstellungen sind eingebaut; die Liste bleibt ohne Freigabe nutzbar und die Oberfläche weist auf mögliche Verzögerung oder Ausbleiben hin.
 
 ## Speicherung, Datenschutz und Abnahme
 
@@ -34,7 +34,7 @@ Technische Grundlagen: [Apple zu Benachrichtigungsaktionen](https://developer.ap
 - [x] SUPP-12 Supplement-Namen und Einnahmen privat halten: keine automatische Veröffentlichung im Feed, in Profilen, Workout-Exporten oder an Freunde. Neutrale Sperrbildschirm-Vorschau als Standard.
 - [x] SUPP-13 Abmelden/Accountwechsel, Kontolöschung, geänderte Zeiten und mehrere Geräte berücksichtigen; keine Erinnerungen für das falsche Konto oder eine bereits bestätigte Einnahme.
 - [x] SUPP-14 Tageswechsel, Zeitzonenwechsel und Sommer-/Winterzeit mit eindeutigen Einnahme-IDs prüfen; keine doppelte Einnahmeaufforderung wegen veränderter Uhrzeit.
-- [ ] SUPP-15 Helles FYRUP-Design, gut erreichbare Schaltflächen, VoiceOver und reduzierte Bewegung berücksichtigen; Abhaken dezent animieren.
+- [x] SUPP-15 Helles FYRUP-Design, erreichbare Schaltflächen und VoiceOver-Kennungen sind umgesetzt; Statuswechsel werden kurz animiert und respektieren „Bewegung reduzieren“.
 - [ ] SUPP-16 Automatisiert und auf einem echten iPhone prüfen: Auswahl → Startseiten-Anzeige → erste Erinnerung → begrenzte Wiederholung → Abhaken stoppt Erinnerungen; zusätzlich Überspringen, Pausieren, Widerruf, Offlinezustand und Neustart.
 
 Nachweise getrennt führen: Code → Speicherung/Backend → automatisierte Tests → visuelle Prüfung → echte iPhone-Zustellung. „Aufgenommen“ bedeutet nicht „ausgeliefert“.

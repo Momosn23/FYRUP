@@ -28,12 +28,12 @@ struct BodyAndEnergySettings: View {
             }.fyCard()
             VStack(alignment: .leading, spacing: 13) {
                 Label("Bewegungskalorien", systemImage: "flame.fill").font(.headline)
-                Text("FYRUP zeigt bevorzugt die aktive Energie aus Apple Health. Fehlt sie, kann FYRUP mit deinen echten heutigen Schritten, Größe, Gewicht und ausdrücklich bewerteter Gym-Zeit grob schätzen. Das ist Bewegung – nicht dein gesamter Tagesbedarf und keine Vorgabe zum Essen oder Abnehmen.")
+                Text("FYRUP zeigt bevorzugt die aktive Energie aus Apple Health. Fehlt sie, kann FYRUP mit deinen echten heutigen Schritten, Größe, Gewicht und ausdrücklich bewerteten Aktivitäten grob schätzen. Das ist Bewegung – nicht dein gesamter Tagesbedarf und keine Vorgabe zum Essen oder Abnehmen.")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
                 Button(store.setup.value?.energyRequested == true ? "Energiedaten in Health prüfen" : "Energiedaten aus Apple Health anzeigen") { Task { await store.energy.connect() } }
                     .buttonStyle(PrimaryButtonStyle()).disabled(store.energy.isBusy || !store.energy.isAvailable || store.setup.value == nil)
                     .accessibilityIdentifier("setup-connect-energy")
-                Text("Eigene, getrennte Lesefreigabe für „Aktive Energie“. Keine Schreibberechtigung. Ein Health-Wert wird nie mit Schritten oder Sessions addiert. Bei der FYRUP-Schätzung zählt vorsichtshalber nur der größere Wert aus Schritten oder bewerteter Gym-Zeit.").font(.caption).foregroundStyle(FYColor.muted)
+                Text("Eigene, getrennte Lesefreigabe für „Aktive Energie“. Keine Schreibberechtigung. Ein Health-Wert wird nie mit Schritten oder Sessions addiert. Bei der FYRUP-Schätzung zählt vorsichtshalber nur der größere Wert aus Schritten oder bewerteten Aktivitäten.").font(.caption).foregroundStyle(FYColor.muted)
                 Text("Health-Werte stammen von Apple. Die FYRUP-Alternative nutzt eine angenommene mittlere Gehgeschwindigkeit und veröffentlichte MET-Richtwerte; sie ist keine Messung. Deine Angaben in FYRUP ändern Apple Health nicht.").font(.caption).foregroundStyle(FYColor.muted)
                 metricField("Dein Bewegungsziel pro Tag · optional", unit: "kcal", value: $goal, id: "setup-calorie-goal")
                 Text("Selbst gewählt, keine Empfehlung. Leer lassen, um das Ziel auszuschalten.").font(.caption).foregroundStyle(FYColor.muted)
@@ -216,7 +216,7 @@ struct ActiveEnergyCard: View {
                                 Text("FYRUP-Schätzung · Stand \(updated.formatted(date: .omitted, time: .shortened))").font(.caption2).foregroundStyle(FYColor.muted)
                             }
                         } else { Text("Körperdaten und Schritte einrichten").font(.subheadline).foregroundStyle(FYColor.muted) }
-                        Text(estimate?.source == .appleHealth ? "Aktive Energie aus Health bis jetzt, kein Gesamtbedarf" : "Grobe Schätzung bis jetzt; Schritte und bewertete Gym-Zeit werden nicht addiert")
+                        Text(estimate?.source == .appleHealth ? "Aktive Energie aus Health bis jetzt, kein Gesamtbedarf" : "Grobe Schätzung bis jetzt; Schritte und bewertete Aktivitäten werden nicht addiert")
                             .font(.caption2).foregroundStyle(FYColor.muted)
                     }
                     Spacer(minLength: 0); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)

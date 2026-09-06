@@ -8,12 +8,12 @@ Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. F
 - [x] 459 von 459 Einzeltests und 33 von 33 Bedienabläufen im signierten Lauf bestanden; `TEST SUCCEEDED`.
 - [x] Erneuerte App-/Live-Activity-Profile angewendet, eindeutige Buildnummer gesetzt und eingebettete produktive Backend-Konfiguration geprüft.
 - [x] Signierte IPA als FYRUP `1.0.0` / Build `11` erzeugt und am 06.09.2026 um 06:11 CEST von App Store Connect ohne Uploadfehler angenommen (`UPLOAD SUCCEEDED with no errors`).
-- [ ] Apple-Verarbeitung von Build 11 abgeschlossen und Build in „FYRUP Intern“ sichtbar/installierbar.
+- [x] Apple-Verarbeitung von Build 11 abgeschlossen; Status „Bereit zur Übermittlung“, Gruppe „FYRUP Intern“, eine Einladung und 90 Tage Laufzeit am 06.09.2026 frisch geprüft.
 - [ ] Build 11 auf echtem iPhone mit Apple-Login, HealthKit, Live-Aktivität, Push und den Kernabläufen geprüft.
 
-Zusatzprüfung: Alle zehn lokalen Backend-Prüfprogramme liefen am 06.09.2026 ohne Fehler durch. Der vorhandene Apple-Schlüssel „FYRUP Push Production“ ist im Developer-Konto bestätigt; `APNS_PRIVATE_KEY` fehlt weiterhin in den Supabase-Secrets. Der Schlüsselinhalt wurde nicht über Zwischenablage, Protokoll oder Repository offengelegt. Das geschützte Hinterlegen bleibt deshalb ein eigener manueller/CLI-gestützter Schritt.
+Zusatzprüfung: Alle elf lokalen Backend-Prüfprogramme sowie 57 Versand-/Sprachtests liefen am 06.09.2026 ohne Fehler durch. Der vorhandene Apple-Schlüssel „FYRUP Push Production“ ist im Developer-Konto bestätigt; `APNS_PRIVATE_KEY` fehlt weiterhin in den Supabase-Secrets. Der Schlüsselinhalt wurde nicht über Zwischenablage, Protokoll oder Repository offengelegt. Das geschützte Hinterlegen bleibt deshalb ein eigener manueller/CLI-gestützter Schritt.
 
-Die App-Store-Connect-Websitzung war direkt nach dem erfolgreichen Upload abgelaufen. Deshalb ist die Annahme durch Apples Uploaddienst belegt, die spätere Verarbeitung und Gruppenzuordnung aber noch nicht. Der folgende Abschnitt bleibt als Fehlerhistorie von Build 9 erhalten.
+Frische App-Store-Connect-Kontrolle: Uploadstatus „Abgeschlossen“; Build 11 steht in der internen Gruppe bereit. Die Anzeige meldet noch keine Installation. Der folgende Abschnitt bleibt als Fehlerhistorie von Build 9 erhalten.
 
 ## Historischer Release-Kandidat am 05.09.2026
 

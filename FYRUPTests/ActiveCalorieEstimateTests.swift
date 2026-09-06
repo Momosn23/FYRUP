@@ -37,7 +37,28 @@ final class ActiveCalorieEstimateTests: XCTestCase {
         // 60 min at 6 MET, active share only. This is larger than the step estimate,
         // and duplicate activity IDs are counted once.
         XCTAssertEqual(value?.kilocalories ?? 0, 420, accuracy: 0.001)
-        XCTAssertTrue(value?.includesExplicitGymEffort == true)
+        XCTAssertTrue(value?.includesExplicitActivityEffort == true)
+    }
+
+    func testReviewedNonGymActivityUsesSportAndCompletionFeeling() throws {
+        var running = completedGym()
+        running.sport = .running
+        var review = PersonalWorkoutFeedback(activityID: running.id)
+        review.feeling = .tough
+        let value = try XCTUnwrap(ActiveCalorieEstimate.make(healthKilocalories: nil, steps: nil,
+            heightCM: 175, weightKG: 80, ownerID: owner, activities: [running],
+            feedback: [running.id: review], now: now, calendar: calendar))
+        // Running base 7 MET × 1.2 for the explicit tough signal, active share only.
+        XCTAssertEqual(value.kilocalories, 621.6, accuracy: 0.001)
+        XCTAssertTrue(value.includesExplicitActivityEffort)
+    }
+
+    func testUnreviewedNonGymActivityDoesNotInventEnergy() {
+        var running = completedGym()
+        running.sport = .running
+        XCTAssertNil(ActiveCalorieEstimate.make(healthKilocalories: nil, steps: nil,
+            heightCM: 175, weightKG: 80, ownerID: owner, activities: [running],
+            feedback: [:], now: now, calendar: calendar))
     }
 
     func testPlannedCancelledForeignAndOtherDayActivitiesDoNotCount() {

@@ -25,6 +25,6 @@ Arbeitsstand: [Implementierung und getrennte Prüfnachweise](PERSONAL_TRAINING_I
 
 ## Ergänzung: Lebendige Darstellung
 
-- [ ] MOTION-01 Kurzes Konfetti nach echtem Trainingsabschluss, keine Endlosschleife oder erneute Feier bei bloßem Öffnen alter Einträge.
-- [ ] MOTION-02 Dezentes Feedback für Tagesauswahl, Fortschritt und Streak-Erfolg; keine unruhige Animation jeder Karte.
-- [ ] MOTION-03 „Bewegung reduzieren“ respektieren, dekorative Effekte für Bedienung/VoiceOver unsichtbar halten und nach Verlassen stoppen.
+- [x] MOTION-01 Kurzes Konfetti nur nach einem neu bestätigten Abschluss; der Effekt endet nach 3,4 Sekunden und startet beim bloßen Öffnen alter Einträge nicht erneut.
+- [x] MOTION-02 Dezentes Feedback für Tagesauswahl, Fortschritt und Streak-Erfolg; keine unruhige Animation jeder Karte.
+- [x] MOTION-03 „Bewegung reduzieren“ wird respektiert; Konfetti ist für Bedienung und VoiceOver unsichtbar und sein endlicher Task wird beim Verlassen beendet.

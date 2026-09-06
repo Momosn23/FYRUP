@@ -26,6 +26,14 @@ workflows:
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
           node scripts/audit-terminology.mjs
+          node supabase/tests/run_workout_tests.mjs
+          node supabase/tests/run_blind_tests.mjs
+          node supabase/tests/run_copy_tests.mjs
+          node supabase/tests/run_personal_training_tests.mjs
+          node supabase/tests/run_preference_tests.mjs
+          node supabase/tests/run_shot_tests.mjs
+          node supabase/tests/run_step_tests.mjs
+          node supabase/tests/run_weekly_tests.mjs
           node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
@@ -90,6 +98,14 @@ workflows:
           node scripts/validate-exercise-catalog.mjs
           npm install --prefix .qa/workout-db --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8 @electric-sql/pglite-pgtap@0.0.9
           node scripts/audit-terminology.mjs
+          node supabase/tests/run_workout_tests.mjs
+          node supabase/tests/run_blind_tests.mjs
+          node supabase/tests/run_copy_tests.mjs
+          node supabase/tests/run_personal_training_tests.mjs
+          node supabase/tests/run_preference_tests.mjs
+          node supabase/tests/run_shot_tests.mjs
+          node supabase/tests/run_step_tests.mjs
+          node supabase/tests/run_weekly_tests.mjs
           node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs

@@ -18,7 +18,7 @@ Neuer kumulativer Auftrag vom 05.09.2026. Dauerhafte Regeln: [TERMINOLOGY.md](TE
 - [x] TERM-14 Resttreffer projektweit prüfen und technische/historische/fachliche Ausnahmen dokumentieren.
 - [x] TERM-15 Vollständigen nativen Build sowie verfügbare Datenbank-, Logik- und UI-Tests ausführen und Ergebnisse festhalten.
 - [ ] TERM-16 Tatsächliche Bildschirmaufnahmen aller betroffenen Seiten kontrollieren; keine abgeschnittenen neuen Labels.
-- [ ] TERM-17 Neue Version signieren, Apple-Upload prüfen und TestFlight-Zuordnung verifizieren.
+- [x] TERM-17 Build 11 aus dem geprüften Sprachstand signiert, ohne Uploadfehler übertragen, von Apple verarbeitet und der Gruppe „FYRUP Intern“ zugeordnet; der danach lokal ergänzte Stand folgt in einem späteren Build.
 - [ ] TERM-18 Kurze Abschlussübersicht der Ersetzungen, bewussten Ausnahmen, geänderten Dateien und Testergebnisse liefern.
 
 ## Aktueller Zwischenstand
@@ -33,4 +33,4 @@ Vorheriger Build29 (`073b933`) bestand 365 Einzeltests und 26 UI-Abläufe; **er 
 
 Build 31 (`7910f6c`, `6a9befa83cf4759eab7d62a6`) ist vollständig erfolgreich: 382 Einzeltests und 27 UI-Abläufe. [Einzelbildvergleich mit offenen Restabweichungen](VISUAL_QA_BUILD31.md). Aktueller Textaudit: 82 Dateien ohne ungeprüfte Alttexte. Produktiver Dispatcher-Quelltext vollständig verglichen, automatische Aufrufe 12:54–12:56 CEST mit HTTP 200. Keine echte Push-/TestFlight-Abnahme; neuere GitHub-Kompatibilitäts- und Layoutkorrekturen werden separat nachgetestet.
 
-Nachtrag 06.09.2026: Der aktuelle Terminologieaudit besteht für 111 App-Textdateien. Codemagic 45 und der signierte Lauf 46 bestanden jeweils 459 Einzeltests und 33 Bedienabläufe ohne Fehler. Alle zehn lokalen Backend-Prüfprogramme liefen zusätzlich ohne Fehler durch; die produktiven Migrationen und Push-Vorlagen waren bereits getrennt abgeglichen. Damit sind TERM-02 bis TERM-15 auf Quelltext-, Backend- und Simulator-Ebene belegt. Build 46 wurde als FYRUP 1.0.0 / Build 11 ohne Uploadfehler an Apple übertragen. TERM-16 bleibt bis zur vollständigen aktuellen Bildschirmkontrolle offen; TERM-17 bis zur bestätigten Apple-Verarbeitung und Testergruppe.
+Nachtrag 06.09.2026: Der aktuelle Terminologieaudit besteht für 111 App-Textdateien. Codemagic 45 und der signierte Lauf 46 bestanden jeweils 459 Einzeltests und 33 Bedienabläufe ohne Fehler. Alle elf lokalen Backend-Prüfprogramme sowie 57 Versand-/Sprachtests liefen zusätzlich ohne Fehler durch; die produktiven Migrationen und Push-Vorlagen waren bereits getrennt abgeglichen. Damit sind TERM-02 bis TERM-15 auf Quelltext-, Backend- und Simulator-Ebene belegt. Build 46 wurde als FYRUP 1.0.0 / Build 11 ohne Uploadfehler an Apple übertragen, inzwischen verarbeitet und „FYRUP Intern“ zugeordnet. TERM-16 bleibt bis zur vollständigen aktuellen Bildschirmkontrolle offen; TERM-18 ist die spätere Abschlussübersicht.
