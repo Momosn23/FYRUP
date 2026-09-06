@@ -9,8 +9,8 @@ Verbindlicher Zusatz zur zentralen Produktliste. Nutzer: Startseite wirkt billig
 - [x] NEU-03 LIVE verändert Heute sichtbar: Foto/Status/Zeit, Session öffnen, Gym-Satzpause direkt bedienbar.
 - [x] NEU-04 Satzpause mit auswählbarer Dauer, echter verstrichener Zeit, Seiten-/Hintergrundwechsel und Wiederöffnung; unabhängig von globaler Session-Pause und Satzprotokoll. Keine Daten anderer Konten.
 - [x] NEU-05 Geführte Ersteinrichtung für neue Nutzer und sichtbarer Nachhol-Einstieg für bestehende Konten; wieder erreichbar im Profil.
-- [x] NEU-06 Schritte mit Erklärung direkt verbinden, eigenes Tagesziel erfassen, separat mit bestätigten Freunden teilen; Teilen nicht vorab einschalten, unbekannten Serverstatus nicht als bestätigt ausgeben.
-- [x] NEU-07 Körpergröße/Gewicht optional erfassen, valide und privat speichern, wieder öffnen, ändern und löschen. Ungespeicherte Eingaben nicht beim Weitergehen verlieren.
+- [x] NEU-06 Schritte mit Erklärung direkt verbinden, eigenes Tagesziel erfassen, separat mit bestätigten Freunden teilen; im Einstieg müssen Schrittziel und eine bewusste Health-Entscheidung vorliegen. „Ohne Apple Health“ bleibt möglich, Teilen wird nicht vorab eingeschaltet und ein unbekannter Serverstatus nicht als bestätigt ausgegeben.
+- [x] NEU-07 Körpergröße/Gewicht bei der ersten Einrichtung verpflichtend zusammen und plausibel erfassen; danach privat wieder öffnen, ändern oder gemeinsam löschen. Ungespeicherte Eingaben nicht beim Weitergehen verlieren.
 - [x] NEU-08 Geschätzte aktive Energie aus Apple Health auf Heute samt eigenem Ziel, Quelle, Stand und ehrlichem Zustand ohne Daten. Separate Lesefreigabe; kein Ruheverbrauch/Schrittwert zusätzlich addieren.
 - [ ] NEU-09 Eigene, transparent beschriebene Schätzung aus Schritten oder bewerteten abgeschlossenen Aktivitäten ist umgesetzt; Sportart und aktive Dauer werden berücksichtigt, überlappende Quellen nicht addiert. Die freiwillige lokale Zielhilfe ist klar als Berechnung auf dem iPhone gekennzeichnet und keine externe KI. Apples Wert bleibt eine eigenständige Health-Quelle; Körperdaten in FYRUP ändern Apple Health nicht. Offen bleibt die ausdrücklich gewünschte echte externe KI bis zu sicherer Anbieterwahl, Einwilligung und Kostenlimit.
 - [x] NEU-10 Mitteilungen im Einstieg erklären und explizit beim System anfragen. Freigaben werden weder umgangen noch durch UI-Toggles vorgetäuscht.
@@ -26,6 +26,8 @@ Verbindlicher Zusatz zur zentralen Produktliste. Nutzer: Startseite wirkt billig
 ## Vorbereiteter Code, noch nicht nativ abgenommen
 
 Implementiert in dieser Arbeitsrunde: zeitabhängige Begrüßung; Foto-/Crew-/LIVE-Umbau; endliche Karten-/Buttonanimationen mit Reduce Motion; kontogetrennter Satzpausen-Countdown; geführte Einrichtung; Keychain-Speicherung privater Körperdaten; gesonderter read-only Health-Energiepfad; Live-Activity-Erweiterung samt kontrolliertem Rücklink; gruppierte Muskelflächen; zusätzliche Tests. Diese Liste bedeutet noch keinen vollständigen Funktionshaken.
+
+Lokaler Folgestand nach Build 11: Der Login nutzt die Referenzfotografie nun ohne harte horizontale Bildkante. Die Körper-/Energieseite besitzt eine eigene Bildfläche; Körpergröße und Gewicht werden im Ersteinstieg nicht nur beschriftet, sondern auf Vollständigkeit und plausible Bereiche geprüft. Auf der Schritteseite ist Weiter erst möglich, nachdem ein gültiges Ziel und eine bewusste Entscheidung für oder gegen Apple Health vorliegen. Die native Prüfung dieses Folgestands wird gebündelt gestartet und erst nach dem tatsächlichen Cloud-Ergebnis als Auslieferungsnachweis ergänzt.
 
 Für Kalorien wird zunächst Apples aktive Energie übernommen, nicht durch eine unvalidierte neue Schrittlängen-/Intensitätsformel ersetzt. Ohne Daten keine erfundenen Standard-kcal. Körperdaten, Energie und Ziele gehen nicht an Freunde/Server/KI. Konto- und Tageswechsel sind eigene Testfälle.
 

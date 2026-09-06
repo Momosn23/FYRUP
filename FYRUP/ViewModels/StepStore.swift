@@ -17,6 +17,7 @@ final class StepStore {
     private(set) var sharingEnabled: Bool?
     private(set) var isSharingPreferenceCurrent = false
     private(set) var healthRequested = false
+    private(set) var healthDecisionMade = false
     private(set) var showSteps = false
     private(set) var goal: Int? = nil
     private(set) var isAuthorizing = false
@@ -54,7 +55,7 @@ final class StepStore {
     /// HealthKit never tells us whether read permission was denied.
     var healthStatusText: String {
         if !isAvailable { return "Apple Health ist auf diesem Gerät nicht verfügbar." }
-        if !healthRequested { return "Noch nicht verbunden" }
+        if !healthRequested { return healthDecisionMade ? "Nicht verbunden – später änderbar" : "Noch nicht verbunden" }
         return todaysSteps == nil ? "Keine Schrittdaten verfügbar" : "Schrittdaten verfügbar"
     }
     var shared: [DailyStepMetric] {
@@ -71,6 +72,7 @@ final class StepStore {
         if self.userID != userID {
             reset(); self.userID = userID
             healthRequested = defaults.bool(forKey: key("healthRequested", userID: userID))
+            healthDecisionMade = defaults.bool(forKey: key("healthDecisionMade", userID: userID)) || healthRequested
             showSteps = defaults.bool(forKey: key("show", userID: userID))
             if let saved = defaults.object(forKey: key("goal", userID: userID)) as? Int, (1000...100000).contains(saved) { goal = saved }
         }
@@ -79,14 +81,14 @@ final class StepStore {
 
     func reset(clearLocalPreferences: Bool = false) {
         if clearLocalPreferences, let id = userID {
-            for name in ["healthRequested", "show", "goal"] { defaults.removeObject(forKey: key(name, userID: id)) }
+            for name in ["healthRequested", "healthDecisionMade", "show", "goal"] { defaults.removeObject(forKey: key(name, userID: id)) }
         }
         generation = UUID(); privacyGeneration = UUID()
         userID = nil; steps = nil; localDate = ""; activeTimezone = ""
         sharingEnabled = nil; isSharingPreferenceCurrent = false; preference = nil
         sharedValues = []; sharedFetchedAt = nil; lastRefresh = nil; lastSyncedAt = nil; revokedFriends = []
         sharedReadRevision += 1
-        healthRequested = false; showSteps = false; goal = nil; message = nil
+        healthRequested = false; healthDecisionMade = false; showSteps = false; goal = nil; message = nil
         isAuthorizing = false; isChangingSharing = false; isRefreshing = false; queuedRefresh = false
     }
 
@@ -116,11 +118,20 @@ final class StepStore {
             guard generation == request, userID == id else { return }
             healthRequested = true; showSteps = true
             defaults.set(true, forKey: key("healthRequested", userID: id))
+            healthDecisionMade = true
+            defaults.set(true, forKey: key("healthDecisionMade", userID: id))
             defaults.set(true, forKey: key("show", userID: id))
             await refresh(force: true)
         } catch {
             if generation == request { message = "Apple Health konnte gerade nicht geöffnet werden. Versuche es erneut." }
         }
+    }
+
+    func continueWithoutHealth() {
+        guard let id = userID else { return }
+        healthDecisionMade = true
+        defaults.set(true, forKey: key("healthDecisionMade", userID: id))
+        message = nil
     }
 
     func setShowSteps(_ enabled: Bool) {

@@ -16,6 +16,9 @@ struct PersonalSetupView: View {
     private var requiredBodyDataMissing: Bool {
         isOnboarding && page == 1 && (store.setup.value?.heightCM == nil || store.setup.value?.weightKG == nil)
     }
+    private var requiredStepSetupMissing: Bool {
+        isOnboarding && page == 0 && (!store.steps.healthDecisionMade || stepGoal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -34,7 +37,7 @@ struct PersonalSetupView: View {
                     Group {
                         switch page {
                         case 0: stepsPage
-                        case 1: BodyAndEnergySettings(onEditingChanged: { hasUnsavedBodyChanges = $0 })
+                        case 1: BodyAndEnergySettings(requiresMeasurements: isOnboarding, onEditingChanged: { hasUnsavedBodyChanges = $0 })
                         case 2: permissionsPage
                         default: overviewPage
                         }
@@ -42,6 +45,7 @@ struct PersonalSetupView: View {
                     if let error = fieldError ?? store.setup.errorMessage { Text(error).font(.footnote).foregroundStyle(FYColor.coral) }
                     if page == 1 && hasUnsavedBodyChanges { Text("Speichere deine Eingaben mit „Körperdaten & Ziel speichern“, bevor du weitergehst.").font(.caption).foregroundStyle(FYColor.muted) }
                     if requiredBodyDataMissing { Text("Für deine persönliche Verbrauchsschätzung fehlen noch Körpergröße und Gewicht. Beide Angaben bleiben privat auf diesem iPhone.").font(.caption).foregroundStyle(FYColor.coral) }
+                    if requiredStepSetupMissing { Text("Wähle dein tägliches Schrittziel und entscheide, ob FYRUP Apple Health verbinden darf.").font(.caption).foregroundStyle(FYColor.coral) }
                     if store.setup.value == nil {
                         Button("Einstellungen erneut laden") { store.setup.activate(userID: store.session?.userID) }.buttonStyle(OutlineButtonStyle())
                     }
@@ -60,7 +64,7 @@ struct PersonalSetupView: View {
                             if isOnboarding { store.route = .onboardingComplete }
                             else { dismiss() }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges) || requiredBodyDataMissing)
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges) || requiredBodyDataMissing || requiredStepSetupMissing)
                         .accessibilityIdentifier("personal-setup-next")
                     Text("Du entscheidest. Optionale Freigaben dürfen aus bleiben und lassen sich später ändern.")
                         .font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)
@@ -97,10 +101,14 @@ struct PersonalSetupView: View {
                 Task { await store.steps.connect() }
             }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isAuthorizing || !store.steps.isAvailable)
                 .accessibilityIdentifier("setup-connect-health")
+            if isOnboarding && !store.steps.healthRequested {
+                Button("Jetzt ohne Apple Health") { store.steps.continueWithoutHealth() }
+                    .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("setup-skip-health")
+            }
             Label(store.steps.healthStatusText, systemImage: "heart.text.clipboard").font(.caption).foregroundStyle(FYColor.muted)
             VStack(alignment: .leading, spacing: 12) {
                 Text("Dein Schrittziel pro Tag").font(.headline)
-                TextField("Optional, z. B. 8.000", text: $stepGoal).keyboardType(.numberPad)
+                TextField(isOnboarding ? "Erforderlich, z. B. 8.000" : "Optional, z. B. 8.000", text: $stepGoal).keyboardType(.numberPad)
                     .padding(13).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityIdentifier("setup-step-goal")
                 HStack {

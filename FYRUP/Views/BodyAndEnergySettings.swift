@@ -11,15 +11,24 @@ struct BodyAndEnergySettings: View {
     @State private var showsGoalSuggestion = false
     @State private var baseline: [String] = ["", "", ""]
     @FocusState private var focusedField: String?
+    var requiresMeasurements = false
     var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            SportHeroCard(
+                sport: .running,
+                title: requiresMeasurements ? "Deine Basis" : "Deine Bewegung",
+                subtitle: "Privat eingerichtet · ehrlich geschätzt · jederzeit anpassbar"
+            ).fyEntrance()
             VStack(alignment: .leading, spacing: 13) {
                 Label("Deine Körperdaten · privat", systemImage: "figure.stand").font(.headline)
                 metricField("Körpergröße", unit: "cm", value: $height, id: "setup-height")
                 metricField("Gewicht", unit: "kg", value: $weight, id: "setup-weight")
-                Text("Freiwillig und geschützt auf diesem iPhone. Keine Übertragung an Freunde, FYRUP-Server oder KI. Für die eigene grobe Schätzung werden Größe und Gewicht zusammen benötigt.").font(.caption).foregroundStyle(FYColor.muted)
+                Text(requiresMeasurements
+                     ? "Für deine persönliche Schätzung im Einstieg erforderlich und geschützt auf diesem iPhone. Keine Übertragung an Freunde, FYRUP-Server oder KI."
+                     : "Freiwillig und geschützt auf diesem iPhone. Keine Übertragung an Freunde, FYRUP-Server oder KI. Für die eigene grobe Schätzung werden Größe und Gewicht zusammen benötigt.")
+                    .font(.caption).foregroundStyle(FYColor.muted)
                 if store.setup.value?.heightCM != nil || store.setup.value?.weightKG != nil {
                     Button("Körperdaten löschen", role: .destructive) { confirmsDelete = true }
                         .font(.caption).frame(minHeight: 44)
@@ -76,8 +85,8 @@ struct BodyAndEnergySettings: View {
     }
     private func metricField(_ title: String, unit: String, value: Binding<String>, id: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.semibold))
-            HStack { TextField("Optional", text: value).keyboardType(.decimalPad).focused($focusedField, equals: id).accessibilityLabel(title).accessibilityIdentifier(id); Text(unit).foregroundStyle(FYColor.muted) }
+            Text(title + (requiresMeasurements ? " · erforderlich" : "")).font(.caption.weight(.semibold))
+            HStack { TextField(requiresMeasurements ? "Erforderlich" : "Optional", text: value).keyboardType(.decimalPad).focused($focusedField, equals: id).accessibilityLabel(title).accessibilityIdentifier(id); Text(unit).foregroundStyle(FYColor.muted) }
                 .padding(13).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
         }
     }
@@ -94,10 +103,23 @@ struct BodyAndEnergySettings: View {
         for text in [height, weight, goal] where !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             guard let parsed = number(text), parsed.isFinite else { error = "Prüfe deine Eingabe. Verwende Zahlen und bei Bedarf ein Komma."; return }
         }
+        let parsedHeight = number(height), parsedWeight = number(weight)
+        if requiresMeasurements && (parsedHeight == nil || parsedWeight == nil) {
+            error = "Gib Körpergröße und Gewicht ein. Beide Angaben bleiben privat auf diesem iPhone."; return
+        }
+        if (parsedHeight == nil) != (parsedWeight == nil) {
+            error = "Gib Körpergröße und Gewicht zusammen ein oder lösche beide Angaben."; return
+        }
+        if let parsedHeight, !(50...260).contains(parsedHeight) {
+            error = "Gib eine Körpergröße von 50–260 cm ein."; return
+        }
+        if let parsedWeight, !(20...450).contains(parsedWeight) {
+            error = "Gib ein Gewicht von 20–450 kg ein."; return
+        }
         let parsedGoal = number(goal)
         if let parsedGoal, parsedGoal.rounded() != parsedGoal || !(50...5000).contains(parsedGoal) { error = "Gib ein ganzzahliges Bewegungsziel von 50–5.000 kcal ein oder lass es leer."; return }
         saved = store.setup.update {
-            $0.heightCM = number(height); $0.weightKG = number(weight)
+            $0.heightCM = parsedHeight; $0.weightKG = parsedWeight
             $0.measurementsUpdatedAt = $0.heightCM != nil || $0.weightKG != nil ? .now : nil
             $0.activeCalorieGoal = parsedGoal.map(Int.init)
         }

@@ -94,41 +94,47 @@ struct WelcomeView: View {
     }
 
     private var loginChoice: some View {
-        ZStack(alignment: .top) {
-            Color.white.ignoresSafeArea()
+        ZStack {
             Image("WelcomeHeroLight").resizable().scaledToFill()
-                .frame(height: 310).blur(radius: 2)
-                .overlay(LinearGradient(stops: [
-                    .init(color: .white.opacity(0.08), location: 0),
-                    .init(color: .white, location: 0.88),
-                    .init(color: .white, location: 1)
-                ], startPoint: .top, endPoint: .bottom))
-                // Clip after the blur; otherwise its dark edge bleeds below the white fade.
-                .clipped().allowsHitTesting(false).accessibilityHidden(true)
-                .ignoresSafeArea(edges: .top)
+                .ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
+            LinearGradient(stops: [
+                .init(color: .white.opacity(0.10), location: 0),
+                .init(color: .white.opacity(0.02), location: 0.38),
+                .init(color: .black.opacity(0.16), location: 0.58),
+                .init(color: .black.opacity(0.72), location: 1)
+            ], startPoint: .top, endPoint: .bottom).ignoresSafeArea().accessibilityHidden(true)
             VStack(spacing: 14) {
-                Spacer().frame(height: 96)
+                Spacer().frame(height: 82)
                 Text("Willkommen bei").font(.title3.weight(.bold)).foregroundStyle(FYColor.ink)
-                FYRUPWordmark(size: 48)
-                Text("Your friends make you move.").font(.subheadline).foregroundStyle(FYColor.muted)
-                Spacer().frame(height: 62)
+                    .shadow(color: .white.opacity(0.8), radius: 8)
+                FYRUPWordmark(size: 50)
+                    .shadow(color: .white.opacity(0.75), radius: 10)
+                Text("Your friends make you move.").font(.subheadline.weight(.medium)).foregroundStyle(FYColor.ink.opacity(0.76))
+                    .shadow(color: .white, radius: 7)
+                Spacer(minLength: 120)
                 SignInWithAppleButton(.signIn) { store.configureAppleRequest($0) } onCompletion: { result in
                     Task { await store.handleAppleResult(result) }
                 }
-                .signInWithAppleButtonStyle(.black).frame(height: 50)
+                .signInWithAppleButtonStyle(.white).frame(height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
                 .disabled(settledPage != 3 || store.isBusy)
-                Button("Mit E-Mail anmelden") { authMode = .signIn }.buttonStyle(OutlineButtonStyle())
+                Button("Mit E-Mail anmelden") { authMode = .signIn }
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.62)))
+                    .buttonStyle(FYPressStyle())
                     .accessibilityIdentifier("welcome-email-login").disabled(settledPage != 3 || store.isBusy)
                 Button("Account erstellen") { authMode = .registration }
-                    .font(.footnote.weight(.semibold)).foregroundStyle(FYColor.ink).underline()
+                    .font(.footnote.weight(.semibold)).foregroundStyle(.white).underline()
                     .accessibilityIdentifier("welcome-create-account").disabled(settledPage != 3 || store.isBusy)
-                Spacer()
                 Text("Mit der Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
-                    .font(.caption2).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
+                    .font(.caption2).foregroundStyle(.white.opacity(0.78)).multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 26).padding(.bottom, 22)
+            .padding(.horizontal, 26).padding(.bottom, 18)
         }
+        .accessibilityIdentifier("welcome-login-full-hero")
     }
 }
 

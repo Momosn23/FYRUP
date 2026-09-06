@@ -3,6 +3,19 @@ import XCTest
 
 @MainActor
 final class StepStoreTests: XCTestCase {
+    func testExplicitHealthDeclineIsRememberedWithoutRequestingAccess() async {
+        let rig = StepRig(); defer { rig.cleanUp() }
+        await rig.store.activate(userID: momo)
+        XCTAssertFalse(rig.store.healthDecisionMade)
+        rig.store.continueWithoutHealth()
+        XCTAssertTrue(rig.store.healthDecisionMade)
+        XCTAssertFalse(rig.store.healthRequested)
+
+        let restored = StepStore(repository: rig.repository, reader: rig.reader, defaults: rig.defaults)
+        await restored.activate(userID: momo)
+        XCTAssertTrue(restored.healthDecisionMade)
+        XCTAssertFalse(restored.healthRequested)
+    }
     private let momo = UUID(uuidString: "30000000-0000-0000-0000-000000000001")!
     private let max = UUID(uuidString: "30000000-0000-0000-0000-000000000002")!
 

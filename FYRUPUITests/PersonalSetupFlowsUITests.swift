@@ -67,7 +67,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertEqual(height.value as? String, "182")
         XCTAssertEqual(weight.value as? String, "84,5")
         tap(app.buttons["delete-body-data"], in: app)
-        tap(app.buttons["confirm-delete-body-data"], in: app)
+        tap(app.buttons["confirm-delete-body-data"].firstMatch, in: app)
         XCTAssertEqual(height.value as? String, "Optional")
         XCTAssertEqual(weight.value as? String, "Optional")
         XCTAssertEqual(goal.value as? String, "500", "Deleting measurements must not silently remove the user's movement goal")
@@ -93,6 +93,21 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         replaceText(in: goal, with: "475", app: app)
         tap(app.buttons["save-body-and-goal"], in: app)
         XCTAssertEqual(goal.value as? String, "475", "The suggestion remains editable before it is saved")
+    }
+
+    func testBodyDataRejectsOutOfRangeAndUnpairedValues() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
+        tap(app.buttons["active-energy-card"], in: app)
+        let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"]
+        replaceText(in: height, with: "300", app: app)
+        replaceText(in: weight, with: "80", app: app)
+        tap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertTrue(app.staticTexts["Gib eine Körpergröße von 50–260 cm ein."].waitForExistence(timeout: 4))
+
+        replaceText(in: height, with: "180", app: app)
+        replaceText(in: weight, with: "", app: app)
+        tap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertTrue(app.staticTexts["Gib Körpergröße und Gewicht zusammen ein oder lösche beide Angaben."].waitForExistence(timeout: 4))
     }
 
     private func replaceText(in field: XCUIElement, with value: String, app: XCUIApplication) {

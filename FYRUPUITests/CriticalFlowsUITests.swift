@@ -250,6 +250,7 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("03-onboarding-crew")
         app.buttons["welcome-crew-next"].tap()
         waitUntilReady(app.buttons["welcome-email-login"])
+        XCTAssertTrue(app.descendants(matching: .any)["welcome-login-full-hero"].firstMatch.exists)
         capture("00-welcome")
         app.buttons["welcome-create-account"].tap()
         assertRegistration(in: app)
@@ -380,12 +381,20 @@ final class CriticalFlowsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Jeder Schritt zählt."].waitForExistence(timeout: 4))
         capture("73-setup-health")
-        // Optional system permissions are not silently accepted during onboarding.
+        // The choice is required, but an iOS permission is never silently accepted.
+        XCTAssertFalse(app.buttons["personal-setup-next"].isEnabled)
+        revealAndTap(app.buttons["setup-skip-health"], in: app)
+        let stepGoal = app.textFields["setup-step-goal"]
+        revealAndTap(stepGoal, in: app)
+        stepGoal.typeText("8000")
+        app.buttons["Fertig"].tap()
         revealAndTap(app.buttons["personal-setup-next"], in: app)
         capture("74-setup-page-2")
 
         let height = app.textFields["setup-height"]
         XCTAssertTrue(height.waitForExistence(timeout: 3))
+        revealAndTap(app.buttons["save-body-and-goal"], in: app)
+        XCTAssertTrue(app.staticTexts["Gib Körpergröße und Gewicht ein. Beide Angaben bleiben privat auf diesem iPhone."].waitForExistence(timeout: 3))
         height.tap()
         height.typeText("182")
         let weight = app.textFields["setup-weight"]
