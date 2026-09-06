@@ -19,7 +19,8 @@ Das Systemprotokoll enthält pro Backend-Aufruf eine zufällige kurze Vorgangske
 - Lokaler Konfigurations-/Codeaudit von Debug-, Release-, Codemagic-, IPA-Prüf-, Schlüsselbund-, Auth-, Fehler- und Foreground-Pfaden: **AUSGEFÜHRT**.
 - Lokale Fehlermapping-Tests für Offline, Timeout, 401, 403/RLS, 503 und sonstige API-Fehler: im nativen Testsatz ergänzt; Ausführung benötigt den nächsten macOS-/Codemagic-Lauf.
 - Lokaler Datenbanktest des gleichzeitig ergänzten privaten Übungsverlaufs: **AUSGEFÜHRT UND BESTANDEN**. Kein produktives Konto wurde verändert.
-- Native Release-Kompilierung, Unit- und UI-Tests dieses Quellstands: **NOCH NICHT AUSGEFÜHRT**.
+- Codemagic 49 (`4503d12`) führte alle lokalen Vorprüfungen erfolgreich aus und erreichte die native Kompilierung. Sie stoppte dort nach 2 Minuten 23 Sekunden an einer uneindeutigen Swift-Typableitung im Demo-Pfad der neuen Übungshistorie (`[Any]` statt des lokalen Eintragstyps). Die Rückgabe ist im Folgequellstand ausdrücklich typisiert. Das ist kein festgestellter Verbindungs- oder Backendfehler.
+- Native Release-Kompilierung, Unit- und UI-Tests des korrigierten Folgequellstands: **NOCH NICHT AUSGEFÜHRT**.
 
 ## Noch zwingend am echten iPhone/TestFlight zu prüfen
 

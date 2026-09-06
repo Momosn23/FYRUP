@@ -347,7 +347,7 @@ actor DemoWorkoutStorage {
             let weight: Double?
             let reps: Int?
         }
-        let entries: [Entry] = state.logs.flatMap { activityID, log in
+        let entries: [Entry] = state.logs.flatMap { activityID, log -> [Entry] in
             guard let activity = state.activities[activityID], activity.userID == userID,
                   activity.status == .completed, let endedAt = activity.endedAt else { return [] }
             return log.exercises.flatMap { exercise -> [Entry] in
