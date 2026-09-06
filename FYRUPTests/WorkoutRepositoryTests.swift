@@ -172,7 +172,8 @@ final class WorkoutRepositoryTests: XCTestCase {
         liveLog.exercises[0].sets[0].reps = 10
         liveLog.exercises[0].sets[0].completed = true
         _ = try await repository.saveWorkoutLog(liveLog)
-        let whileLive = try XCTUnwrap(try await repository.exercisePerformance(exerciseIDs: [exerciseID]).first)
+        let livePerformance = try await repository.exercisePerformance(exerciseIDs: [exerciseID])
+        let whileLive = try XCTUnwrap(livePerformance.first)
         XCTAssertEqual(whileLive.lastWeight, 85)
         XCTAssertEqual(whileLive.bestWeight, 100)
     }
