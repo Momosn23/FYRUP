@@ -111,7 +111,10 @@ struct WelcomeView: View {
                     .shadow(color: .white.opacity(0.75), radius: 10)
                 Text("Your friends make you move.").font(.subheadline.weight(.medium)).foregroundStyle(FYColor.ink.opacity(0.76))
                     .shadow(color: .white, radius: 7)
-                Spacer(minLength: 120)
+                // Keep the actions inside the visible safe area on compact iPhones.
+                // A flexible spacer preserves the photo-first composition without
+                // pushing login controls out of the accessibility hierarchy.
+                Spacer(minLength: 24)
                 SignInWithAppleButton(.signIn) { store.configureAppleRequest($0) } onCompletion: { result in
                     Task { await store.handleAppleResult(result) }
                 }

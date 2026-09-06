@@ -33,10 +33,11 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["personal-setup-next"], in: app)
         let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-calorie-goal"]
         tap(height, in: app); height.typeText("180")
+        tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         tap(weight, in: app); weight.typeText("81,5")
-        tap(app.toolbars.buttons["Fertig"], in: app)
+        tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         tap(goal, in: app); goal.typeText("450")
-        tap(app.toolbars.buttons["Fertig"], in: app)
+        tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         tap(app.buttons["save-body-and-goal"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["body-data-saved"].firstMatch.waitForExistence(timeout: 4))
         capture("78-private-body-energy-setup")

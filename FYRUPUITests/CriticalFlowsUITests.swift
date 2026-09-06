@@ -387,7 +387,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let stepGoal = app.textFields["setup-step-goal"]
         revealAndTap(stepGoal, in: app)
         stepGoal.typeText("8000")
-        app.buttons["Fertig"].tap()
+        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         revealAndTap(app.buttons["personal-setup-next"], in: app)
         capture("74-setup-page-2")
 
@@ -397,10 +397,11 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Gib Körpergröße und Gewicht ein. Beide Angaben bleiben privat auf diesem iPhone."].waitForExistence(timeout: 3))
         height.tap()
         height.typeText("182")
+        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         let weight = app.textFields["setup-weight"]
-        weight.tap()
+        revealAndTap(weight, in: app)
         weight.typeText("84")
-        app.buttons["Fertig"].tap()
+        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         revealAndTap(app.buttons["save-body-and-goal"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["body-data-saved"].firstMatch.waitForExistence(timeout: 3))
 

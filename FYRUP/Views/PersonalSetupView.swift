@@ -11,6 +11,7 @@ struct PersonalSetupView: View {
     @State private var hasUnsavedBodyChanges = false
     @State private var restoredPage = false
     @State private var restoredOwnerID: UUID?
+    @FocusState private var stepGoalFocused: Bool
     private let titles = ["Jeder Schritt zählt.", "Dein Körper.\nDeine Daten.", "Bleib im Moment.", "Alles an einem Ort."]
     private var ready: Bool { store.setup.value != nil && store.steps.userID == store.session?.userID }
     private var requiredBodyDataMissing: Bool {
@@ -81,6 +82,14 @@ struct PersonalSetupView: View {
                 stepGoal = store.steps.goal.map(String.init) ?? ""
             }
             .onChange(of: store.setup.value == nil) { _, isMissing in if !isMissing { restorePageIfNeeded() } }
+            .toolbar {
+                if page == 0 {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Fertig") { stepGoalFocused = false }
+                    }
+                }
+            }
     }
 
     private func changePage(_ target: Int, proxy: ScrollViewProxy) {
@@ -109,6 +118,7 @@ struct PersonalSetupView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Dein Schrittziel pro Tag").font(.headline)
                 TextField(isOnboarding ? "Erforderlich, z. B. 8.000" : "Optional, z. B. 8.000", text: $stepGoal).keyboardType(.numberPad)
+                    .focused($stepGoalFocused)
                     .padding(13).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityIdentifier("setup-step-goal")
                 HStack {
