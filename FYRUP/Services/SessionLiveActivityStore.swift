@@ -19,17 +19,26 @@ final class SessionLiveActivityStore {
     private(set) var systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
 
     init(defaults: UserDefaults = FYRUPWidgetState.defaults) { self.defaults = defaults }
-    func synchronize(activity: Activity?, ownerID: UUID?, enabled: Bool, rest: WorkoutRestClock?, retry: Bool = false, now: Date = .now) {
+    func synchronize(activity: Activity?, ownerID: UUID?, enabled: Bool, rest: WorkoutRestClock?, workoutLog: WorkoutLog? = nil, retry: Bool = false, now: Date = .now) {
         systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
         var next: Input?
         if enabled, systemEnabled, let activity, activity.userID == ownerID, activity.status == .live,
            let elapsed = activity.duration(at: now), elapsed.isFinite, (0...604800).contains(elapsed) {
             let ownRest = rest.flatMap { $0.activityID == activity.id && $0.isValid ? $0 : nil }
+            let canTrackSets = activity.sport == .gym && activity.workoutPlanID != nil && activity.blindWorkoutID == nil
+            let log = workoutLog.flatMap {
+                canTrackSets && $0.activityID == activity.id && $0.validationMessage == nil ? $0 : nil
+            }
+            let currentName = log?.currentExercise?.exercise.name.trimmingCharacters(in: .whitespacesAndNewlines)
             next = Input(ownerID: activity.userID, sessionID: activity.id, state: .init(
                 sport: activity.sport.title, symbol: activity.sport.symbol,
                 timerReference: activity.startedAt?.addingTimeInterval(Double(activity.pausedSeconds ?? 0)) ?? now,
                 pausedSeconds: activity.pausedAt != nil ? Int(elapsed) : nil,
-                restStartedAt: ownRest?.startedAt, restEndsAt: ownRest?.endsAt, isGym: activity.sport == .gym))
+                restStartedAt: ownRest?.startedAt, restEndsAt: ownRest?.endsAt, isGym: activity.sport == .gym,
+                currentExerciseName: currentName.flatMap { $0.isEmpty ? nil : String($0.prefix(80)) },
+                completedSets: log?.completedSets,
+                totalSets: log?.exercises.flatMap(\.sets).count,
+                canTrackSets: canTrackSets))
             if retry { defaults.removeObject(forKey: attemptedKey(activity.id)) }
         }
         let widgetSnapshot = next.map { FYRUPWidgetSnapshot(ownerID: $0.ownerID, sessionID: $0.sessionID, state: $0.state) }

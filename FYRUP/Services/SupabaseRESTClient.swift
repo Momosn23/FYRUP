@@ -283,8 +283,10 @@ actor SupabaseRESTClient {
     static func appError(urlError: URLError, networkAvailable: Bool?) -> AppError {
         if networkAvailable == false { return .offline }
         switch urlError.code {
-        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+        case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
             return .offline
+        case .networkConnectionLost:
+            return networkAvailable == false ? .offline : .serverUnavailable
         case .timedOut, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
              .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
              .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid:

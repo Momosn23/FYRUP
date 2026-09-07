@@ -13,7 +13,7 @@ final class AppStoreConnectivityTests: XCTestCase {
         await repository.simulateUnavailableFeed(true)
         await store.refresh()
         XCTAssertEqual(store.crew, originalCrew)
-        XCTAssertTrue(store.errorMessage?.contains("Kein Internet") == true)
+        XCTAssertNil(store.errorMessage, "Automatische Aktualisierungen bleiben bei einem vorübergehenden Netzausfall still.")
 
         await repository.simulateUnavailableFeed(false)
         await store.handleNetworkReturn()

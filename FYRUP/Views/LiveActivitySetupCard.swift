@@ -10,7 +10,7 @@ struct LiveActivitySetupCard: View {
                 Image(systemName: "iphone.gen3.radiowaves.left.and.right").font(.title).foregroundStyle(FYColor.lime)
                 VStack(alignment: .leading) { Text("Deine Session bleibt sichtbar").font(.headline); Text("Sperrbildschirm & Dynamic Island").font(.caption).foregroundStyle(FYColor.muted) }
             }
-            Text("Wenn du eine Session startest, zeigt dein iPhone Sportart, aktive Zeit und deine Satzpause an. Die Anzeige lässt sich öffnen und wird beim Abschluss entfernt.").font(.subheadline).foregroundStyle(FYColor.muted)
+            Text("Wenn du eine Session startest, zeigt dein iPhone Sportart, aktive Zeit und deine Satzpause an. Bei einem Gym-Workout öffnet „Satz eintragen“ direkt die aktuelle Übung. Die Anzeige wird beim Abschluss entfernt.").font(.subheadline).foregroundStyle(FYColor.muted)
             Toggle("LIVE automatisch anzeigen", isOn: Binding(get: { store.setup.value?.liveActivityEnabled == true }, set: { enabled in
                 if store.setup.update({ $0.liveActivityEnabled = enabled }) { store.synchronizeLiveSurface() }
             })).disabled(store.setup.value == nil).accessibilityIdentifier("setup-live-activity")

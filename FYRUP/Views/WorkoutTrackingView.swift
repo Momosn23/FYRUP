@@ -65,6 +65,7 @@ struct WorkoutTrackingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var activityID: UUID? = nil
+    var opensCurrentSet = false
     @State private var capturedID: UUID?
     @State private var capturedOwnerID: UUID?
     @State private var activitySnapshot: Activity?
@@ -83,6 +84,7 @@ struct WorkoutTrackingView: View {
     @State private var completionCelebration: UUID?
     @State private var draftConflict = false
     @State private var confirmsDiscardDrafts = false
+    @State private var didOpenCurrentSet = false
 
     private var displayed: WorkoutLog? { pending ?? confirmed }
     private var currentActivity: Activity? {
@@ -167,7 +169,7 @@ struct WorkoutTrackingView: View {
         .task { await load() }
         .onChange(of: store.profile?.id) { _, owner in
             guard owner != capturedOwnerID else { return }
-            confirmed = nil; pending = nil; activitySnapshot = nil; completedActivity = nil; editingSet = nil; shareSummary = nil
+            confirmed = nil; pending = nil; activitySnapshot = nil; completedActivity = nil; editingSet = nil; shareSummary = nil; didOpenCurrentSet = false
             dismiss()
         }
         .sheet(item: $editingSet) { selection in
@@ -340,8 +342,25 @@ struct WorkoutTrackingView: View {
                 case .none, .alreadySaved: break
                 }
                 if store.trackingDrafts.hasInput(activityID: activity.id) { mode = .track }
+                if opensCurrentSet, !didOpenCurrentSet {
+                    didOpenCurrentSet = true
+                    mode = .track
+                    openCurrentSet(in: result, activity: activity, ownerID: owner)
+                }
             }
+            store.synchronizeLiveSurface()
         } else { message = store.workouts.errorMessage ?? "Das Protokoll konnte nicht geladen werden." }
+    }
+
+    private func openCurrentSet(in log: WorkoutLog, activity: Activity, ownerID: UUID?) {
+        guard let ownerID,
+              let exercise = log.currentExercise ?? log.exercises.sorted(by: { $0.sortOrder < $1.sortOrder }).first,
+              let set = exercise.sets.sorted(by: { $0.setNumber < $1.setNumber }).first(where: { !$0.completed })
+                ?? exercise.sets.sorted(by: { $0.setNumber < $1.setNumber }).first,
+              let context = WorkoutSetDraftContext.workout(ownerID: ownerID, activity: activity, log: log,
+                                                            exerciseID: exercise.id, setID: set.id) else { return }
+        editingSet = TrackingSetSelection(exerciseID: exercise.id, exerciseName: exercise.exercise.name,
+                                           unit: exercise.exercise.repetitionUnit, set: set, draftContext: context)
     }
 
     @discardableResult private func save(_ candidate: WorkoutLog, retainOnFailure: Bool = true) async -> Bool {
@@ -357,6 +376,7 @@ struct WorkoutTrackingView: View {
             return false
         }
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { confirmed = saved; pending = nil }
+        store.synchronizeLiveSurface()
         store.trackingDrafts.removePending(activityID: saved.activityID)
         draftConflict = false
         Haptics.impact(.light)
@@ -498,6 +518,11 @@ struct WorkoutSetEntrySheet: View {
                         TextField("Optional", text: $input.reps).keyboardType(.numberPad)
                             .frame(minHeight: 44)
                             .accessibilityLabel(selection.unit == "Sek." ? "Sekunden" : "Wiederholungen").accessibilityIdentifier("set-reps")
+                    }
+                }
+                if let context = selection.draftContext {
+                    Section("Deine Übungsbewertung") {
+                        ExerciseEffortControl(activityID: context.key.activityID, exerciseID: selection.exerciseID)
                     }
                 }
                 if let validation = validationMessage { Text(validation).font(.footnote).foregroundStyle(FYColor.coral) }

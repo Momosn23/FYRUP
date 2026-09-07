@@ -21,6 +21,9 @@ final class AppStore {
     private(set) var friendAccessRevision = 0
     private var feedRequestID: UUID?
     private var reconnectRefreshRequested = false
+    private var silentReconnectTask: Task<Void, Never>?
+    private var silentReconnectAttempt = 0
+    private var lastFeedRefreshHadTransientFailure = false
     var friendRequests: [Profile] = []
     var notifications: [AppNotification] = []
     var notificationPreferences: NotificationPreferences? { notificationSettings.confirmedValue }
@@ -38,6 +41,7 @@ final class AppStore {
     var selectedTab = 0
     var opensNotifications = false
     var showsLiveSession = false
+    var opensLiveSetEntry = false
     var arrivalDestination: HostedSession?
     var sharedProfileDestination: Profile?
     private var pendingLiveLink: SessionLiveLink?
@@ -168,8 +172,9 @@ final class AppStore {
     func logout() async {
         guard !isBusy else { return }
         isBusy = true
+        cancelSilentReconnect()
         liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
-        showsLiveSession = false; pendingLiveLink = nil; pendingRestReminder = nil; pendingArrivalReminder = nil; pendingProfileLink = nil; arrivalDestination = nil; sharedProfileDestination = nil
+        showsLiveSession = false; opensLiveSetEntry = false; pendingLiveLink = nil; pendingRestReminder = nil; pendingArrivalReminder = nil; pendingProfileLink = nil; arrivalDestination = nil; sharedProfileDestination = nil
         arrival.clearCurrentAccount()
         UIApplication.shared.unregisterForRemoteNotifications()
         supplements.activate(userID: nil)
@@ -432,10 +437,17 @@ final class AppStore {
             if let loadedSummary { goals = loadedSummary }
             if let loadedRecent { recentActivities = loadedRecent }
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
+            lastFeedRefreshHadTransientFailure = false
+            cancelSilentReconnect()
         } catch {
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
             if !isActivityCurrent, let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1.filter { !revokedFriendIDs.contains($0.id) }; goals = cached.2 }
-            present(error)
+            if isTransientConnectionFailure(error) {
+                lastFeedRefreshHadTransientFailure = true
+                connectionLogger.error("Feed refresh failed transiently; keeping current UI and scheduling a silent reconnect")
+                clearTransientConnectionMessage()
+                scheduleSilentReconnect()
+            } else { present(error) }
         }
     }
 
@@ -533,11 +545,41 @@ final class AppStore {
         await weekly.refresh(force: true)
         await weekly.refreshFriends()
         await blind.refreshSummaries()
-        if errorMessage == nil {
+        if !lastFeedRefreshHadTransientFailure, errorMessage == nil {
             connectionLogger.info("Reconnect refresh succeeded")
         } else {
             connectionLogger.error("Reconnect refresh finished with a classified failure")
         }
+    }
+
+    private func isTransientConnectionFailure(_ error: Error) -> Bool {
+        guard let appError = error as? AppError else { return false }
+        return appError == .offline || appError == .network || appError == .serverUnavailable
+    }
+
+    private func clearTransientConnectionMessage() {
+        let transientMessages = [AppError.offline, .network, .serverUnavailable].compactMap(\.errorDescription)
+        if errorMessage.map(transientMessages.contains) == true { errorMessage = nil }
+    }
+
+    private func scheduleSilentReconnect() {
+        guard silentReconnectTask == nil, route == .main, session?.userID != nil else { return }
+        let delays = [5, 15, 30, 60]
+        let delay = delays[min(silentReconnectAttempt, delays.count - 1)]
+        silentReconnectAttempt = min(silentReconnectAttempt + 1, delays.count - 1)
+        connectionLogger.info("Silent reconnect scheduled attempt=\(self.silentReconnectAttempt, privacy: .public) delay=\(delay, privacy: .public)s")
+        silentReconnectTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled, let self else { return }
+            self.silentReconnectTask = nil
+            await self.handleNetworkReturn()
+        }
+    }
+
+    private func cancelSilentReconnect() {
+        silentReconnectTask?.cancel()
+        silentReconnectTask = nil
+        silentReconnectAttempt = 0
     }
 
     /// Accept only the recipient's own activity from an acknowledged Blind
@@ -564,7 +606,8 @@ final class AppStore {
         // A cached LIVE item is not proof that the session still exists. An
         // explicit opt-out may still end the surface before the network returns.
         guard isActivityCurrent || !settings.liveActivityEnabled else { return }
-        liveSurface.synchronize(activity: myActivity, ownerID: session?.userID, enabled: settings.liveActivityEnabled, rest: rest.clock, retry: retry)
+        liveSurface.synchronize(activity: myActivity, ownerID: session?.userID, enabled: settings.liveActivityEnabled,
+                                rest: rest.clock, workoutLog: myActivity.flatMap { workouts.logs[$0.id] }, retry: retry)
     }
 
     func receiveLiveLink(_ url: URL) async {
@@ -580,9 +623,10 @@ final class AppStore {
         guard let activity = myActivity, activity.id == link.sessionID, activity.userID == owner, activity.status == .live else {
             errorMessage = "Diese Session ist nicht mehr LIVE oder gehört nicht zu deinem Konto."; return
         }
+        opensLiveSetEntry = link.action == .setEntry && activity.workoutPlanID != nil && activity.blindWorkoutID == nil
         selectedTab = 0; showsLiveSession = true
-        // A lock-screen link only opens the timer. It never silently starts a set
-        // pause, modifies a workout or requests Health permissions.
+        // A lock-screen link only opens the confirmed current workout. It never
+        // writes a set, changes the rest clock or requests Health permissions.
     }
     func fyrup(_ member: CrewMember) async { await perform { try await self.repository.fyrup(member.id); Haptics.impact(.light); await self.analytics.track(.fyrupSent) } }
     func react(_ activity: Activity, reaction: ReactionKind?) async { await perform { try await self.repository.react(activityID: activity.id, reaction: reaction) } }
@@ -633,7 +677,7 @@ final class AppStore {
             let userID = self.session?.userID
             try await self.repository.deleteAccount()
             self.liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
-            self.showsLiveSession = false; self.pendingLiveLink = nil; self.pendingRestReminder = nil; self.pendingArrivalReminder = nil
+            self.showsLiveSession = false; self.opensLiveSetEntry = false; self.pendingLiveLink = nil; self.pendingRestReminder = nil; self.pendingArrivalReminder = nil
             self.arrivalDestination = nil; self.sharedProfileDestination = nil; self.pendingProfileLink = nil
             self.arrival.clearCurrentAccount()
             if let userID { FeedCache.clear(userID: userID) }
@@ -782,7 +826,7 @@ final class AppStore {
         guard route == .main else { if route == .signedOut { pendingRestReminder = nil }; return }
         pendingRestReminder = nil
         guard canPresentRestReminder(pending) else { return }
-        showsActivityComposer = false; weekly.dismissCelebration(); selectedTab = 0; showsLiveSession = true
+        showsActivityComposer = false; weekly.dismissCelebration(); selectedTab = 0; opensLiveSetEntry = false; showsLiveSession = true
     }
 
     func handleNotificationTap(notification: AppNotification) async {
@@ -830,11 +874,12 @@ final class AppStore {
     }
 
     private func clearAfterAuthenticationLoss() {
+        cancelSilentReconnect()
         if let id = session?.userID { FeedCache.clear(userID: id) }
         liveSurface.synchronize(activity: nil, ownerID: nil, enabled: false, rest: nil)
         UIApplication.shared.unregisterForRemoteNotifications()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-        showsLiveSession = false; pendingLiveLink = nil; pendingRestReminder = nil
+        showsLiveSession = false; opensLiveSetEntry = false; pendingLiveLink = nil; pendingRestReminder = nil
         pendingArrivalReminder = nil; pendingProfileLink = nil; arrivalDestination = nil; sharedProfileDestination = nil
         arrival.clearCurrentAccount(); workouts.activate(userID: nil)
         workoutDrafts.clearCurrentAccount(); trackingDrafts.clearCurrentAccount()

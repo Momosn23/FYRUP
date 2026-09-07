@@ -37,11 +37,13 @@ final class HomeAndRestTests: XCTestCase {
     }
     func testLiveLinksOnlyRecognizeTheSpecificRoute() {
         let id = UUID()
-        for rest in [false, true] {
-            let link = SessionLiveLink(url: SessionLiveLink.url(sessionID: id, opensRest: rest))
-            XCTAssertEqual(link?.sessionID, id); XCTAssertEqual(link?.opensRest, rest)
+        for action in [SessionLiveAction.open, .rest, .setEntry] {
+            let link = SessionLiveLink(url: SessionLiveLink.url(sessionID: id, action: action))
+            XCTAssertEqual(link?.sessionID, id); XCTAssertEqual(link?.action, action)
+            XCTAssertEqual(link?.opensRest, action == .rest)
         }
-        for text in ["https://live/\(id)", "fyrup://other/\(id)", "fyrup://live/not-a-uuid", "fyrup://live/\(id)/extra", "fyrup://live/\(id)?action=finish", "fyrup://live/\(id)?action=rest&action=rest", "fyrup://secret@live/\(id)", "fyrup://live:123/\(id)", "fyrup://live/\(id)#finish"] {
+        XCTAssertEqual(SessionLiveLink(url: SessionLiveLink.url(sessionID: id, opensRest: true))?.action, .rest)
+        for text in ["https://live/\(id)", "fyrup://other/\(id)", "fyrup://live/not-a-uuid", "fyrup://live/\(id)/extra", "fyrup://live/\(id)?action=finish", "fyrup://live/\(id)?action=rest&action=rest", "fyrup://live/\(id)?action=set&action=set", "fyrup://live/\(id)?action=open", "fyrup://secret@live/\(id)", "fyrup://live:123/\(id)", "fyrup://live/\(id)#finish"] {
             XCTAssertNil(SessionLiveLink(url: URL(string: text)!))
         }
     }

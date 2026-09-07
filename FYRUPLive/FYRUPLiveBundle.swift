@@ -31,12 +31,27 @@ struct FYRUPLiveWidget: Widget {
                         }.foregroundStyle(green)
                     }
                 }
+                if context.state.canTrackSets == true {
+                    HStack(spacing: 8) {
+                        Text(context.state.currentExerciseName ?? "Aktuelle Übung").lineLimit(1).font(.caption.bold())
+                        Spacer(minLength: 8)
+                        if let completed = context.state.completedSets, let total = context.state.totalSets {
+                            Text("\(completed) / \(total) Sätze").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 HStack {
                     Link(destination: SessionLiveLink.url(sessionID: context.attributes.sessionID)) {
                         Label("ÖFFNEN", systemImage: "arrow.up.right").font(.caption.bold()).padding(.horizontal, 16).padding(.vertical, 9)
                             .background(green.opacity(0.14), in: Capsule())
                     }
                     Spacer()
+                    if context.state.canTrackSets == true {
+                        Link(destination: SessionLiveLink.url(sessionID: context.attributes.sessionID, action: .setEntry)) {
+                            Label("SATZ", systemImage: "square.and.pencil").font(.caption.bold()).padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(green.opacity(0.14), in: Capsule())
+                        }
+                    }
                     if context.state.isGym {
                         Button(intent: ToggleFYRUPRestIntent(activityID: context.attributes.sessionID, ownerID: context.attributes.ownerID)) {
                             Label(context.state.restEndsAt.map { $0 > Date() } == true ? "Satzpause beenden" : "Satzpause", systemImage: "timer").font(.caption.bold()).padding(.horizontal, 12).padding(.vertical, 9)
@@ -53,12 +68,24 @@ struct FYRUPLiveWidget: Widget {
                 DynamicIslandExpandedRegion(.trailing) { Text(context.state.pausedSeconds == nil ? "LIVE" : "PAUSE").font(.caption.bold()).foregroundStyle(green) }
                 DynamicIslandExpandedRegion(.center) { sessionTime(context.state).font(.title.bold()).monospacedDigit() }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack {
-                        Text("Deine Session läuft in FYRUP").font(.caption)
-                        Spacer()
-                        if let end = context.state.restEndsAt, let start = context.state.restStartedAt {
-                            Image(systemName: "timer").foregroundStyle(green)
-                            Text(timerInterval: start...end, countsDown: true).font(.caption.bold()).monospacedDigit().frame(width: 65)
+                    VStack(spacing: 7) {
+                        HStack {
+                            Text(context.state.currentExerciseName ?? "Deine Session läuft in FYRUP").font(.caption).lineLimit(1)
+                            Spacer()
+                            if let completed = context.state.completedSets, let total = context.state.totalSets {
+                                Text("\(completed)/\(total) Sätze").font(.caption2).foregroundStyle(.secondary)
+                            }
+                            if let end = context.state.restEndsAt, let start = context.state.restStartedAt {
+                                Image(systemName: "timer").foregroundStyle(green)
+                                Text(timerInterval: start...end, countsDown: true).font(.caption.bold()).monospacedDigit().frame(width: 65)
+                            }
+                        }
+                        if context.state.canTrackSets == true {
+                            Link(destination: SessionLiveLink.url(sessionID: context.attributes.sessionID, action: .setEntry)) {
+                                Label("SATZ EINTRAGEN", systemImage: "square.and.pencil")
+                                    .font(.caption.bold()).frame(maxWidth: .infinity).padding(.vertical, 7)
+                                    .background(green.opacity(0.18), in: Capsule())
+                            }
                         }
                     }
                 }

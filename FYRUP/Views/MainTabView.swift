@@ -47,9 +47,13 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
         .fullScreenCover(isPresented: $store.showsLiveSession) {
             NavigationStack {
-                LiveActivityView().toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { store.showsLiveSession = false } } }
+                LiveActivityView(opensCurrentSet: store.opensLiveSetEntry).toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Schließen") { store.opensLiveSetEntry = false; store.showsLiveSession = false }
+                    }
+                }
             }
-        }
+        }.onChange(of: store.showsLiveSession) { _, visible in if !visible { store.opensLiveSetEntry = false } }
         .sheet(item: Binding(get: { store.notificationRouting.presentation }, set: { if $0 == nil { store.notificationRouting.dismiss() } })) { presentation in
             NotificationDestinationView(presentation: presentation).id(presentation.id)
         }

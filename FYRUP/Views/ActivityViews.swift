@@ -455,13 +455,14 @@ private extension Button {
 
 struct LiveActivityView: View {
     @Environment(AppStore.self) private var store
+    var opensCurrentSet = false
     @State private var workoutActivityID: UUID?
     @State private var blindWorkoutID: UUID?
     @State private var resolved = false
     var body: some View {
         Group {
             if let blindWorkoutID { BlindWorkoutDetailView(id: blindWorkoutID) }
-            else if let workoutActivityID { WorkoutTrackingView(activityID: workoutActivityID) }
+            else if let workoutActivityID { WorkoutTrackingView(activityID: workoutActivityID, opensCurrentSet: opensCurrentSet) }
             else if resolved { FreeActivityView() }
             else { ProgressView() }
         }.task {
