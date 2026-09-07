@@ -275,6 +275,7 @@ enum FyrupSupportContact {
 struct SupportView: View {
     @Environment(\.openURL) private var openURL
     @State private var copied = false
+    @State private var emailStatus: String?
 
     var body: some View {
         ScrollView {
@@ -293,7 +294,15 @@ struct SupportView: View {
                     Text(FyrupSupportContact.email).font(.body.weight(.semibold)).textSelection(.enabled)
                         .accessibilityIdentifier("support-email-address")
                     Button {
-                        if let url = FyrupSupportContact.emailURL() { openURL(url) }
+                        guard let url = FyrupSupportContact.emailURL() else {
+                            emailStatus = "Die E-Mail-Adresse konnte nicht vorbereitet werden. Kopiere sie stattdessen."
+                            return
+                        }
+                        openURL(url) { accepted in
+                            Task { @MainActor in
+                                emailStatus = accepted ? nil : "Kein E-Mail-Programm verfügbar. Kopiere die Adresse und schreibe uns direkt."
+                            }
+                        }
                     } label: {
                         Label("E-MAIL VORBEREITEN", systemImage: "envelope.fill").frame(maxWidth: .infinity)
                     }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("support-compose-email")
@@ -304,6 +313,10 @@ struct SupportView: View {
                         Label(copied ? "Adresse kopiert" : "Adresse kopieren", systemImage: copied ? "checkmark" : "doc.on.doc")
                             .frame(maxWidth: .infinity)
                     }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("support-copy-email")
+                    if let emailStatus {
+                        Text(emailStatus).font(.footnote).foregroundStyle(FYColor.muted)
+                            .accessibilityIdentifier("support-email-status")
+                    }
                 }.fyCard()
             }.padding(20)
         }.background(FYColor.background).navigationTitle("Hilfe & Support")
@@ -336,6 +349,7 @@ struct AboutFyrupView: View {
                     NavigationLink { SupportView() } label: {
                         SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle")
                     }.background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                        .accessibilityIdentifier("about-support")
                 }.fyCard()
             }.padding(20)
         }.background(FYColor.background).navigationTitle("Über FYRUP")

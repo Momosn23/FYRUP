@@ -298,6 +298,11 @@ final class CriticalFlowsUITests: XCTestCase {
         revealAndTap(app.buttons["settings-about"], in: app)
         XCTAssertTrue(app.navigationBars["Über FYRUP"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["about-version"].exists)
+        revealAndTap(app.buttons["about-support"], in: app)
+        XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.staticTexts["support-email-address"].label, "Kundenservice@objektsignal.com")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Über FYRUP"].waitForExistence(timeout: 3))
         capture("73-about-fyrup")
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
@@ -305,6 +310,8 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["support-email-address"].label, "Kundenservice@objektsignal.com")
         XCTAssertTrue(app.buttons["support-compose-email"].exists)
+        tap(app.buttons["support-copy-email"], in: app)
+        XCTAssertTrue(app.buttons["support-copy-email"].label.contains("Adresse kopiert"))
         capture("74-help-support")
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
