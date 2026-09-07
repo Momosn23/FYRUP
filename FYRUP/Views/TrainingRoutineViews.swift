@@ -198,10 +198,16 @@ private struct TrainingDayView: View {
                         HStack { Label(activity.sport.title, systemImage: "checkmark.circle.fill").foregroundStyle(FYColor.lime); Spacer(); Text("Erledigt").font(.caption.bold()) }.fyCard()
                     }
                     ForEach(sessions) { session in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label(session.sport.title, systemImage: session.sport.symbol).bold()
-                            Text("Geplant · \(session.startsAt.formatted(date: .omitted, time: .shortened))" + (session.durationMinutes.map { " · \($0) Min." } ?? "")).font(.subheadline).foregroundStyle(FYColor.muted)
-                        }.fyCard()
+                        if let hosted = store.hostedSessions.first(where: { $0.id == session.id }) {
+                            NavigationLink { HostedSessionView(hosted: hosted) } label: {
+                                sessionCard(session, showsDisclosure: true)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("SESSION ÖFFNEN")
+                            .accessibilityIdentifier("week-session-\(session.id.uuidString.lowercased())")
+                        } else {
+                            sessionCard(session, showsDisclosure: false)
+                        }
                     }
                     let desires = store.personal.routine?.goals.filter { $0.weekdays.contains(TrainingWeekLogic.weekday(day)) && !represented.contains($0.sport) } ?? []
                     ForEach(desires) { goal in
@@ -231,5 +237,17 @@ private struct TrainingDayView: View {
         }.background(FYColor.background).navigationTitle("Deine Woche").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
             .task { await store.personal.loadWeek(now: day) }
+    }
+
+    private func sessionCard(_ session: PlannedSession, showsDisclosure: Bool) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(session.sport.title, systemImage: session.sport.symbol).bold()
+                Text("Geplant · \(session.startsAt.formatted(date: .omitted, time: .shortened))" + (session.durationMinutes.map { " · \($0) Min." } ?? ""))
+                    .font(.subheadline).foregroundStyle(FYColor.muted)
+            }
+            Spacer()
+            if showsDisclosure { Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }
+        }.fyCard()
     }
 }

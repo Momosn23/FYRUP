@@ -241,8 +241,8 @@ final class WorkoutRepositoryTests: XCTestCase {
         XCTAssertEqual(preview.exercises.count, 6, "An ordinary invited plan is visible before RSVP")
         await assertDenied { _ = try await max.startWorkout(planID: plan.id, linkedActivityID: nil, sessionID: invitation.id) }
         try await max.respondToInvitation(sessionID: invitation.id, status: .accepted)
-        let planned = try await max.today(userID: maxID)
-        XCTAssertEqual(planned.0?.workoutPlanID, plan.id)
+        let planned = try await storage.activities(userID: maxID, friends: [momoID])
+        XCTAssertEqual(planned.first(where: { $0.plannedSessionID == invitation.id })?.workoutPlanID, plan.id)
         let hostActivity = try await momo.startWorkout(planID: plan.id, linkedActivityID: nil, sessionID: invitation.id)
         // Exercise the pre-existing startActivity path too: it must never bypass workout logs.
         let guestActivity = try await max.startActivity(userID: maxID, sport: .gym, subtype: plan.name, linkedActivityID: hostActivity.id, plannedSessionID: invitation.id)

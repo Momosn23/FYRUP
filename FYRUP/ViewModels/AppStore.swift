@@ -673,6 +673,10 @@ final class AppStore {
             if !invitees.isEmpty { await self.analytics.track(.inviteSent) }
             self.showsActivityComposer = false
             await self.refresh()
+            // A session planned for a later day does not become `myActivity` in
+            // today's feed. Refresh the week explicitly so its day marker still
+            // updates immediately instead of waiting for a pull-to-refresh.
+            await self.personal.loadWeek()
         }
         guard let created, session?.userID == userID else { return false }
         if let arrivalPlace, !(await arrival.schedule(session: created, place: arrivalPlace)) {

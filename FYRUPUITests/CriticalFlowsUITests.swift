@@ -137,8 +137,18 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(joinToggle.exists)
         let confirm = app.buttons.matching(identifier: "confirm-activity").element
         revealAndTap(confirm, in: app)
-        XCTAssertTrue(app.staticTexts["PLANNED"].waitForExistence(timeout: 3))
-        app.buttons["SESSION ÖFFNEN"].firstMatch.tap()
+        if app.staticTexts["PLANNED"].waitForExistence(timeout: 3) {
+            app.buttons["SESSION ÖFFNEN"].firstMatch.tap()
+        } else {
+            // Around midnight, the default one-hour lead time legitimately puts
+            // the session on tomorrow. Open it through the weekly overview.
+            let plannedDay = app.buttons.matching(NSPredicate(format: "label CONTAINS '1 vorgemerkt'")).firstMatch
+            XCTAssertTrue(plannedDay.waitForExistence(timeout: 5))
+            plannedDay.tap()
+            let session = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'week-session-'")).firstMatch
+            XCTAssertTrue(session.waitForExistence(timeout: 5))
+            session.tap()
+        }
         XCTAssertTrue(app.navigationBars["Session planen"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["TEILNEHMER"].exists)
         capture("06-hosted-session")
