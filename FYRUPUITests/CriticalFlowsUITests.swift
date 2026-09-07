@@ -310,7 +310,7 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.staticTexts["support-email-address"].label, "Kundenservice@objektsignal.com")
         XCTAssertTrue(app.buttons["support-compose-email"].exists)
-        tap(app.buttons["support-copy-email"], in: app)
+        revealAndTap(app.buttons["support-copy-email"], in: app)
         XCTAssertTrue(app.buttons["support-copy-email"].label.contains("Adresse kopiert"))
         capture("74-help-support")
         app.navigationBars.buttons.element(boundBy: 0).tap()
