@@ -2,10 +2,18 @@ import ContactsUI
 import MessageUI
 import SwiftUI
 
-private struct InviteContact: Identifiable {
+struct InviteContact: Identifiable {
     let id = UUID()
     let name: String
     let phoneNumber: String
+
+    init?(contact: CNContact, phoneNumber: String?) {
+        guard let number = phoneNumber?.trimmingCharacters(in: .whitespacesAndNewlines), !number.isEmpty else { return nil }
+        let formattedName = CNContactFormatter.string(from: contact, style: .fullName)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        self.name = if let formattedName, !formattedName.isEmpty { formattedName } else { "Ausgewählter Kontakt" }
+        self.phoneNumber = number
+    }
 }
 
 struct ContactInviteFlowView: View {
@@ -90,7 +98,10 @@ private struct ContactPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> CNContactPickerViewController {
         let picker = CNContactPickerViewController()
         picker.delegate = context.coordinator
+        picker.displayedPropertyKeys = [CNContactPhoneNumbersKey]
         picker.predicateForEnablingContact = NSPredicate(format: "phoneNumbers.@count > 0")
+        picker.predicateForSelectionOfContact = NSPredicate(value: false)
+        picker.predicateForSelectionOfProperty = NSPredicate(format: "key == 'phoneNumbers'")
         return picker
     }
 
@@ -102,9 +113,15 @@ private struct ContactPicker: UIViewControllerRepresentable {
         init(onSelection: @escaping (InviteContact) -> Void) { self.onSelection = onSelection }
 
         func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
-            guard let number = contact.phoneNumbers.first?.value.stringValue else { return }
-            let name = CNContactFormatter.string(from: contact, style: .fullName) ?? "Ausgewählter Kontakt"
-            onSelection(InviteContact(name: name, phoneNumber: number))
+            guard let selected = InviteContact(contact: contact, phoneNumber: contact.phoneNumbers.first?.value.stringValue) else { return }
+            onSelection(selected)
+        }
+
+        func contactPicker(_ picker: CNContactPickerViewController, didSelect contactProperty: CNContactProperty) {
+            guard contactProperty.key == CNContactPhoneNumbersKey,
+                  let phone = contactProperty.value as? CNPhoneNumber,
+                  let selected = InviteContact(contact: contactProperty.contact, phoneNumber: phone.stringValue) else { return }
+            onSelection(selected)
         }
     }
 }
