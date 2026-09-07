@@ -48,6 +48,7 @@ struct WorkoutPlansView: View {
                 }
             }.padding(20)
         }
+        .accessibilityIdentifier("workout-plans-screen")
         .background(FYColor.background).navigationTitle("Meine Workout-Pläne").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
         .task { await store.workouts.loadPlans() }
         .refreshable { await store.workouts.loadPlans() }

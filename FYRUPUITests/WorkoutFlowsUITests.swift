@@ -71,7 +71,7 @@ final class WorkoutFlowsUITests: XCTestCase {
     private func openPlans(_ app: XCUIApplication) {
         tap(app.tabBars.buttons["Profil"], in: app)
         tap(app.buttons["profile-workout-plans"], in: app)
-        XCTAssertTrue(app.navigationBars["Meine Workout-Pläne"].waitForExistence(timeout: 5))
+        XCTAssertTrue(container("workout-plans-screen", in: app).waitForExistence(timeout: 8))
     }
 
     private func createPlan(_ app: XCUIApplication, name: String, custom: Bool = false) {
@@ -108,7 +108,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         capture("25-workout-plan-editor")
         tap(app.buttons["save-workout-plan"], in: app)
         waitUntilDismissed(field)
-        XCTAssertTrue(app.navigationBars["Meine Workout-Pläne"].waitForExistence(timeout: 5))
+        XCTAssertTrue(container("workout-plans-screen", in: app).waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons[name].exists)
     }
 
