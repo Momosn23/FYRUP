@@ -136,6 +136,7 @@ workflows:
             -configuration Release \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath build/FYRUP-Release.xcresult \
+            ENABLE_TESTABILITY=YES \
             CODE_SIGNING_ALLOWED=NO
       - name: Apply provisioning profiles
         script: xcode-project use-profiles

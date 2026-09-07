@@ -21,6 +21,12 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertTrue(updatePurpose.contains("schreibt keine Daten in Apple Health"), "The purpose must not claim a Health write feature that FYRUP does not request")
     }
 
+    func testContactInvitePurposeExplainsThePrivacyBoundary() throws {
+        let purpose = try XCTUnwrap(Bundle.main.object(forInfoDictionaryKey: "NSContactsUsageDescription") as? String)
+        XCTAssertTrue(purpose.contains("genau eine Person"))
+        XCTAssertTrue(purpose.contains("nicht hochgeladen"))
+    }
+
     func testLoadsValidBackendResourceValues() throws {
         let configuration = try XCTUnwrap(AppConfiguration.load(values: [
             "SUPABASE_URL": "https://example.supabase.co",

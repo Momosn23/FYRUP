@@ -208,6 +208,7 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Sarah"].exists)
         XCTAssertTrue(app.buttons["share-fyrup-invite"].exists)
         XCTAssertTrue(app.buttons["share-fyrup-profile"].exists)
+        XCTAssertTrue(app.buttons["invite-from-contacts"].exists)
         XCTAssertTrue(app.staticTexts["external-invite-limit"].exists)
         capture("18-friends")
         app.buttons["friend-sarah"].tap()

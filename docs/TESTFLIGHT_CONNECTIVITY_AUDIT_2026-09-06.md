@@ -20,7 +20,8 @@ Das Systemprotokoll enthält pro Backend-Aufruf eine zufällige kurze Vorgangske
 - Lokale Fehlermapping-Tests für Offline, Timeout, 401, 403/RLS, 503 und sonstige API-Fehler: im nativen Testsatz ergänzt; Ausführung benötigt den nächsten macOS-/Codemagic-Lauf.
 - Lokaler Datenbanktest des gleichzeitig ergänzten privaten Übungsverlaufs: **AUSGEFÜHRT UND BESTANDEN**. Kein produktives Konto wurde verändert.
 - Codemagic 49 (`4503d12`) führte alle lokalen Vorprüfungen erfolgreich aus und erreichte die native Kompilierung. Sie stoppte dort nach 2 Minuten 23 Sekunden an einer uneindeutigen Swift-Typableitung im Demo-Pfad der neuen Übungshistorie (`[Any]` statt des lokalen Eintragstyps). Die Rückgabe ist im Folgequellstand ausdrücklich typisiert. Das ist kein festgestellter Verbindungs- oder Backendfehler.
-- Native Release-Kompilierung, Unit- und UI-Tests des korrigierten Folgequellstands: **NOCH NICHT AUSGEFÜHRT**.
+- Native Simulator-Kompilierung sowie Unit- und UI-Tests des korrigierten Folgequellstands: **AUSGEFÜHRT UND BESTANDEN** in Codemagic 55 (`6d0fd1b`) mit **474 Einzeltests und 37 Bedienabläufen, jeweils 0 Fehlern**.
+- Native Release-/TestFlight-Prüfung desselben Commits: Der signierte Folgelauf erreichte den Release-Testbau, stoppte aber vor der Testausführung, weil der gesonderte `xcodebuild test`-Befehl das App-Modul ohne `ENABLE_TESTABILITY` erzeugte. Der Folgequellstand setzt die Option ausschließlich für diesen Testschritt; Store-Archiv, IPA und Apple-Verarbeitung sind **NOCH NICHT BESTÄTIGT**.
 
 ## Noch zwingend am echten iPhone/TestFlight zu prüfen
 

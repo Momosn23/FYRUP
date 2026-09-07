@@ -4,6 +4,7 @@ struct FriendsView: View {
     @Environment(AppStore.self) private var store
     @State private var query = ""
     @State private var showsGroupEditor = false
+    @State private var showsContactInvite = false
     @State private var segment = 0
     var body: some View {
         ScrollView {
@@ -32,6 +33,7 @@ struct FriendsView: View {
                 }
             }.padding(20)
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
+            .sheet(isPresented: $showsContactInvite) { ContactInviteFlowView() }
             .task { await store.weekly.refreshFriends() }
     }
 
@@ -47,6 +49,9 @@ struct FriendsView: View {
             ShareLink(item: "Komm zu FYRUP – gemeinsam aktiv, mit echten Sessions und deiner Crew. FYRUP befindet sich aktuell im privaten iPhone-Test; den Testzugang sende ich dir separat.") {
                 Label("FYRUP EINLADUNG TEILEN", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
             }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("share-fyrup-invite")
+            Button { showsContactInvite = true } label: {
+                Label("AUS KONTAKTEN EINLADEN", systemImage: "person.crop.circle.badge.plus").frame(maxWidth: .infinity)
+            }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("invite-from-contacts")
             if let username = store.profile?.username, let link = FyrupProfileLink(username: username) {
                 ShareLink(item: link.url, subject: Text("Mein FYRUP Profil"), message: Text("Öffne mein Profil direkt in FYRUP. Dafür muss FYRUP bereits installiert sein.")) {
                     Label("MEIN PROFIL TEILEN", systemImage: "link").frame(maxWidth: .infinity)
