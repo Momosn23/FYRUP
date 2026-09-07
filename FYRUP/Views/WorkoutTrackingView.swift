@@ -214,8 +214,9 @@ struct WorkoutTrackingView: View {
             ProgressView(value: confirmed?.progress ?? 0).tint(FYColor.lime)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: confirmed?.progress)
                 .accessibilityLabel("Gespeicherter Workout-Fortschritt")
-            if let next = confirmed?.currentExercise {
-                Text("Als Nächstes: \(next.exercise.name)").font(.footnote).foregroundStyle(FYColor.muted)
+            if let current = confirmed?.currentExercise {
+                Text("Aktuelle Übung: \(current.exercise.name)").font(.footnote).foregroundStyle(FYColor.muted)
+                    .accessibilityIdentifier("current-workout-exercise")
             }
         }.fyCard()
     }
@@ -262,7 +263,7 @@ struct WorkoutTrackingView: View {
                             Label("Dein letzter Stand", systemImage: "chart.line.uptrend.xyaxis")
                                 .font(.caption.bold()).foregroundStyle(FYColor.ink)
                             Text("Zuletzt: \(performanceValue(weight: value.lastWeight, reps: value.lastReps, unit: exercise.exercise.repetitionUnit)) · \(value.lastCompletedAt.formatted(date: .abbreviated, time: .omitted))")
-                            Text("Bestwert: \(performanceValue(weight: value.bestWeight, reps: value.bestReps, unit: exercise.exercise.repetitionUnit))")
+                            Text("Bestwert vom \(value.bestCompletedAt.formatted(date: .abbreviated, time: .omitted)): \(performanceValue(weight: value.bestWeight, reps: value.bestReps, unit: exercise.exercise.repetitionUnit))")
                         }
                         .font(.caption).foregroundStyle(FYColor.muted).padding(.top, 3)
                         .accessibilityElement(children: .combine)

@@ -275,6 +275,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["Tracked Push"], in: app)
         tap(app.buttons["start-workout-plan"], in: app)
         XCTAssertTrue(app.segmentedControls["tracking-mode"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["current-workout-exercise"].label.hasPrefix("Aktuelle Übung:"))
         tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
         tap(app.buttons["workout-set-0-1"], in: app)
         let weight = app.textFields["set-weight"]
@@ -312,7 +313,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(performance.label.contains("Zuletzt"))
         XCTAssertTrue(performance.label.contains("80 kg"))
         XCTAssertTrue(performance.label.contains("8"))
-        XCTAssertTrue(performance.label.contains("Bestwert"))
+        XCTAssertTrue(performance.label.contains("Bestwert vom"), "Die persönliche Bestleistung muss mit ihrem Datum sichtbar sein")
         capture("62-exercise-last-and-best")
     }
 
