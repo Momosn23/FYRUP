@@ -10,6 +10,7 @@ struct FriendsView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 Text("Freunde").font(.largeTitle.weight(.black))
+                crewHero
                 externalInviteCard
                 NavigationLink { BlindWorkoutsView() } label: { Label("Blind Workouts", systemImage: "eye").frame(maxWidth: .infinity, alignment: .leading).fyCard() }.buttonStyle(.plain).accessibilityIdentifier("open-blind-workouts")
                 Picker("Freunde", selection: $segment) { Text("Meine Freunde").tag(0); Text("Anfragen (\(store.friendRequests.count))").tag(1) }.pickerStyle(.segmented)
@@ -35,6 +36,37 @@ struct FriendsView: View {
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
             .sheet(isPresented: $showsContactInvite) { ContactInviteFlowView() }
             .task { await store.weekly.refreshFriends() }
+    }
+
+    private var crewHero: some View {
+        Image("FriendsCrewHero")
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: 184)
+            .clipped()
+            .overlay {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.08), .black.opacity(0.72)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("DEINE CREW").font(.caption.weight(.black)).tracking(1.2)
+                    Text("Gemeinsam loslegen. Gemeinsam dranbleiben.").font(.title3.weight(.bold))
+                }
+                .foregroundStyle(.white)
+                .padding(18)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.6)))
+            .shadow(color: .black.opacity(0.1), radius: 18, y: 8)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Deine Crew. Gemeinsam loslegen. Gemeinsam dranbleiben.")
+            .accessibilityIdentifier("friends-crew-hero")
+            .fyEntrance()
     }
 
     private var externalInviteCard: some View {

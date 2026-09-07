@@ -28,6 +28,8 @@ Die folgenden Kästchen bleiben bis zur jeweiligen vollständigen Abnahme offen.
 
 ## Einheitliche moderne Bildsprache
 
+Lokaler Folgeblock nach Build 60: Die Freunde-Seite besitzt ein eigenes originales Crew-Fotomotiv mit heller FYRUP-Bildsprache, sicherem Kartenbeschnitt, kontrastreichem Textverlauf und einem endlichen Einstiegseffekt. Ein vorhandener Bedienablauf prüft die erreichbare Bildkarte und nimmt die Seite erneut auf. Native Kompilierung, echte Bildkontrolle im Simulator und TestFlight bleiben bis zum nächsten Lauf offen; die Gesamtpunkte unten werden dadurch noch nicht pauschal abgeschlossen.
+
 - [ ] VISUAL-01 Jede Seite anhand der Referenzliste prüfen und gezielt hochwertige Sportbilder, Illustrationen oder passende Vorschaubilder einsetzen – nicht wahllos jede Fläche füllen.
 - [ ] VISUAL-02 Bildsprache auf Login, Heute, Sport-/Muskelwahl, Planbibliothek, Übungsdetails, Trainingsablauf und Abschluss konsistent halten; vorhandene Nutzereingaben und Aktionen erhalten.
 - [ ] VISUAL-03 Einheitliche helle Flächen, Typografie, Abstände, Rundungen und FYRUP-Akzentfarben; keine willkürlichen Stilmischungen oder unlesbaren Texte über Bildern.

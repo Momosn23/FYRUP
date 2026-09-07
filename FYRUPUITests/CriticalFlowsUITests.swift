@@ -204,6 +204,7 @@ final class CriticalFlowsUITests: XCTestCase {
         let app = launchDemo()
         app.tabBars.buttons["Freunde"].tap()
         XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["friends-crew-hero"].firstMatch.exists)
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(app.staticTexts["Sarah"].exists)
         XCTAssertTrue(app.buttons["share-fyrup-invite"].exists)

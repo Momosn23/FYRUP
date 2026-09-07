@@ -27,7 +27,7 @@ Status: ✅ umgesetzt · 🧪 im Cloud-Build visuell zu prüfen · ⚙️ iOS-Sy
 | 15 | Geplantes Training | 🧪 Terminübersicht und Teilnehmerstatus |
 | 16 | Live-Training | 🧪 LIVE-Badge, Timer, Kennzahlen, Pause und Stop |
 | 17 | Training beenden | 🧪 Trophy, Ergebnis, Teilen und Fertig |
-| 18 | Freunde-Liste | 🧪 Freunde/Anfragen-Segmente, Suche und Wochenstatus |
+| 18 | Freunde-Liste | 🧪 Eigenes Crew-Fotomotiv, Freunde/Anfragen-Segmente, Suche, externe Einladung und Wochenstatus; neuer Bildnachweis im nächsten Lauf |
 | 19 | Freundesprofil | 🧪 Profil, Wochenfortschritt, Sportarten und Aktivität |
 | 20 | Crew-Ziel | 🧪 Gesamtfortschritt und Beiträge der Crew |
 | 21 | Eigenes Profil | 🧪 Profilkopf, Statistiken, Sportarten und Einstellungen |
