@@ -91,7 +91,7 @@ import XCTest
         XCTAssertEqual(BodyMeasurementsDraft().height, "")
     }
 
-    func testOptionalSetupCanFinishWithoutSportsOrAutomaticGoalAndReopenOnToday() async {
+    func testOptionalSetupCanFinishWithoutSportsOrAutomaticGoalAndReopenOnToday() async throws {
         let repository = DemoRepository(startsWithoutProfile: true)
         let store = AppStore(repository: repository); await store.bootstrap()
         await store.saveProfile(displayName: "QA", username: "qa_optional")
@@ -104,9 +104,17 @@ import XCTest
         XCTAssertEqual(store.route, .main)
         XCTAssertEqual(store.profile?.sports, [])
         XCTAssertEqual(store.profile?.onboardingStep, "done")
-        XCTAssertEqual(store.weekly.state?.goalConfirmed, false)
+        // MainTabView activates this store on arrival. Without mounting that
+        // view, explicitly perform the same read instead of comparing nil to false.
+        let owner = try XCTUnwrap(store.session?.userID)
+        await store.weekly.activate(userID: owner)
+        let weekly = try XCTUnwrap(store.weekly.state)
+        XCTAssertTrue(store.weekly.isStateConfirmed)
+        XCTAssertFalse(weekly.goalConfirmed)
+        XCTAssertNil(weekly.currentWeek)
         XCTAssertNil(store.setup.value?.heightCM)
         let reopened = AppStore(repository: repository); await reopened.bootstrap()
         XCTAssertEqual(reopened.route, .main, "An empty sports preference is not incomplete authentication")
+        XCTAssertEqual(reopened.weekly.state?.goalConfirmed, false)
     }
 }

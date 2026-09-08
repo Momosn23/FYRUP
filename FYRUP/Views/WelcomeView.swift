@@ -45,10 +45,12 @@ struct WelcomeView: View {
             Text("Wähle eine Option, um fortzufahren.").foregroundStyle(FYColor.muted)
             SignInWithAppleButton(.continue) { store.configureAppleRequest($0) } onCompletion: { result in
                 Task { await store.handleAppleResult(result) }
-            }.signInWithAppleButtonStyle(.whiteOutline).frame(height: 52).clipShape(RoundedRectangle(cornerRadius: 12))
+            }.signInWithAppleButtonStyle(.white).frame(height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(FYColor.line))
                 .disabled(store.isBusy)
             Button { authMode = .registration } label: { Label("Mit E-Mail fortfahren", systemImage: "envelope") }
-                .buttonStyle(SecondaryButtonStyle()).accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
+                .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
             // Google is disabled in the production project. No nonfunctional sign-in option.
             Button("Ich habe bereits ein Konto") { authMode = .signIn }
                 .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("welcome-email-login")

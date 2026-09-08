@@ -1,6 +1,6 @@
 # Folgeblock: E-Mail-Anmeldung, Supplements und Veröffentlichungsvoraussetzungen
 
-Stand 08.09.2026, gebündelte Arbeitskopie nach `e39caf6`. **Noch kein nativer Nachweis für diesen Code.** #67 belegt nur den vorherigen Stand. Kein Apple-Upload aus diesem Block.
+Stand 08.09.2026, gebündelte Revision `4679d89`, geprüft in [QA #68](REFERENCE_QA_68.md): **510/511 Unit-Tests, 5/7 Referenz-UI-Tests PASS**, Gesamtstatus FAIL. Die drei eingegrenzten Testfehler sind in der Arbeitskopie korrigiert, noch ohne nativen Folgelauf. Kein Apple-Upload aus diesem Block.
 
 ## Im Code ergänzt
 
@@ -21,7 +21,7 @@ Stand 08.09.2026, gebündelte Arbeitskopie nach `e39caf6`. **Noch kein nativer N
 - Eigener SMTP-Versand fehlt. Supabase-Standardversand ist für Projektmitglieder gedacht, nicht für normale öffentliche Registrierung. [Offizielle Supabase-Dokumentation](https://supabase.com/docs/guides/auth/auth-smtp).
 - Nutzer hat `Kundenservice@objektsignal.com` als vorhandenen Absender freigegeben. Sendername „FYRUP“ und Adresse im SMTP-Formular vorbereitet, **nicht gespeichert/aktiviert**, kein Passwort hinterlegt.
 - Öffentliche MX-Einträge zeigen Zoho EU. Der genaue SMTP-Server hängt laut [Zoho](https://www.zoho.com/mail/help/zoho-smtp.html) von Kontotyp/Datacenter ab; MX allein ist kein ausreichender Nachweis für den Ausgangsserver. Die vorhandene Zoho-Sitzung öffnete ein anderes Postfach; Sicherheitsprüfung stoppte weiteren Zugriff. Nutzer wurde gebeten, zum freigegebenen Postfach und dessen Servereinstellungen zu wechseln. Kein neues Abo, kein Anbieterwechsel, keine DNS-Änderung.
-- Migrationen **017/018/019 noch nicht produktiv angewendet**. Die SQL-Tests laufen ausschließlich in einer isolierten Wegwerf-Datenbank.
+- Migrationen **017/018/019 produktiv angewendet und unabhängig nachgeprüft**, zuvor fehlenden Journalbeleg 016 nach exaktem Code-/Rechtevergleich ergänzt. Keine bestehenden Nutzerdatensätze umgeschrieben. Details und Hashes: [Backend-Nachweis](REFERENCE_BACKEND_2026_09_08.md). Absichtliche Fehler-/Rollbacktests ausschließlich in isolierter Datenbank.
 
 ## Datenschutz / Rechtstexte
 
@@ -33,12 +33,13 @@ Auf ausdrücklichen Wunsch liegt ein [separater FYRUP-Entwurf](FYRUP_PRIVACY_DRA
 
 | Ebene | Stand |
 | --- | --- |
-| Lokaler Gesamt-Preflight | 08.09.2026, 14:04 UTC: **21/21 PASS**, einschließlich der aktuellen Auth-/Supplement-Dateien; kein Swift-Compiler |
+| Lokaler Gesamt-Preflight | 08.09.2026, 15:13 UTC: **21/21 PASS**, einschließlich des Deployment-/Testkorrekturblocks und R02; kein Swift-Compiler |
 | Isolierte SQL-Tests | 019 mit Wiederholung, Erstellen/Lesen/Ändern/Löschen der Menge, Grenzen, Altdaten/Altclient, Versionskonflikt, fremdem Konto und anonymem Zugriff geprüft |
-| Swift-Unit | 7 neue Auth-Tests sowie Supplement-Mengen-/Altformat-Test vorbereitet; **NICHT AUSGEFÜHRT** |
-| Referenz-UI-Suite | 7 Tests vorbereitet: Heute/Navigation, Körperdaten, Großschrift, Auswahl/Summary, Ernährungsmengen, Willkommen/Anmeldeart, Supplementmenge; **NICHT AUSGEFÜHRT** |
+| Swift-Unit | #68: **510/511 PASS**, einschließlich aller 7 neuen Auth-Tests. Einrichtungs-Test aktivierte Wochen-Store nicht; lokale Korrektur noch nicht erneut nativ geprüft |
+| Referenz-UI-Suite | #68: **5/7 PASS**; Ernährung/Supplements brachen im Tap-Helfer ab. Folgekorrektur vorbereitet, echte nachgelagerte Speicher-/Rückkehrschritte noch nicht nachgewiesen |
 | E-Mail-Zustellung | **NICHT AUSGEFÜHRT**. SMTP noch nicht fertig; kein Versand an erfundene Testempfänger |
 | Echter Link / Mail-App / Kaltstart / Passwortwechsel auf iPhone | **NICHT AUSGEFÜHRT** |
-| Native aktuelle Screenshots und TestFlight | **NICHT AUSGEFÜHRT**. Sieben ältere PNGs ausschließlich aus #67 |
+| Native aktuelle Screenshots | **17 PNGs aus #68 einzeln geprüft**; Gestaltung weiterhin TEILWEISE, konkrete Restabweichungen in QA-Bericht |
+| TestFlight / physisches iPhone | **NICHT AUSGEFÜHRT** für diesen Stand |
 
 Die gültige lokale Gesamtprüfung steht in `build/reference-preflight/report.json`. Sie enthält keinen Swift-Compiler. Ein grüner lokaler Lauf oder eine gespeicherte SMTP-Konfiguration ist kein Zustellungs- oder Produktnachweis.

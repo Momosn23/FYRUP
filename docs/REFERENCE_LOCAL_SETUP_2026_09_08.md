@@ -1,6 +1,6 @@
 # Lokaler Folgeblock: Einrichtung und kompaktere Übersichten
 
-Stand 08.09.2026, Arbeitskopie nach `e39caf6`. **Diese Änderungen sind noch nicht nativ kompiliert oder auf dem iPhone geprüft.** Der grüne Lauf #67 belegt ausschließlich den vorherigen Stand. Kein neuer Codemagic-Lauf, kein Upload und keine zusätzlichen CI-Kosten in diesem Arbeitsblock.
+Historischer lokaler Zwischenstand vom 08.09.2026 nach `e39caf6`. Inzwischen wurde der gebündelte Stand `4679d89` nativ in [QA #68](REFERENCE_QA_68.md) kompiliert: 510/511 Unit-Tests und 5/7 Referenz-UI-Tests PASS, Gesamtstatus FAIL. 17 Bilder geprüft; drei Testkorrekturen noch ohne Folgelauf. [Backend 017–019 produktiv](REFERENCE_BACKEND_2026_09_08.md). Kein iPhone-/TestFlight-Nachweis oder Upload. Nachstehende ältere Angaben nur zusammen mit diesen Fortschreibungen lesen.
 
 **Fortgeschriebener Stand:** Der nachfolgende [Auth-/Supplement-Block](REFERENCE_AUTH_SUPPLEMENTS_2026_09_08.md) ergänzt inzwischen R01–R03, Recovery, Auswahlraster, Mengen und Migration 019. Die entsprechenden nachstehenden „noch offen“-Angaben dokumentieren den früheren Zwischenstand und sind dort aktualisiert. Native Abnahme und Veröffentlichungsvoraussetzungen bleiben offen.
 

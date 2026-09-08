@@ -10,8 +10,11 @@ import XCTest
         app.launch()
         return app
     }
-    private func tap(_ element: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: 8))
+    private func tap(_ element: XCUIElement, in app: XCUIApplication, presented: Bool = false,
+                     file: StaticString = #filePath, line: UInt = #line) {
+        guard element.waitForExistence(timeout: 8) else {
+            XCTFail("Element fehlt: \(element.identifier)", file: file, line: line); return
+        }
         for _ in 0..<10 {
             // XCTest may call an element below the floating bar hittable, then
             // tap a navigation button instead. Require its full visible bounds.
@@ -19,28 +22,45 @@ import XCTest
             let footer = app.buttons["personal-setup-next"]
             let isNavigation = element.identifier.hasPrefix("tab-") || element.identifier == "activity-composer"
             var lowerBound = app.frame.maxY
-            if mainTab.exists && !isNavigation { lowerBound = mainTab.frame.minY }
+            // Underlying navigation remains in the AX tree beneath sheets.
+            // It cannot obscure a sheet's own footer or the keyboard toolbar.
+            let isKeyboardAction = element.label == "Fertig" && app.keyboards.firstMatch.exists
+            if !presented && !isKeyboardAction && mainTab.exists && !isNavigation { lowerBound = mainTab.frame.minY }
             let isSetupFooter = ["personal-setup-next", "personal-setup-skip"].contains(element.identifier)
-            if footer.exists && !isSetupFooter && element.label != "Fertig" { lowerBound = min(lowerBound, footer.frame.minY) }
+            if !presented && !isKeyboardAction && footer.exists && !isSetupFooter { lowerBound = min(lowerBound, footer.frame.minY) }
             if element.isHittable && element.frame.minY >= app.frame.minY && element.frame.maxY <= lowerBound {
                 element.tap(); return
             }
-            let scroll = app.scrollViews.firstMatch
+            let scroll = app.scrollViews.allElementsBoundByIndex.last {
+                $0.isHittable && $0.frame.height > app.frame.height * 0.3
+            } ?? app.scrollViews.firstMatch
             if element.frame.midY < app.frame.midY { scroll.swipeDown() } else { scroll.swipeUp() }
         }
-        XCTFail("Element nicht erreichbar: \(element.identifier)")
+        try? capture("failure-\(name.filter { $0.isLetter || $0.isNumber })-\(line)", app: app)
+        XCTFail("Element nicht erreichbar: \(element.identifier) / \(element.label), frame=\(element.frame)", file: file, line: line)
     }
     private func capture(_ id: String, app: XCUIApplication) throws {
-        let screenshot = XCUIScreen.main.screenshot()
+        let hierarchy = app.debugDescription
+        // Bound the wait to 0.6 s. Selection transitions can update AX before
+        // the visible frame; preserve a non-settled result honestly in metadata.
+        var screenshot = XCUIScreen.main.screenshot()
+        var frameSettled = false
+        for _ in 0..<6 {
+            Thread.sleep(forTimeInterval: 0.1)
+            let next = XCUIScreen.main.screenshot()
+            frameSettled = next.pngRepresentation == screenshot.pngRepresentation
+            screenshot = next
+            if frameSettled { break }
+        }
         let attachment = XCTAttachment(screenshot: screenshot); attachment.name = id; attachment.lifetime = .keepAlways; add(attachment)
         let directory = URL(fileURLWithPath: "/tmp/fyrup-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try screenshot.pngRepresentation.write(to: directory.appendingPathComponent("\(id).png"), options: .atomic)
         // Only this isolated fixture suite exports its accessibility hierarchy.
-        try app.debugDescription.write(to: directory.appendingPathComponent("\(id)-accessibility.txt"), atomically: true, encoding: .utf8)
+        try hierarchy.write(to: directory.appendingPathComponent("\(id)-accessibility.txt"), atomically: true, encoding: .utf8)
         let configuration: [String: Any] = ["screen": id, "widthPoints": app.frame.width, "heightPoints": app.frame.height,
             "fixture": "ReferenceCheckpointFixtures", "date": "2025-05-22T07:41:00Z", "locale": "de_DE", "timezone": "Europe/Berlin",
-            "source": "Production SwiftUI views with isolated fixtures; NOT a physical-device test"]
+            "source": "Production SwiftUI views with isolated fixtures; NOT a physical-device test", "frameSettled": frameSettled]
         try JSONSerialization.data(withJSONObject: configuration, options: [.prettyPrinted, .sortedKeys])
             .write(to: directory.appendingPathComponent("\(id).json"), options: .atomic)
     }
@@ -92,14 +112,14 @@ import XCTest
         XCTAssertTrue(app.buttons["home-nutrition-card"].waitForExistence(timeout: 10))
         tap(app.buttons["home-nutrition-card"], in: app)
         tap(app.buttons["nutrition-meal-lunch"], in: app)
-        tap(app.buttons["nutrition-entry-00000000-0000-4000-8000-000000000100"], in: app)
+        tap(app.buttons["nutrition-entry-00000000-0000-4000-8000-000000000100"], in: app, presented: true)
         let amount = app.textFields["Gegessene Menge"]
-        tap(amount, in: app)
+        tap(amount, in: app, presented: true)
         amount.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (amount.value as? String ?? "").count) + "250")
         tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
-        tap(app.buttons["Speichern"], in: app)
+        tap(app.buttons["Speichern"], in: app, presented: true)
         XCTAssertTrue(app.staticTexts["250 g · 925 kcal"].waitForExistence(timeout: 5))
-        tap(app.buttons["Schließen"].firstMatch, in: app)
+        tap(app.buttons["Schließen"].firstMatch, in: app, presented: true)
         XCTAssertTrue(app.buttons["nutrition-goal-summary"].label.contains("925"))
         XCTAssertTrue(app.buttons["nutrition-meal-lunch"].label.contains("925 kcal"))
         try capture("A19-edited-meal-summary", app: app)
@@ -187,19 +207,21 @@ import XCTest
         let amount = app.textFields["supplement-amount"]
         XCTAssertTrue(amount.waitForExistence(timeout: 5))
         XCTAssertEqual(amount.value as? String, "Keine Angabe", "No dosage suggestion")
-        tap(amount, in: app); amount.typeText("1,5")
+        tap(amount, in: app, presented: true); amount.typeText("1,5")
         tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         XCTAssertFalse(app.buttons["save-supplement"].isEnabled, "An amount needs an explicitly chosen unit")
-        tap(app.buttons["supplement-amount-unit"], in: app)
-        tap(app.buttons["g"], in: app)
+        tap(app.buttons["supplement-amount-unit"], in: app, presented: true)
+        tap(app.buttons["g"], in: app, presented: true)
         try capture("R11-own-supplement-amount", app: app)
-        tap(app.buttons["save-supplement"], in: app)
+        tap(app.buttons["save-supplement"], in: app, presented: true)
+        let editorClosed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["save-supplement"])
+        XCTAssertEqual(XCTWaiter.wait(for: [editorClosed], timeout: 8), .completed, "Capture the grid only after a confirmed save closes the editor")
         XCTAssertTrue(app.buttons["setup-supplement-Kreatin"].waitForExistence(timeout: 5))
         try capture("R11-supplement-grid", app: app)
         tap(app.buttons["setup-supplement-Kreatin"], in: app)
         XCTAssertEqual(amount.value as? String, "1,5")
         let reminders = app.switches["supplement-reminders"]
-        tap(app.staticTexts["Deine Uhrzeiten"], in: app)
+        tap(app.staticTexts["Deine Uhrzeiten"], in: app, presented: true)
         XCTAssertEqual(reminders.value as? String, "0", "A quantity must not turn on reminders")
     }
 }
