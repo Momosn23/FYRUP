@@ -4,7 +4,7 @@ struct TodayDashboardContent: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        VStack(alignment: .leading, spacing: FYLayout.section) {
+        VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 8) {
             HStack {
                 FYRUPWordmark(size: 23)
@@ -104,7 +104,7 @@ struct TodayDashboardContent: View {
     }
     private func metric(value: String?, goal: String?, title: String, detail: String, symbol: String, progress: Double?, accent: Color) -> some View {
         VStack(spacing: 6) {
-            FYProgressRing(progress: progress, symbol: symbol, accent: accent)
+            FYProgressRing(progress: progress, symbol: symbol, accent: accent, diameter: 64)
             Text(value ?? "–").font(.title3.bold()) + Text(goal.map { " / \($0)" } ?? "").font(.subheadline).foregroundColor(FYColor.muted)
             Text(title).font(.footnote).foregroundStyle(FYColor.muted)
             Text(detail).font(.caption).fixedSize(horizontal: false, vertical: true)
@@ -127,7 +127,7 @@ struct TodayWeekStrip: View {
                     let planned = store.personal.week?.sessions.contains { Calendar.current.isDate($0.startsAt, inSameDayAs: day) } == true
                     let today = Calendar.current.isDate(day, inSameDayAs: date)
                     Button { store.selectedWeekDate = day; store.selectedTab = 1 } label: {
-                        VStack(spacing: 9) {
+                        VStack(spacing: 6) {
                             Text(day.formatted(.dateTime.weekday(.abbreviated))).font(.caption)
                             Image(systemName: done ? "checkmark.circle.fill" : planned ? "clock" : "circle")
                                 .font(.title3).foregroundStyle(done ? FYColor.lime : FYColor.line)
@@ -143,7 +143,7 @@ struct TodayWeekStrip: View {
 
 private struct TodaySupplementsSection: View {
     @Environment(AppStore.self) private var store
-    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 60
+    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 70
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -155,13 +155,15 @@ private struct TodaySupplementsSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(snapshot.doses) { dose in
-                            let name = snapshot.plans.first { $0.id == dose.planID }?.name ?? "Supplement"
+                            let plan = snapshot.plans.first { $0.id == dose.planID }
+                            let name = plan?.name ?? "Supplement"
                             Button { Task { await store.supplements.mark(dose.id, as: dose.status == .taken ? .open : .taken) } } label: {
                                 VStack(spacing: 9) {
-                                    Image(systemName: "pills.fill").font(.title2).foregroundStyle(FYColor.muted)
+                                    Image(systemName: supplementSymbol(name)).font(.title2).foregroundStyle(FYColor.muted)
                                     Text(name).font(.footnote.weight(.medium)).lineLimit(2).frame(minHeight: 34)
+                                    if let amount = plan?.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted).lineLimit(2) }
                                     Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.line)
-                                }.frame(width: contentWidth).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 12))
+                                }.frame(width: contentWidth).padding(.horizontal, 5).padding(.vertical, 10).background(.white, in: RoundedRectangle(cornerRadius: 12))
                             }.buttonStyle(FYPressStyle()).foregroundStyle(FYColor.ink)
                                 .disabled(store.supplements.changesDisabled || store.supplements.pending.contains { $0.doseID == dose.id })
                                 .accessibilityLabel("\(name), \(dose.status.title)").accessibilityHint(dose.status == .taken ? "Einnahme rückgängig machen" : "Als genommen markieren")
@@ -180,30 +182,44 @@ private struct TodaySupplementsSection: View {
             }
         }
     }
+    private func supplementSymbol(_ name: String) -> String {
+        // Decorative only; never infers intake time, amount or medical advice.
+        switch name.lowercased().replacingOccurrences(of: " ", with: "") {
+        case "vitamind", "vitamind3": "sun.max"
+        case "magnesium": "moon"
+        default: "pills.fill"
+        }
+    }
 }
 
 private struct TodayCrewCard: View {
     @Environment(AppStore.self) private var store
     let member: CrewMember
     @State private var joining = false
-    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 84
+    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 92
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             NavigationLink { FriendProfileView(member: member) } label: {
-                VStack(spacing: 8) { AvatarView(profile: member.profile); Text(member.profile.displayName).font(.subheadline.bold()).lineLimit(2) }
+                HStack(spacing: 6) {
+                    AvatarView(profile: member.profile, size: 32)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(member.profile.displayName).font(.footnote.bold()).lineLimit(2)
+                        if member.todayStatus == .live { Text("LIVE").font(.caption2.bold()).foregroundStyle(FYColor.lime) }
+                    }
+                }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }.buttonStyle(.plain)
             Text(member.activity.map { [$0.sport.title, $0.displaySubtype].compactMap { $0 }.joined(separator: " · ") } ?? "Noch nichts geteilt")
                 .font(.caption).foregroundStyle(FYColor.muted).lineLimit(2).frame(minHeight: 32)
             if let activity = member.activity {
                 if activity.status == .live {
-                    Button("MITZIEHEN 🔥") { joining = true }.font(.caption.bold()).accessibilityIdentifier("join-live-activity")
+                    Button("MITZIEHEN 🔥") { joining = true }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("join-live-activity")
                 } else if activity.status == .completed {
-                    Button("Stark! 🙌") { Task { await store.react(activity, reaction: .applause) } }.font(.caption.bold())
+                    Button("Stark! 🙌") { Task { await store.react(activity, reaction: .applause) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
                 } else if let id = activity.plannedSessionID {
-                    Button("MITMACHEN") { Task { await store.joinPlannedSession(id) } }.font(.caption.bold())
+                    Button("MITMACHEN") { Task { await store.joinPlannedSession(id) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
                 }
-            } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()) }
-        }.frame(width: contentWidth).padding(12).background(.white, in: RoundedRectangle(cornerRadius: 16))
+            } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44) }
+        }.frame(width: contentWidth).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 16))
             .fullScreenCover(isPresented: $joining) {
                 if let activity = member.activity, let planID = activity.workoutPlanID {
                     NavigationStack { WorkoutPlanDetailView(planID: planID, linkedActivityID: activity.id)

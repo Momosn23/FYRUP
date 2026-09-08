@@ -106,10 +106,7 @@ actor DemoRepository: AppRepository {
     func uploadAvatar(userID: UUID, data: Data) async throws -> String { let path = "\(userID.uuidString.lowercased())/avatar.jpg"; avatarObjects[path] = data; return path }
     func saveOnboardingState(step: String, gymFocus: [String]?) async throws -> Profile {
         guard ["sports", "gym", "weekly_goal", "friends", "complete", "done"].contains(step) else { throw AppError.server }
-        if ["friends", "complete", "done"].contains(step) {
-            let state = try await weeklyState(userID: meID, timezone: nil)
-            guard state.goalConfirmed else { throw AppError.server }
-        }
+        guard profileExists else { throw AppError.server }
         me.onboardingStep = step
         if let gymFocus { me.gymFocus = gymFocus }
         return me

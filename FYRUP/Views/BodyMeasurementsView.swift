@@ -5,10 +5,16 @@ struct BodyMeasurementsDraft: Equatable {
     var height = ""
     var weight = ""
     var targetWeight = ""
-    init(_ value: PersonalSetupPreferences? = nil) {
-        height = value?.heightCM.map { String($0) } ?? ""
-        weight = value?.weightKG.map { String($0) } ?? ""
-        targetWeight = value?.targetWeightKG.map { String($0) } ?? ""
+    init(_ value: PersonalSetupPreferences? = nil, locale: Locale = .current) {
+        height = Self.input(value?.heightCM, locale: locale)
+        weight = Self.input(value?.weightKG, locale: locale)
+        targetWeight = Self.input(value?.targetWeightKG, locale: locale)
+    }
+    private static func input(_ value: Double?, locale: Locale) -> String {
+        guard let value else { return "" }
+        let raw = String(value)
+        let number = raw.hasSuffix(".0") ? String(raw.dropLast(2)) : raw
+        return number.replacingOccurrences(of: ".", with: locale.decimalSeparator ?? ".")
     }
     var validationMessage: String? {
         let inputs = [height, weight, targetWeight].map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

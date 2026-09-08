@@ -86,6 +86,7 @@ struct SupplementsView: View {
                                     Image(systemName: plan.isPaused ? "pause.circle" : "pills.fill").foregroundStyle(FYColor.lime)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(plan.name).font(.headline)
+                                        if let amount = plan.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted) }
                                         Text(plan.isPaused ? "Pausiert" : plan.slots.map(\.clockLabel).joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted)
                                         Text(plan.remindersEnabled ? "Erinnerungen eingeschaltet" : "Ohne Erinnerungen").font(.caption2).foregroundStyle(FYColor.muted)
                                     }
@@ -137,6 +138,7 @@ private struct SupplementDoseRow: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(plan?.name ?? "Eigener Eintrag").font(.subheadline.bold())
+                    if let amount = plan?.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted) }
                     Text("\(plan?.slots.first(where: { $0.id == dose.slotID })?.clockLabel ?? "–") · \(dose.status.title)")
                         .font(.caption).foregroundStyle(FYColor.muted)
                 }
@@ -184,13 +186,26 @@ private struct SupplementStatusMessages: View {
     }
 }
 
-private struct SupplementEditorView: View {
+struct SupplementEditorView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State var plan: SupplementPlan
     @State private var confirmsArchive = false
+    @State private var amountText = ""
+    @State private var amountUnit: SupplementUnit?
     @FocusState private var nameFocused: Bool
+    @FocusState private var amountFocused: Bool
     private let dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    private var amountValue: Double? { Double(amountText.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")) }
+    private var amountIsEmpty: Bool { amountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var amountIsValid: Bool {
+        amountIsEmpty || (amountValue.map { $0.isFinite && $0 > 0 && $0 <= 1_000_000 } == true && amountUnit != nil)
+    }
+    private var editedPlan: SupplementPlan {
+        var value = plan
+        value.amount = !amountIsEmpty && amountIsValid ? amountValue.flatMap { amount in amountUnit.map { SupplementAmount(value: amount, unit: $0) } } : nil
+        return value
+    }
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -199,6 +214,13 @@ private struct SupplementEditorView: View {
                         .focused($nameFocused).submitLabel(.done).onSubmit { nameFocused = false }
                         .padding(14).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 14)).accessibilityIdentifier("supplement-name")
                     Text("Keine Dosierungsvorgabe – trage nur deine eigene Auswahl ein.").font(.caption).foregroundStyle(FYColor.muted)
+                    FYInputField(title: "Deine Menge pro Eintrag · optional", placeholder: "Keine Angabe", text: $amountText, identifier: "supplement-amount")
+                        .keyboardType(.decimalPad).focused($amountFocused)
+                    Picker("Einheit", selection: $amountUnit) {
+                        Text("Auswählen").tag(Optional<SupplementUnit>.none)
+                        ForEach(SupplementUnit.allCases) { Text($0.title).tag(Optional($0)) }
+                    }.pickerStyle(.menu).accessibilityIdentifier("supplement-amount-unit")
+                    if !amountIsValid { Text("Gib eine positive Zahl ein und wähle die passende Einheit.").font(.footnote).foregroundStyle(FYColor.coral) }
                     Text("An welchen Tagen?").font(.headline)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 5) {
@@ -252,10 +274,14 @@ private struct SupplementEditorView: View {
                     if plan.revision > 0 { Button("Eintrag entfernen", role: .destructive) { confirmsArchive = true }.frame(maxWidth: .infinity, minHeight: 44) }
                 }.padding(20)
             }.background(FYColor.background).navigationTitle(plan.revision == 0 ? "Eigener Eintrag" : "Eintrag bearbeiten").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() }.disabled(store.supplements.isSaving) } }
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() }.disabled(store.supplements.isSaving) }
+                    ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Fertig") { nameFocused = false; amountFocused = false } }
+                }
+                .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
-                    Button("Speichern") { Task { if await store.supplements.save(plan) { dismiss() } } }
-                        .buttonStyle(PrimaryButtonStyle()).disabled(plan.validationMessage != nil || store.supplements.isSaving || store.supplements.isSyncing)
+                    Button("Speichern") { Task { if await store.supplements.save(editedPlan) { dismiss() } } }
+                        .buttonStyle(PrimaryButtonStyle()).disabled(editedPlan.validationMessage != nil || !amountIsValid || store.supplements.isSaving || store.supplements.isSyncing)
                         .accessibilityIdentifier("save-supplement").padding(16).background(.ultraThinMaterial)
                 }
                 .confirmationDialog("Eintrag entfernen?", isPresented: $confirmsArchive) {
@@ -263,6 +289,9 @@ private struct SupplementEditorView: View {
                     Button("Behalten", role: .cancel) { }
                 } message: { Text("Er verschwindet aus deiner Liste. Ausstehende Erinnerungen werden gestoppt; bereits zugestellte Hinweise können noch sichtbar sein.") }
                 .interactiveDismissDisabled(store.supplements.isSaving)
+                .onAppear {
+                    if let amount = plan.amount { amountText = String(amount.value).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator ?? "."); amountUnit = amount.unit }
+                }
         }.tint(FYColor.lime).preferredColorScheme(.light)
     }
 }

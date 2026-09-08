@@ -38,12 +38,12 @@ final class CriticalFlowsUITests: XCTestCase {
     private func assertRegistration(in app: XCUIApplication) {
         let title = app.staticTexts["auth-title"]
         XCTAssertTrue(title.waitForExistence(timeout: 4))
-        XCTAssertEqual(title.label, "Account erstellen")
-        XCTAssertTrue(app.staticTexts["Erstelle dein FYRUP-Profil in wenigen Schritten."].exists)
-        XCTAssertTrue(app.staticTexts["Mindestens 8 Zeichen"].exists)
-        XCTAssertTrue(app.staticTexts["Ein Großbuchstabe"].exists)
-        XCTAssertTrue(app.staticTexts["Eine Zahl"].exists)
-        XCTAssertEqual(app.buttons["auth-submit"].label, "Weiter")
+        XCTAssertEqual(title.label, "E-Mail & Passwort")
+        XCTAssertTrue(app.staticTexts["Erstelle ein Konto mit deiner E-Mail-Adresse."].exists)
+        XCTAssertTrue(app.staticTexts["Mindestens 6 Zeichen"].exists)
+        XCTAssertFalse(app.staticTexts["Ein Großbuchstabe"].exists)
+        XCTAssertFalse(app.staticTexts["Eine Zahl"].exists)
+        XCTAssertEqual(app.buttons["auth-submit"].label, "Konto erstellen")
         XCTAssertFalse(app.buttons["Passwort vergessen"].exists)
     }
 
@@ -259,19 +259,25 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 4), .completed)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Abmelden"].tap()
-        XCTAssertTrue(app.staticTexts["Gemeinsam\nmehr erreichen."].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["welcome-heading"].waitForExistence(timeout: 4))
         waitUntilReady(app.buttons["welcome-intro-next"])
         capture("02-onboarding-intro")
         app.buttons["welcome-intro-next"].tap()
-        XCTAssertTrue(app.staticTexts["Gemeinsam aktiv.\nEine stärkere Crew."].waitForExistence(timeout: 3))
-        waitUntilReady(app.buttons["welcome-crew-next"])
-        capture("03-onboarding-crew")
-        app.buttons["welcome-crew-next"].tap()
+        XCTAssertTrue(app.staticTexts["account-choice-title"].waitForExistence(timeout: 3))
+        capture("03-account-choice")
         waitUntilReady(app.buttons["welcome-email-login"])
-        XCTAssertTrue(app.staticTexts["Willkommen bei"].exists)
+        XCTAssertTrue(app.staticTexts["Konto erstellen"].exists)
         capture("00-welcome")
         app.buttons["welcome-create-account"].tap()
         assertRegistration(in: app)
+        let hiddenPassword = app.secureTextFields["auth-password"]
+        revealAndTap(hiddenPassword, in: app); hiddenPassword.typeText("FixtureOnly42")
+        revealAndTap(app.buttons["auth-toggle-password"], in: app)
+        let visiblePassword = app.textFields["auth-password"]
+        XCTAssertTrue(visiblePassword.waitForExistence(timeout: 3))
+        XCTAssertEqual(visiblePassword.value as? String, "FixtureOnly42")
+        revealAndTap(app.buttons["auth-toggle-password"], in: app)
+        XCTAssertTrue(hiddenPassword.waitForExistence(timeout: 3))
         waitUntilReady(app.buttons["auth-close"])
         capture("06-email-registration")
 
@@ -282,6 +288,7 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["auth-title"].waitForExistence(timeout: 4))
         XCTAssertEqual(app.staticTexts["auth-title"].label, "Willkommen zurück")
         XCTAssertEqual(app.buttons["auth-submit"].label, "Anmelden")
+        XCTAssertFalse(app.buttons["auth-submit"].isEnabled)
         XCTAssertFalse(app.staticTexts["Ein Großbuchstabe"].exists)
         XCTAssertTrue(app.buttons["Passwort vergessen"].exists)
         waitUntilReady(app.buttons["auth-close"])
@@ -380,86 +387,80 @@ final class CriticalFlowsUITests: XCTestCase {
         app.launchArguments = ["--onboarding-demo"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Erzähl uns von dir"].waitForExistence(timeout: 4))
-        app.textFields["Max"].tap()
-        app.textFields["Max"].typeText("Momo")
-        app.textFields["maxfyrup"].tap()
-        app.textFields["maxfyrup"].typeText("momo_fyrup")
-        app.textFields["2003"].tap()
-        app.textFields["2003"].typeText("1998")
-        app.textFields["Köln"].tap()
-        app.textFields["Köln"].typeText("Berlin\n")
+        XCTAssertTrue(app.staticTexts["Dein Profil"].waitForExistence(timeout: 4))
+        for (id, value) in [("profile-setup-name", "Momo"), ("profile-setup-username", "momo_fyrup"), ("profile-setup-birth-year", "1998")] {
+            let field = app.textFields[id]
+            revealAndTap(field, in: app)
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (field.value as? String ?? "").count) + value)
+            revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
+        }
         let progress = app.otherElements["onboarding-progress"]
         XCTAssertTrue(progress.waitForExistence(timeout: 2))
         XCTAssertGreaterThan(progress.frame.minY, app.frame.minY + 48, "Onboarding navigation must stay below the status bar")
         capture("onboarding-01-profile")
-        app.buttons["Weiter"].tap()
+        revealAndTap(app.buttons["profile-setup-save"], in: app)
 
-        let sportsHeading = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Was machst du gerne")).firstMatch
+        let sportsHeading = app.staticTexts["Deine Sportarten"]
         XCTAssertTrue(sportsHeading.waitForExistence(timeout: 3))
         app.buttons["Gym"].tap()
         app.buttons["Laufen"].tap()
         capture("onboarding-02-sports")
         app.buttons["Weiter"].tap()
 
-        XCTAssertTrue(app.staticTexts["Was ist dein Fokus?"].waitForExistence(timeout: 3))
-        capture("onboarding-03-gym")
-        app.buttons["Weiter"].tap()
+        let height = app.textFields["setup-height"]
+        XCTAssertTrue(height.waitForExistence(timeout: 4))
+        revealAndTap(height, in: app); height.typeText("182")
+        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
+        let weight = app.textFields["setup-weight"]
+        revealAndTap(weight, in: app); weight.typeText("84")
+        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
+        capture("onboarding-03-body")
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
+        revealAndTap(app.buttons["setup-primary-feelFitter"], in: app)
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
+        revealAndTap(app.buttons["personal-setup-skip"], in: app)
 
         let weeklyGoal = app.buttons["weekly-goal-4"]
         XCTAssertTrue(weeklyGoal.waitForExistence(timeout: 4))
         weeklyGoal.tap()
-        let confirmWeeklyGoal = app.buttons["confirm-weekly-goal"]
+        let confirmWeeklyGoal = app.buttons["personal-setup-next"]
         waitUntilReady(confirmWeeklyGoal)
-        XCTAssertEqual(confirmWeeklyGoal.label, "Ziel festlegen")
         capture("37-weekly-goal")
         confirmWeeklyGoal.tap()
 
-        XCTAssertTrue(app.staticTexts["Dein Wochenrhythmus"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Aktive Tage wählen"].waitForExistence(timeout: 4))
         capture("57-onboarding-training-routine")
-        let skipRoutine = app.buttons["skip-training-routine"]
-        waitUntilReady(skipRoutine)
-        skipRoutine.tap()
-
-        XCTAssertTrue(app.staticTexts["Freunde hinzufügen"].waitForExistence(timeout: 3))
-        let friendSearch = app.textFields["Username suchen …"]
-        friendSearch.tap()
-        friendSearch.typeText("sarah\n")
-        XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
-        capture("onboarding-04-friends")
-        app.buttons["Später"].tap()
+        // Days, time, supplements and nutrition remain independent choices.
+        for _ in 0..<4 { revealAndTap(app.buttons["personal-setup-skip"], in: app) }
 
         XCTAssertTrue(app.staticTexts["Apple Health verbinden"].waitForExistence(timeout: 4))
         capture("73-setup-health")
         // Health and a goal are optional; no OS permission is silently accepted.
         XCTAssertTrue(app.buttons["personal-setup-next"].isEnabled)
-        revealAndTap(app.buttons["setup-skip-health"], in: app)
         let stepGoal = app.textFields["setup-step-goal"]
+        waitUntilReady(stepGoal)
         revealAndTap(stepGoal, in: app)
         stepGoal.typeText("8000")
         revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         revealAndTap(app.buttons["personal-setup-next"], in: app)
-        capture("74-setup-page-2")
-
-        let height = app.textFields["setup-height"]
-        XCTAssertTrue(height.waitForExistence(timeout: 3))
-        height.tap()
-        height.typeText("182")
-        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
-        let weight = app.textFields["setup-weight"]
-        revealAndTap(weight, in: app)
-        weight.typeText("84")
-        revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
-
+        XCTAssertTrue(app.staticTexts["Berechtigungen"].waitForExistence(timeout: 4))
+        capture("74-setup-permissions")
+        revealAndTap(app.buttons["personal-setup-skip"], in: app)
+        capture("74-setup-privacy")
+        revealAndTap(app.buttons["personal-setup-skip"], in: app)
+        XCTAssertTrue(app.staticTexts["Freunde finden"].waitForExistence(timeout: 4))
+        revealAndTap(app.buttons["setup-find-username"], in: app)
+        let friendSearch = app.textFields["setup-friend-query"]
+        revealAndTap(friendSearch, in: app); friendSearch.typeText("sarah\n")
+        XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 4))
+        capture("onboarding-04-friends")
+        revealAndTap(app.navigationBars.buttons.element(boundBy: 0), in: app)
+        revealAndTap(app.buttons["personal-setup-skip"], in: app)
+        revealAndTap(app.buttons["setup-first-later"], in: app)
         revealAndTap(app.buttons["personal-setup-next"], in: app)
-        capture("74-setup-page-3")
-        revealAndTap(app.buttons["personal-setup-next"], in: app)
-        capture("74-setup-page-4")
-        revealAndTap(app.buttons["personal-setup-next"], in: app)
-
-        XCTAssertTrue(app.staticTexts["Du bist startklar."].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 4))
         capture("onboarding-05-complete")
-        app.buttons["FYRUP STARTEN"].tap()
+        revealAndTap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 3))
     }
 }

@@ -9,6 +9,21 @@ final class PersonalSetupStore {
     private(set) var errorMessage: String?
     init(persistence: any PersonalSetupPersisting = SecurePersonalSetupPersistence()) { self.persistence = persistence }
     var resumePage: Int { value?.completed == true ? 0 : value?.setupPage ?? 0 }
+    var journeyStep: SetupJourneyStep { value?.setupJourney?.step ?? .legacyPage(value?.setupPage) }
+    @discardableResult
+    func beginJourney(at step: SetupJourneyStep) -> Bool {
+        guard value != nil else { return false }
+        if value?.setupJourney != nil { return true }
+        return update { $0.setupJourney = .init(step: step) }
+    }
+    @discardableResult
+    func moveJourney(to step: SetupJourneyStep) -> Bool {
+        update {
+            var journey = $0.setupJourney ?? .init()
+            journey.step = step
+            $0.setupJourney = journey
+        }
+    }
     @discardableResult
     func move(to page: Int) -> Bool {
         guard value != nil, (0...3).contains(page) else { return false }

@@ -21,16 +21,9 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         try? screenshot.pngRepresentation.write(to: directory.appendingPathComponent("\(name).png"), options: .atomic)
     }
     func testGuidedSetupSavesBodyAndGoalsWithoutAutomaticHealthSharing() {
-        let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
+        let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo", "-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]; app.launch()
         tap(app.buttons["open-personal-setup"], in: app)
-        XCTAssertTrue(app.staticTexts["Apple Health verbinden"].waitForExistence(timeout: 4))
-        tap(app.buttons["setup-connect-health"], in: app)
-        XCTAssertTrue(app.staticTexts["Schrittdaten verfügbar"].waitForExistence(timeout: 5))
-        let share = app.switches["setup-share-steps"].firstMatch
-        XCTAssertTrue(share.exists); XCTAssertEqual(share.value as? String, "0", "Connecting Health does not grant friend sharing")
-        tap(app.buttons["10.000"], in: app)
-        capture("77-setup-steps-opt-in")
-        tap(app.buttons["personal-setup-next"], in: app)
+        XCTAssertTrue(app.staticTexts["Körperdaten"].waitForExistence(timeout: 4))
         let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-target-weight"]
         tap(height, in: app); height.typeText("180")
         tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
@@ -40,23 +33,40 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
         capture("78-private-body-energy-setup")
         tap(app.buttons["personal-setup-next"], in: app)
+        // Separate, optional pages precede Health. Skipping does not select goals.
+        for _ in 0..<7 { tap(app.buttons["personal-setup-skip"], in: app) }
+        XCTAssertTrue(app.staticTexts["Apple Health verbinden"].waitForExistence(timeout: 4))
+        tap(app.buttons["setup-connect-health"], in: app)
+        XCTAssertTrue(app.staticTexts["Schrittdaten verfügbar"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.switches["setup-share-steps"].exists, "Sharing belongs to the separate privacy page")
+        replaceText(in: app.textFields["setup-step-goal"], with: "10000", app: app)
+        capture("77-setup-steps-opt-in")
+        tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["Berechtigungen"].waitForExistence(timeout: 4))
         capture("79-notifications-live-explanation")
-        tap(app.buttons["personal-setup-next"], in: app)
+        tap(app.buttons["personal-setup-skip"], in: app)
+        let share = app.switches["setup-share-steps"].firstMatch
+        XCTAssertTrue(share.waitForExistence(timeout: 5)); XCTAssertEqual(share.value as? String, "0", "Connecting Health does not grant friend sharing")
+        for _ in 0..<3 { tap(app.buttons["personal-setup-skip"], in: app) }
+        XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 4))
         tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
         XCTAssertFalse(app.buttons["open-personal-setup"].exists, "Completed setup no longer crowds the top of Today")
         tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["open-personal-setup"], in: app)
-        XCTAssertEqual(app.textFields["setup-step-goal"].value as? String, "10000")
-        tap(app.buttons["personal-setup-next"], in: app)
-        XCTAssertEqual(height.value as? String, "180.0"); XCTAssertEqual(weight.value as? String, "81.5")
-        XCTAssertEqual(goal.value as? String, "80.0")
+        XCTAssertTrue(height.waitForExistence(timeout: 4))
+        XCTAssertEqual(height.value as? String, "180"); XCTAssertEqual(weight.value as? String, "81,5")
+        XCTAssertEqual(goal.value as? String, "80")
+        for _ in 0..<8 { tap(app.buttons["personal-setup-skip"], in: app) }
+        XCTAssertTrue(app.textFields["setup-step-goal"].waitForExistence(timeout: 4))
+        let restoredGoal = NSPredicate(format: "value == %@", "10000")
+        expectation(for: restoredGoal, evaluatedWith: app.textFields["setup-step-goal"])
+        waitForExpectations(timeout: 5)
     }
 
     func testPrivateBodyDataCanBeChangedAndDeletedWithoutRemovingTheGoal() {
         let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
-        tap(app.buttons["active-energy-card"], in: app)
+        openActiveEnergy(in: app)
         let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-calorie-goal"]
         replaceText(in: height, with: "182", app: app)
         replaceText(in: weight, with: "84,5", app: app)
@@ -76,7 +86,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
 
     func testMovementGoalSuggestionIsOptionalTransparentAndEditable() {
         let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
-        tap(app.buttons["active-energy-card"], in: app)
+        openActiveEnergy(in: app)
         let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"], goal = app.textFields["setup-calorie-goal"]
         replaceText(in: height, with: "180", app: app)
         replaceText(in: weight, with: "80", app: app)
@@ -96,7 +106,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
 
     func testBodyDataRejectsOutOfRangeAndUnpairedValues() {
         let app = XCUIApplication(); app.launchArguments = ["--demo", "--steps-demo"]; app.launch()
-        tap(app.buttons["active-energy-card"], in: app)
+        openActiveEnergy(in: app)
         let height = app.textFields["setup-height"], weight = app.textFields["setup-weight"]
         replaceText(in: height, with: "300", app: app)
         replaceText(in: weight, with: "80", app: app)
@@ -109,18 +119,27 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Gib Körpergröße und Gewicht zusammen ein oder lösche beide Angaben."].waitForExistence(timeout: 4))
     }
 
+    private func openActiveEnergy(in app: XCUIApplication) {
+        tap(app.buttons["tab-profile"], in: app)
+        tap(app.buttons["active-energy-card"], in: app)
+    }
     private func replaceText(in field: XCUIElement, with value: String, app: XCUIApplication) {
         tap(field, in: app)
         let existing = field.value as? String ?? ""
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count) + value)
         tap(app.toolbars.buttons["Fertig"], in: app)
     }
-    func testRestClockIsSharedByLiveScreenAndHome() {
+    func testRestClockSurvivesLeavingLiveScreenWithoutCrowdingHome() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
         tap(app.buttons["JETZT LOS"], in: app); tap(app.buttons["Gym"], in: app); tap(app.buttons["Push"], in: app)
         tap(app.buttons["confirm-activity"], in: app)
+        tap(app.buttons["open-live-activity"], in: app)
         tap(app.buttons["rest-duration-120"], in: app); tap(app.buttons["start-rest-timer"], in: app)
         XCTAssertTrue(app.staticTexts["rest-countdown"].waitForExistence(timeout: 4))
+        tap(app.buttons["close-free-activity"], in: app)
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
+        XCTAssertFalse(app.buttons["start-rest-timer"].exists)
+        XCTAssertFalse(app.staticTexts["rest-countdown"].exists)
         capture("80-home-live-rest")
         tap(app.buttons["open-live-activity"], in: app)
         XCTAssertTrue(app.staticTexts["rest-countdown"].waitForExistence(timeout: 4))
@@ -137,7 +156,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
     func testCustomRestDurationCanBeSavedWithoutEnablingNotifications() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
         tap(app.buttons["JETZT LOS"], in: app); tap(app.buttons["Gym"], in: app); tap(app.buttons["Push"], in: app)
-        tap(app.buttons["confirm-activity"], in: app); tap(app.buttons["rest-options"], in: app)
+        tap(app.buttons["confirm-activity"], in: app); tap(app.buttons["open-live-activity"], in: app); tap(app.buttons["rest-options"], in: app)
         let seconds = app.textFields["custom-rest-seconds"]
         tap(seconds, in: app)
         let old = seconds.value as? String ?? ""
@@ -162,8 +181,8 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["favorite-gym-saved"].firstMatch.waitForExistence(timeout: 4))
         capture("84-favorite-gym-private")
         tap(app.navigationBars.buttons.element(boundBy: 0), in: app)
-        tap(app.buttons["tab-today"], in: app)
-        tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
+        tap(app.buttons["tab-week"], in: app)
+        tap(app.buttons["Session planen"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
         let place = app.textFields["session-place"]
         tap(place, in: app); XCTAssertEqual(place.value as? String, "Mein Gym Köln")
         tap(app.buttons["clear-session-place"], in: app)
@@ -172,7 +191,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["clear-session-place"], in: app)
         XCTAssertEqual(place.value as? String, "Ort (optional)", "An empty field uses its placeholder, not the favorite")
         tap(app.buttons["Schließen"], in: app)
-        tap(app.buttons["FÜR SPÄTER PLANEN"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
+        tap(app.buttons["Session planen"].firstMatch, in: app); tap(app.buttons["Gym"], in: app)
         tap(place, in: app); XCTAssertEqual(place.value as? String, "Mein Gym Köln")
         capture("85-favorite-gym-planned-session")
         tap(app.buttons["Schließen"], in: app)
@@ -182,7 +201,7 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["remove-favorite-gym"].exists)
     }
 
-    func testRunningIntervalsFollowSessionPauseAndRemainOnHome() {
+    func testRunningIntervalsFollowSessionPauseAndSurviveLeavingLiveScreen() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
         tap(app.buttons["JETZT LOS"].firstMatch, in: app); tap(app.buttons["Laufen"], in: app)
         tap(app.buttons["confirm-activity"], in: app); tap(app.buttons["open-live-activity"], in: app)
@@ -203,9 +222,10 @@ final class PersonalSetupFlowsUITests: XCTestCase {
         tap(app.buttons["FORTSETZEN"], in: app)
         tap(app.buttons["close-free-activity"], in: app)
         XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 4))
-        XCTAssertTrue(app.staticTexts["interval-countdown"].exists)
+        XCTAssertFalse(app.staticTexts["interval-countdown"].exists, "The detailed clock stays in the live activity")
         capture("88-home-running-intervals")
         tap(app.buttons["open-live-activity"], in: app)
+        XCTAssertTrue(app.staticTexts["interval-countdown"].waitForExistence(timeout: 4))
         tap(app.buttons["stop-intervals"], in: app)
         XCTAssertFalse(app.staticTexts["interval-countdown"].exists)
         XCTAssertTrue(app.buttons["configure-intervals"].exists)

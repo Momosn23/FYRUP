@@ -6,6 +6,7 @@ struct NutritionView: View {
     @State private var initializedDay = false
     @State private var showsGoal = false
     @State private var editing: NutritionEntry?
+    @State private var selectedMeal: NutritionMeal?
     private var dayKey: String { StepDay.key(for: day) }
     private var entries: [NutritionEntry] { store.nutrition.diary?.entries(on: dayKey) ?? [] }
     private var totals: NutritionValues { .total(entries.map(\.consumed)) }
@@ -39,29 +40,24 @@ struct NutritionView: View {
                         macro("Kohlenhydrate", value: totals.carbohydrates, goal: diary.goal?.carbohydrates, color: FYColor.cyan)
                         macro("Fett", value: totals.fat, goal: diary.goal?.fat, color: FYColor.nutrition)
                     }
-                    ForEach(NutritionMeal.allCases) { meal in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Label(meal.title, systemImage: meal.symbol).font(.headline)
-                                Spacer()
-                                Button { editing = emptyEntry(meal) } label: { Image(systemName: "plus.circle").frame(width: 44, height: 44) }
-                                    .accessibilityLabel("Zu \(meal.title) hinzufügen")
-                            }
+                    VStack(spacing: 0) {
+                        ForEach(NutritionMeal.allCases) { meal in
                             let mealEntries = entries.filter { $0.meal == meal }
-                            if mealEntries.isEmpty { Text("Noch nichts eingetragen").font(.subheadline).foregroundStyle(FYColor.muted) }
-                            ForEach(mealEntries) { entry in
-                                Button { editing = entry } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(entry.name).font(.body)
-                                            Text("\(entry.grams.formatted()) g · \(Int(entry.consumed.kcal.rounded()).formatted()) kcal").font(.footnote).foregroundStyle(FYColor.muted)
-                                        }
-                                        Spacer(); Image(systemName: "chevron.right").font(.caption)
-                                    }.foregroundStyle(FYColor.ink).padding(.vertical, 6)
-                                }.buttonStyle(.plain).accessibilityIdentifier("nutrition-entry-\(entry.id)")
-                            }
-                        }.fyCard()
-                    }
+                            Button { selectedMeal = meal } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: meal.symbol).font(.title2).foregroundStyle(FYColor.nutrition)
+                                        .frame(width: 44, height: 44).background(FYColor.elevated, in: Circle())
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(meal.title).font(.body.weight(.medium))
+                                        Text(mealEntries.isEmpty ? "Noch nichts eingetragen" : "\(Int(NutritionValues.total(mealEntries.map(\.consumed)).kcal.rounded()).formatted()) kcal")
+                                            .font(.footnote).foregroundStyle(FYColor.muted)
+                                    }.frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
+                                }.foregroundStyle(FYColor.ink).padding(.vertical, 10).contentShape(Rectangle())
+                            }.buttonStyle(FYPressStyle()).accessibilityIdentifier("nutrition-meal-\(meal.rawValue)")
+                            if meal != NutritionMeal.allCases.last { Divider() }
+                        }
+                    }.fyCard()
                     Text("Erfasste Nahrung – unabhängig von deiner aktiven Energie. Dieses Tagebuch wird derzeit privat auf diesem iPhone gespeichert.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
                 }
@@ -82,6 +78,7 @@ struct NutritionView: View {
             }
             .sheet(isPresented: $showsGoal) { NutritionGoalView() }
             .sheet(item: $editing) { entry in NutritionEntryEditor(entry: entry) }
+            .sheet(item: $selectedMeal) { meal in NutritionMealEntriesView(day: dayKey, meal: meal) }
     }
     private func emptyEntry(_ meal: NutritionMeal) -> NutritionEntry {
         .init(name: "", day: dayKey, meal: meal, grams: 0, per100g: .init(kcal: 0))
@@ -95,6 +92,43 @@ struct NutritionView: View {
                     + Text(goal.map { " / \(Int($0.rounded())) g" } ?? (value == nil ? "" : " g"))
             }.font(.footnote)
             ProgressView(value: value.flatMap { value in goal.flatMap { $0 > 0 ? min(1, value / $0) : nil } } ?? 0).tint(color)
+        }
+    }
+}
+
+/// Details are one tap away; the overview stays compact without hiding totals.
+private struct NutritionMealEntriesView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let day: String
+    let meal: NutritionMeal
+    @State private var editing: NutritionEntry?
+    private var entries: [NutritionEntry] { store.nutrition.diary?.entries(on: day).filter { $0.meal == meal } ?? [] }
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if entries.isEmpty { Text("Noch nichts eingetragen. Ergänze deine eigenen Angaben.").foregroundStyle(FYColor.muted) }
+                    ForEach(entries) { entry in
+                        Button { editing = entry } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(entry.name).font(.body.weight(.medium))
+                                    Text("\(entry.grams.formatted()) g · \(Int(entry.consumed.kcal.rounded()).formatted()) kcal").font(.footnote).foregroundStyle(FYColor.muted)
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                Image(systemName: "chevron.right").font(.caption)
+                            }.foregroundStyle(FYColor.ink).fyCard()
+                        }.buttonStyle(FYPressStyle()).accessibilityIdentifier("nutrition-entry-\(entry.id)")
+                    }
+                }.padding(FYLayout.page)
+            }.background(FYColor.background).navigationTitle(meal.title).navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
+                .safeAreaInset(edge: .bottom) {
+                    Button("Eintrag hinzufügen") { editing = .init(name: "", day: day, meal: meal, grams: 0, per100g: .init(kcal: 0)) }
+                        .buttonStyle(PrimaryButtonStyle()).disabled(store.nutrition.diary == nil)
+                        .accessibilityIdentifier("nutrition-meal-add").padding(FYLayout.page).background(FYColor.background)
+                }
+                .sheet(item: $editing) { entry in NutritionEntryEditor(entry: entry) }
         }
     }
 }

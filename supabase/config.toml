@@ -16,10 +16,11 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "fyrup://auth"
+site_url = "fyrup://auth-callback"
 additional_redirect_urls = ["fyrup://auth-callback"]
 jwt_expiry = 3600
 enable_signup = true
+minimum_password_length = 6
 
 [auth.external.apple]
 enabled = false

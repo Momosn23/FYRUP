@@ -2,8 +2,10 @@ import Foundation
 import Security
 
 struct SecureSessionStore: Sendable {
-    private let service = "app.fyrup.session"
+    private let service: String
     private let account = "current"
+
+    init(service: String = "app.fyrup.session") { self.service = service }
 
     func load() -> AuthSession? {
         let query: [String: Any] = [
@@ -31,4 +33,3 @@ struct SecureSessionStore: Sendable {
 
     func clear() { SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account] as CFDictionary) }
 }
-

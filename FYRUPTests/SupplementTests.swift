@@ -39,6 +39,24 @@ final class SupplementTests: XCTestCase {
         settings.quietEnabled = false; XCTAssertFalse(settings.isQuiet(minute: 600))
         settings.timezone = "Invalid/Zone"; XCTAssertFalse(settings.isValid)
     }
+
+    func testOptionalAmountsDecodeOldDataValidateAndEncodeClear() throws {
+        var plan = SupplementPlan(ownerID: owner, name: "Eigene Auswahl")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(plan)) as? [String: Any])
+        json.removeValue(forKey: "amount")
+        let old = try JSONDecoder().decode(SupplementPlan.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(old.amount)
+        plan.amount = SupplementAmount(value: 1.5, unit: .g)
+        XCTAssertNil(plan.validationMessage)
+        XCTAssertEqual(try JSONDecoder().decode(SupplementPlan.self, from: JSONEncoder().encode(plan)), plan)
+        for value in [0, -1, .nan, .infinity, 1_000_001] {
+            plan.amount = SupplementAmount(value: value, unit: .g); XCTAssertNotNil(plan.validationMessage)
+        }
+        plan.amount = nil
+        let cleared = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(plan)) as? [String: Any])
+        XCTAssertTrue(cleared["amount"] is NSNull)
+        XCTAssertFalse(plan.remindersEnabled)
+    }
     func testSavedTimezoneControlsDatesAndRejectsInvalidClocks() {
         let now = date("2026-09-05T00:30:00Z")
         XCTAssertEqual(SupplementDay.key(now, timezone: "America/New_York"), "2026-09-04")

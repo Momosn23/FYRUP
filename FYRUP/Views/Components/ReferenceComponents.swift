@@ -53,6 +53,7 @@ struct FYProgressRing: View {
     let progress: Double?
     let symbol: String
     var accent = FYColor.lime
+    var diameter: CGFloat = 80
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         ZStack {
@@ -60,7 +61,7 @@ struct FYProgressRing: View {
             Circle().trim(from: 0, to: safeProgress)
                 .stroke(accent, style: StrokeStyle(lineWidth: 7, lineCap: .round)).rotationEffect(.degrees(-90))
             Image(systemName: symbol).font(.system(size: 28, weight: .medium)).foregroundStyle(accent)
-        }.frame(width: 80, height: 80).padding(4).accessibilityHidden(true)
+        }.frame(width: diameter, height: diameter).padding(4).accessibilityHidden(true)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: safeProgress)
     }
     private var safeProgress: Double { guard let progress, progress.isFinite else { return 0 }; return min(1, max(0, progress)) }
@@ -72,6 +73,7 @@ struct FYSetupHeading: View {
     let step: Int
     let total: Int
     var showsBack = true
+    var showsProgress = true
     let back: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -81,11 +83,13 @@ struct FYSetupHeading: View {
                         .accessibilityLabel("Zurück")
                 } else { Color.clear.frame(width: 44, height: 44).accessibilityHidden(true) }
                 Spacer()
-                ProgressView(value: Double(step), total: Double(max(1, total))).tint(FYColor.lime).frame(width: 120)
-                    .accessibilityLabel("Einrichtung, Schritt \(step) von \(total)")
-                Spacer()
-                Text("\(step)/\(total)").font(.caption).foregroundStyle(FYColor.muted)
-                    .lineLimit(1).fixedSize().dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(minWidth: 44)
+                if showsProgress {
+                    ProgressView(value: Double(step), total: Double(max(1, total))).tint(FYColor.lime).frame(width: 120)
+                        .accessibilityLabel("Persönliche Einrichtung, Schritt \(step) von \(total)")
+                    Spacer()
+                    Text("\(step)/\(total)").font(.caption).foregroundStyle(FYColor.muted)
+                        .lineLimit(1).fixedSize().dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(minWidth: 44)
+                }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text(title).font(.title.weight(.bold))

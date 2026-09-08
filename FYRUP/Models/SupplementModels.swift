@@ -21,6 +21,7 @@ struct SupplementPlan: Codable, Identifiable, Equatable, Sendable {
     var ownerID: UUID
     var revision = 0
     var name: String
+    var amount: SupplementAmount?
     var weekdays = Array(1...7)
     var slots: [SupplementSlot] = [.init(minute: 9 * 60)]
     var isPaused = false
@@ -31,12 +32,13 @@ struct SupplementPlan: Codable, Identifiable, Equatable, Sendable {
     var repeatCount = 0
 
     enum CodingKeys: String, CodingKey {
-        case id, revision, name, weekdays, slots
+        case id, revision, name, weekdays, slots, amount
         case ownerID = "owner_id", isPaused = "is_paused", isArchived = "is_archived"
         case remindersEnabled = "reminders_enabled", repeatMinutes = "repeat_minutes", repeatCount = "repeat_count"
     }
 
     var validationMessage: String? {
+        if let amount, !amount.isValid { return "Prüfe deine selbst gewählte Menge und Einheit." }
         guard (0..<1_000_000_000).contains(revision),
               (1...60).contains(name.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count) else { return "Gib einen Namen mit 1–60 Zeichen ein." }
         guard !weekdays.isEmpty, weekdays.count <= 7, Set(weekdays).count == weekdays.count,
@@ -46,6 +48,36 @@ struct SupplementPlan: Codable, Identifiable, Equatable, Sendable {
         guard SupplementLimits.intervals.contains(repeatMinutes), (0...SupplementLimits.maxRepeats).contains(repeatCount) else { return "Wähle einen Abstand und höchstens drei zusätzliche Erinnerungen." }
         return nil
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id); try values.encode(ownerID, forKey: .ownerID)
+        try values.encode(revision, forKey: .revision); try values.encode(name, forKey: .name)
+        try values.encode(weekdays, forKey: .weekdays); try values.encode(slots, forKey: .slots)
+        try values.encode(isPaused, forKey: .isPaused); try values.encode(isArchived, forKey: .isArchived)
+        try values.encode(remindersEnabled, forKey: .remindersEnabled); try values.encode(repeatMinutes, forKey: .repeatMinutes)
+        try values.encode(repeatCount, forKey: .repeatCount)
+        // Explicit null removes a previous amount. Old clients omit this key and preserve the server value.
+        try values.encode(amount, forKey: .amount)
+    }
+}
+
+enum SupplementUnit: String, Codable, CaseIterable, Identifiable, Sendable {
+    case g, mg, mcg, ml, iu, capsule, tablet, drop, portion, piece
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .g: "g"; case .mg: "mg"; case .mcg: "µg"; case .ml: "ml"; case .iu: "I.E."
+        case .capsule: "Kapseln"; case .tablet: "Tabletten"; case .drop: "Tropfen"; case .portion: "Portionen"; case .piece: "Stück"
+        }
+    }
+}
+
+struct SupplementAmount: Codable, Equatable, Sendable {
+    let value: Double
+    let unit: SupplementUnit
+    var isValid: Bool { value.isFinite && value > 0 && value <= 1_000_000 }
+    var title: String { "\(value.formatted(.number.precision(.fractionLength(0...6)))) \(unit.title)" }
 }
 
 struct SupplementSettings: Codable, Equatable, Sendable {

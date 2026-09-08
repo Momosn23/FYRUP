@@ -21,6 +21,7 @@ struct ActivityLabel: View {
 struct AvatarView: View {
     @Environment(AppStore.self) private var store
     let profile: Profile
+    var size: CGFloat = 48
     @State private var image: UIImage?
     var body: some View {
         ZStack {
@@ -31,7 +32,7 @@ struct AvatarView: View {
                 Text(profile.displayName.prefix(1).uppercased()).font(.headline.bold()).foregroundStyle(FYColor.ink)
             }
         }
-        .frame(width: 48, height: 48)
+        .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(FYColor.line))
         .accessibilityLabel("Profilbild von \(profile.displayName)")

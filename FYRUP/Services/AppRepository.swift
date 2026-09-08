@@ -1,6 +1,11 @@
 import Foundation
 
 extension AppRepository {
+    func pendingEmailAuth() async throws -> PendingEmailAuth? { nil }
+    func resendSignupEmail() async throws { throw EmailAuthFailure.unavailable }
+    func completeEmailAuth(_ url: URL) async throws -> EmailAuthCompletion { throw EmailAuthFailure.unavailable }
+    func updateRecoveredPassword(_ password: String) async throws { throw EmailAuthFailure.unavailable }
+    func cancelEmailAuth() async { }
     func unregisterDeviceToken(_ token: String, ownerID: UUID) async throws { }
     func startActivity(userID: UUID, sport: SportKind, subtype: String?, linkedActivityID: UUID?, plannedSessionID: UUID?) async throws -> Activity {
         try await startActivity(userID: userID, sport: sport, subtype: subtype, linkedActivityID: linkedActivityID, plannedSessionID: plannedSessionID, placeName: nil)
@@ -13,6 +18,11 @@ protocol AppRepository: WorkoutRepository, StepRepository, WeeklyFlameRepository
     func signIn(email: String, password: String) async throws -> AuthSession
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession
     func resetPassword(email: String) async throws
+    func pendingEmailAuth() async throws -> PendingEmailAuth?
+    func resendSignupEmail() async throws
+    func completeEmailAuth(_ url: URL) async throws -> EmailAuthCompletion
+    func updateRecoveredPassword(_ password: String) async throws
+    func cancelEmailAuth() async
     func signOut() async
     func profile(userID: UUID) async throws -> Profile?
     func saveProfile(_ profile: Profile) async throws
@@ -63,6 +73,11 @@ actor LiveAppRepository: AppRepository {
     func signIn(email: String, password: String) async throws -> AuthSession { try await client.signIn(email: email, password: password) }
     func signInWithApple(idToken: String, nonce: String) async throws -> AuthSession { try await client.signInWithApple(idToken: idToken, nonce: nonce) }
     func resetPassword(email: String) async throws { try await client.resetPassword(email: email) }
+    func pendingEmailAuth() async throws -> PendingEmailAuth? { try await client.pendingEmailAuth() }
+    func resendSignupEmail() async throws { try await client.resendSignupEmail() }
+    func completeEmailAuth(_ url: URL) async throws -> EmailAuthCompletion { try await client.completeEmailAuth(url) }
+    func updateRecoveredPassword(_ password: String) async throws { try await client.updateRecoveredPassword(password) }
+    func cancelEmailAuth() async { await client.cancelEmailAuth() }
     func signOut() async { await client.signOut() }
 
     func profile(userID: UUID) async throws -> Profile? {

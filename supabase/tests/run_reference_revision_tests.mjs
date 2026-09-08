@@ -45,6 +45,70 @@ try {
   assert.equal(await value(`select count(*)::int as value from public.weekly_progress where user_id='${owner}'`), 0);
   await db.exec("reset role; set role anon; select set_config('request.jwt.claim.sub','',false);");
   await assert.rejects(value("select public.confirm_weekly_goal(2,'UTC') as value"));
-  console.log('PASS: 2-unit goal, unchanged existing data, repeat confirmation, next-week-only change, bounds, stranger RLS and anonymous rejection. Production/iPhone not tested.');
+  await db.exec('reset role;');
+  const beforeOptional = (await db.query('select id,activity_visibility,onboarding_step,current_weekly_goal,weekly_goal_confirmed_at from public.profiles order by id')).rows;
+  const optionalMigration = await readFile('supabase/migrations/202609080018_optional_setup.sql', 'utf8');
+  await db.exec(optionalMigration);
+  await db.exec(optionalMigration); // Safe to rerun: no data rewrite, exact RPC signatures.
+  assert.deepEqual((await db.query('select id,activity_visibility,onboarding_step,current_weekly_goal,weekly_goal_confirmed_at from public.profiles order by id')).rows, beforeOptional);
+  const fresh = 'dd800000-0000-0000-0000-000000000003';
+  const absent = 'dd800000-0000-0000-0000-000000000004';
+  await db.exec(`insert into auth.users values ('${fresh}'),('${absent}'); set role authenticated; select set_config('request.jwt.claim.sub','${fresh}',false);`);
+  await value("select public.upsert_profile('reference_fresh','Fresh') as value");
+  assert.equal(await value('select activity_visibility as value from public.profiles where id=auth.uid()'), 'nobody');
+  assert.equal(await value('select weekly_goal_confirmed_at is null as value from public.profiles where id=auth.uid()'), true);
+  for (const step of ['friends', 'complete', 'done', 'done']) {
+    assert.equal(await value(`select (public.save_onboarding_state('${step}')).onboarding_step as value`), step);
+  }
+  assert.equal(await value('select cardinality(sports) as value from public.profiles where id=auth.uid()'), 0);
+  assert.equal(await value('select weekly_goal_confirmed_at is null as value from public.profiles where id=auth.uid()'), true);
+  assert.equal(await value('select count(*)::int as value from public.activities where user_id=auth.uid()'), 0);
+  await value("select public.upsert_profile('reference_fresh','Renamed',null,null,null,null,'{}',7::smallint,'friends') as value");
+  assert.equal(await value('select activity_visibility as value from public.profiles where id=auth.uid()'), 'nobody', 'Metadata cannot replay privacy consent');
+  assert.equal(await value('select onboarding_step as value from public.profiles where id=auth.uid()'), 'done');
+  for (const invalid of ['null', "'main'"]) await assert.rejects(value(`select public.save_onboarding_state(${invalid}) as value`), /invalid onboarding step/);
+  for (const invalid of ["array[null]::text[]", "array['   ']", "array[repeat('x',81)]", "array_fill('Push'::text,array[25])", "array[['Push','Pull'],['Legs','Core']]"]) {
+    await assert.rejects(value(`select public.save_onboarding_state('done',${invalid}) as value`), /invalid gym focus/);
+  }
+  await assert.rejects(value("update public.profiles set onboarding_step='friends' where id=auth.uid() returning onboarding_step as value"));
+  await db.exec(`select set_config('request.jwt.claim.sub','${absent}',false);`);
+  await assert.rejects(value("select public.save_onboarding_state('done') as value"), /profile required/);
+  await db.exec("select set_config('request.jwt.claim.sub','',false);");
+  await assert.rejects(value("select public.save_onboarding_state('done') as value"), /forbidden/);
+  await db.exec('reset role;');
+  assert.deepEqual((await db.query(`select id,activity_visibility,onboarding_step,current_weekly_goal,weekly_goal_confirmed_at from public.profiles where id in ('${owner}','${other}') order by id`)).rows, beforeOptional);
+  await db.exec('set role anon;');
+  await assert.rejects(value("select public.save_onboarding_state('done') as value"));
+  await db.exec('reset role;');
+  const amountsMigration = await readFile('supabase/migrations/202609080019_supplement_amounts.sql', 'utf8');
+  await db.exec(amountsMigration); await db.exec(amountsMigration);
+  await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','${fresh}',false);`);
+  await value("select public.get_supplements('Europe/Berlin') as value");
+  const plan = {id:'dd800000-1000-0000-0000-000000000001',owner_id:fresh,revision:0,name:'Eigene Auswahl',weekdays:[1,2,3,4,5,6,7],
+    slots:[{id:'dd800000-2000-0000-0000-000000000001',minute:540}],is_paused:false,is_archived:false,reminders_enabled:false,repeat_minutes:60,repeat_count:0};
+  const savePlan = async p => (await db.query('select public.save_supplement_plan($1::jsonb) as value',[JSON.stringify(p)])).rows[0].value;
+  let saved = await savePlan(plan); assert.equal(saved.amount,null);
+  saved = await savePlan({...plan,revision:saved.revision,amount:{value:1.5,unit:'g'}});
+  assert.deepEqual(saved.amount,{value:1.5,unit:'g'});
+  const own = await value("select public.get_supplements('Europe/Berlin') as value");
+  assert.deepEqual(own.plans[0].amount,saved.amount);
+  saved = await savePlan({...plan,revision:saved.revision,name:'Umbenannt'});
+  assert.deepEqual(saved.amount,{value:1.5,unit:'g'},'Old clients must not erase amounts');
+  for (const amount of [{value:0,unit:'g'},{value:-1,unit:'g'},{value:1000001,unit:'g'},{value:'NaN',unit:'g'}, {value:2,unit:'unknown'}, {unit:'g'}, [], '5g']) {
+    await assert.rejects(savePlan({...plan,revision:saved.revision,amount}), /invalid_supplement_amount/);
+  }
+  saved = await savePlan({...plan,revision:saved.revision,amount:null}); assert.equal(saved.amount,null);
+  await assert.rejects(savePlan({...plan,revision:0,amount:{value:1,unit:'capsule'}}),/supplement_conflict/);
+  await db.exec(`select set_config('request.jwt.claim.sub','${other}',false);`);
+  await value("select public.get_supplements('Europe/Berlin') as value");
+  await assert.rejects(savePlan({...plan,owner_id:other,revision:saved.revision,amount:{value:1,unit:'capsule'}}),/unauthorized/);
+  assert.equal(await value(`select count(*)::int as value from public.supplement_plans where owner_id='${fresh}'`),0);
+  await db.exec("reset role; set role anon; select set_config('request.jwt.claim.sub','',false);");
+  await assert.rejects(savePlan(plan));
+  await db.exec('reset role;');
+  for (const malformed of [{value:null,unit:'g'}, {value:1,unit:null}, {unit:'g'}, {value:1}]) {
+    await assert.rejects(db.query('update public.supplement_plans set amount=$1::jsonb where id=$2::uuid', [JSON.stringify(malformed),plan.id]), /supplement_amount_valid/);
+  }
+  console.log('PASS: goals 2–7, optional private setup; supplement amounts create/read/update/clear, legacy preservation, bounds, conflict, RLS and idempotent migrations. Production/iPhone not tested.');
 } catch (error) { console.error(error.message); process.exitCode = 1; }
 finally { await db.close(); }

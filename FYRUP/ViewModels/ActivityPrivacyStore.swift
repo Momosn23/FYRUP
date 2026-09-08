@@ -3,7 +3,7 @@ import Observation
 
 enum ActivityVisibility: String, CaseIterable, Sendable {
     case friends, nobody
-    var title: String { self == .friends ? "Freunde" : "Niemand" }
+    var title: String { self == .friends ? "Bestätigte Freunde" : "Nur ich" }
 }
 
 /// A choice is not confirmed until the server acknowledges this account's

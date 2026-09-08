@@ -16,9 +16,11 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var setupPage: Int?
     var weatherPlace: WeatherPlace?
     var setupChoices: SetupChoices?
+    var setupJourney: SetupJourneyProgress?
 
     var validationMessage: String? {
         if version != 1 { return "Diese Einstellungen benötigen eine neuere App-Version." }
+        if let setupJourney, setupJourney.version != 1 { return "Diese Einrichtung benötigt eine neuere App-Version." }
         if let weatherPlace, !weatherPlace.isValid { return "Wähle den Wetterort erneut aus." }
         if let setupPage, !(0...3).contains(setupPage) { return "Der gespeicherte Einrichtungsschritt ist ungültig." }
         if let measurementsUpdatedAt, !measurementsUpdatedAt.timeIntervalSince1970.isFinite { return "Der Zeitpunkt deiner Körperdaten ist ungültig. Speichere sie erneut." }

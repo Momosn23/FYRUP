@@ -157,17 +157,20 @@ final class PersonalTrainingTests: XCTestCase {
         store.activate(userID: other)
         XCTAssertTrue(store.feedback.isEmpty); XCTAssertTrue(store.feedbackErrors.isEmpty)
     }
-    func testAppStoreOnboardingResumesRoutineAfterConfirmedStreakGoal() async throws {
+    func testLegacyConfirmedGoalResumesNamedPreferencesWithoutRepeatingConfirmation() async throws {
         let repository = DemoRepository(startsWithoutProfile: true)
         let store = AppStore(repository: repository); await store.bootstrap()
         await store.saveProfile(displayName: "QA", username: "qa_routine", sports: [.gym])
         await store.saveOnboardingStep("weekly_goal")
         await store.confirmOnboardingGoal(4)
-        XCTAssertEqual(store.route, .routineSetup)
+        XCTAssertEqual(store.route, .personalSetup)
+        XCTAssertEqual(store.setup.journeyStep, .days)
         let reopened = AppStore(repository: repository); await reopened.bootstrap()
-        XCTAssertEqual(reopened.route, .routineSetup)
+        XCTAssertEqual(reopened.route, .personalSetup)
+        XCTAssertEqual(reopened.setup.journeyStep, .days)
         await reopened.saveOnboardingStep("friends")
-        XCTAssertEqual(reopened.route, .friendsSetup)
+        XCTAssertEqual(reopened.route, .personalSetup)
+        XCTAssertEqual(reopened.setup.journeyStep, .days, "A legacy server marker must not overwrite a named private cursor")
     }
 }
 

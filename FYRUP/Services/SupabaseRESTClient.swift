@@ -6,15 +6,17 @@ actor SupabaseRESTClient {
     private let configuration: AppConfiguration
     private let urlSession: URLSession
     private let sessionStore: SecureSessionStore
+    private let emailAuthPersistence: any EmailAuthPersistence
     private let connectivity: ConnectivityMonitor
     private let logger = Logger(subsystem: "app.fyrup.ios", category: "Backend")
     private var session: AuthSession?
     private var refreshTask: Task<AuthSession?, Error>?
 
-    init(configuration: AppConfiguration, urlSession: URLSession = .shared, sessionStore: SecureSessionStore = .init(), connectivity: ConnectivityMonitor = .shared) {
+    init(configuration: AppConfiguration, urlSession: URLSession = .shared, sessionStore: SecureSessionStore = .init(), connectivity: ConnectivityMonitor = .shared, emailAuthPersistence: any EmailAuthPersistence = SecureEmailAuthPersistence()) {
         self.configuration = configuration
         self.urlSession = urlSession
         self.sessionStore = sessionStore
+        self.emailAuthPersistence = emailAuthPersistence
         self.connectivity = connectivity
         self.session = sessionStore.load()
     }
@@ -22,8 +24,12 @@ actor SupabaseRESTClient {
     var currentSession: AuthSession? { session }
 
     func signUp(email: String, password: String) async throws -> AuthSession? {
-        let response: AuthResponse = try await authRequest(path: "/auth/v1/signup", body: ["email": email, "password": password])
-        return try persist(response)
+        let pending = try PendingEmailAuth.make(kind: .signup, email: email)
+        let response: AuthResponse = try await requestEmail(pending, path: "/auth/v1/signup",
+            body: ["email": pending.email, "password": password, "code_challenge": pending.challenge, "code_challenge_method": "s256"])
+        let result = try persist(response)
+        if result != nil { emailAuthPersistence.clear() }
+        return result
     }
 
     func signIn(email: String, password: String) async throws -> AuthSession {
@@ -33,6 +39,7 @@ actor SupabaseRESTClient {
             body: ["email": email, "password": password]
         )
         guard let session = try persist(response) else { throw AppError.authentication }
+        emailAuthPersistence.clear()
         return session
     }
 
@@ -43,14 +50,92 @@ actor SupabaseRESTClient {
             body: ["provider": "apple", "id_token": idToken, "nonce": nonce]
         )
         guard let session = try persist(response) else { throw AppError.authentication }
+        emailAuthPersistence.clear()
         return session
     }
 
     func resetPassword(email: String) async throws {
-        let _: EmptyResponse = try await authRequest(path: "/auth/v1/recover", body: ["email": email])
+        if let previous = try emailAuthPersistence.load(), !previous.canResend(at: .now) { throw EmailAuthFailure.waitBeforeResending }
+        let pending = try PendingEmailAuth.make(kind: .recovery, email: email)
+        let _: EmptyResponse = try await requestEmail(pending, path: "/auth/v1/recover",
+            body: ["email": pending.email, "code_challenge": pending.challenge, "code_challenge_method": "s256"])
+    }
+
+    func pendingEmailAuth() throws -> PendingEmailAuth? { try emailAuthPersistence.load() }
+    func cancelEmailAuth() { emailAuthPersistence.clear() }
+
+    func resendSignupEmail() async throws {
+        guard let previous = try emailAuthPersistence.load(), previous.kind == .signup else { throw EmailAuthFailure.invalidLink }
+        guard previous.canResend(at: .now) else { throw EmailAuthFailure.waitBeforeResending }
+        let pending = try PendingEmailAuth.make(kind: .signup, email: previous.email)
+        let _: EmptyResponse = try await requestEmail(pending, path: "/auth/v1/resend",
+            body: ["email": pending.email, "type": "signup", "code_challenge": pending.challenge, "code_challenge_method": "s256"])
+    }
+
+    private func requestEmail<Result: Decodable>(_ pending: PendingEmailAuth, path: String, body: [String: String]) async throws -> Result {
+        let previous = try emailAuthPersistence.load()
+        try emailAuthPersistence.save(pending)
+        do {
+            return try await authRequest(path: path, query: [.init(name: "redirect_to", value: PendingEmailAuth.redirect)], body: body)
+        } catch {
+            // A definite rejection must not become a pending registration after relaunch.
+            // Transport/5xx outcomes are uncertain: keep the proof in case delivery succeeded.
+            if let failure = error as? AppError {
+                switch failure {
+                case .validation, .conflict, .authentication, .accessDenied:
+                    if try emailAuthPersistence.load()?.id == pending.id {
+                        if let previous { try emailAuthPersistence.save(previous) }
+                        else { emailAuthPersistence.clear() }
+                    }
+                default: break
+                }
+            }
+            throw error
+        }
+    }
+
+    func completeEmailAuth(_ url: URL) async throws -> EmailAuthCompletion {
+        let code = try EmailAuthCallback.code(from: url)
+        guard var pending = try emailAuthPersistence.load(), pending.recoverySession == nil else { throw EmailAuthFailure.invalidLink }
+        guard pending.isValid(at: .now) else { throw EmailAuthFailure.expiredLink }
+        let response: AuthResponse = try await authRequest(path: "/auth/v1/token",
+            query: [.init(name: "grant_type", value: "pkce")], body: ["auth_code": code, "code_verifier": pending.verifier])
+        guard try emailAuthPersistence.load()?.id == pending.id else { throw EmailAuthFailure.invalidLink }
+        guard let token = response.accessToken, let refresh = response.refreshToken, let user = response.user else { throw AppError.authentication }
+        let verified = AuthSession(accessToken: token, refreshToken: refresh,
+                                   expiresAt: Date().addingTimeInterval(TimeInterval(response.expiresIn ?? 3600)), userID: user.id)
+        if pending.kind == .recovery {
+            // Recovery never activates the normal account, feed, Health, notifications or workout stores.
+            pending.recoverySession = verified
+            try emailAuthPersistence.save(pending)
+            return .passwordRecovery
+        }
+        try sessionStore.save(verified); session = verified; emailAuthPersistence.clear()
+        return .signedIn(verified)
+    }
+
+    func updateRecoveredPassword(_ password: String) async throws {
+        guard password.count >= PendingEmailAuth.minimumPasswordLength else { throw AppError.validation("Das Passwort braucht mindestens 6 Zeichen.") }
+        guard let pending = try emailAuthPersistence.load(), pending.kind == .recovery,
+              let recovery = pending.recoverySession, recovery.expiresAt > .now else { throw EmailAuthFailure.expiredLink }
+        var request = URLRequest(url: configuration.supabaseURL.appending(path: "auth/v1/user"))
+        request.httpMethod = "PUT"
+        request.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(recovery.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["password": password])
+        let _: EmptyResponse = try await execute(request, operation: "auth.password-update")
+        guard try emailAuthPersistence.load()?.id == pending.id else { throw EmailAuthFailure.invalidLink }
+        // Do not silently log in after a reset. Forget the recovery session and return to normal login.
+        emailAuthPersistence.clear()
+        var logout = URLRequest(url: Self.requestURL(baseURL: configuration.supabaseURL, path: "/auth/v1/logout", query: [.init(name: "scope", value: "local")]))
+        logout.httpMethod = "POST"; logout.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        logout.setValue("Bearer \(recovery.accessToken)", forHTTPHeaderField: "Authorization")
+        _ = try? await executeData(logout, operation: "auth.recovery-logout")
     }
 
     func signOut() async {
+        emailAuthPersistence.clear()
         if let token = session?.accessToken {
             _ = try? await raw(path: "/auth/v1/logout", method: .post, body: Optional<String>.none, accessToken: token)
         }
@@ -305,7 +390,9 @@ actor SupabaseRESTClient {
         if text.contains("invalid login credentials") { return .conflict("E-Mail oder Passwort ist falsch.") }
         if text.contains("email not confirmed") { return .conflict("Bitte bestätige zuerst deine E-Mail-Adresse.") }
         if text.contains("user already registered") { return .conflict("Für diese E-Mail gibt es bereits ein Konto.") }
-        if text.contains("password") && (text.contains("characters") || text.contains("weak")) { return .validation("Das Passwort muss mindestens 8 Zeichen lang sein.") }
+        if text.contains("password") && (text.contains("characters") || text.contains("weak")) { return .validation("Dieses Passwort wurde nicht akzeptiert. Verwende mindestens 6 Zeichen und ein stärkeres, einzigartiges Passwort.") }
+        if text.contains("otp_expired") || text.contains("flow_state_expired") || text.contains("flow_state_not_found") || text.contains("bad_code_verifier") { return .validation("Dieser Link ist abgelaufen oder passt nicht zur aktuellen Anfrage. Fordere einen neuen Link an.") }
+        if text.contains("email_address_invalid") { return .validation("Prüfe deine E-Mail-Adresse.") }
         if text.contains("reserved_username") { return .conflict("Dieser Username ist reserviert.") }
         if text.contains("username") && (text.contains("duplicate") || code == "23505") { return .conflict("Dieser Username ist bereits vergeben.") }
         if text.contains("invalid_group_name") { return .validation("Der Gruppenname braucht 2–40 Zeichen.") }
@@ -366,6 +453,13 @@ private struct EmptyResponse: Codable {}
 private struct BackendError: Decodable {
     let code: String?
     let message: String?
+    enum CodingKeys: String, CodingKey { case code, errorCode = "error_code", message, msg, errorDescription = "error_description" }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let rawCode = (try? values.decode(String.self, forKey: .errorCode)) ?? (try? values.decode(String.self, forKey: .code))
+        code = rawCode.flatMap { $0.range(of: "^[a-zA-Z0-9_]{1,64}$", options: .regularExpression) != nil ? $0 : nil }
+        message = (try? values.decode(String.self, forKey: .message)) ?? (try? values.decode(String.self, forKey: .msg)) ?? (try? values.decode(String.self, forKey: .errorDescription))
+    }
 }
 
 extension JSONEncoder {

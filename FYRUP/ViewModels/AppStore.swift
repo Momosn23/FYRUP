@@ -9,7 +9,11 @@ import OSLog
 @Observable
 final class AppStore {
     private let connectionLogger = Logger(subsystem: "app.fyrup.ios", category: "Reconnect")
-    enum Route: Equatable { case loading, configuration, signedOut, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, personalSetup, onboardingComplete, main }
+    enum Route: Equatable { case loading, configuration, signedOut, emailConfirmation, passwordRecovery, profileSetup, sportsSetup, gymSetup, weeklyGoalSetup, routineSetup, friendsSetup, personalSetup, onboardingComplete, main }
+    var pendingEmailAuth: PendingEmailAuth?
+    var authMessage: String?
+    private var authRevision = UUID()
+    private var pendingEmailLink: URL?
     var route: Route = .loading {
         didSet { notificationRouting.setMainReady(route == .main && session?.userID != nil && profile?.id == session?.userID) }
     }
@@ -32,8 +36,15 @@ final class AppStore {
     var trainingGroups: [TrainingGroup] = []
     var recentActivities: [Activity] = []
     var userSearchResults: [Profile] = []
+    private var userSearchRevision = UUID()
     var goals: GoalSummary = .empty
-    var isBusy = false
+    var isBusy = false {
+        didSet {
+            if oldValue && !isBusy && pendingEmailLink != nil {
+                Task { await deliverPendingEmailLink() }
+            }
+        }
+    }
     var isRefreshing = false
     var errorMessage: String?
     var showsActivityComposer = false
@@ -56,6 +67,7 @@ final class AppStore {
     private(set) var session: AuthSession? {
         didSet {
             accountGeneration = UUID(); isRefreshing = false
+            clearUserSearch()
             reconnectRefreshRequested = false
             isActivityCurrent = false
             currentDeviceToken = nil
@@ -161,9 +173,21 @@ final class AppStore {
 
     func bootstrap() async {
         if repository is DemoRepositoryPlaceholder { route = .configuration; return }
+        let revision = authRevision
         errorMessage = nil
         do {
-            guard let restored = try await repository.restoreSession() else { route = .signedOut; return }
+            let pending = try await repository.pendingEmailAuth()
+            guard revision == authRevision else { return }
+            if let pending, pending.recoverySession != nil {
+                pendingEmailAuth = pending; route = .passwordRecovery; return
+            }
+            let restored = try await repository.restoreSession()
+            guard revision == authRevision else { return }
+            guard let restored else {
+                pendingEmailAuth = pending
+                route = pending == nil ? .signedOut : .emailConfirmation
+                return
+            }
             session = restored
             #if DEBUG || targetEnvironment(simulator)
             if referenceSnapshot, let demo = repository as? DemoRepository { try await ReferenceCheckpointFixtures.seed(self, repository: demo) }
@@ -172,21 +196,66 @@ final class AppStore {
             #if DEBUG || targetEnvironment(simulator)
             if referenceSnapshot && ProcessInfo.processInfo.arguments.contains("--reference-body") { route = .personalSetup }
             #endif
-        } catch { present(error); route = .signedOut }
+        } catch { if revision == authRevision { present(error); route = .signedOut } }
     }
 
     func signIn(email: String, password: String) async {
-        await perform { self.session = try await self.repository.signIn(email: email, password: password); try await self.loadProfileAndRoute() }
+        authRevision = UUID(); authMessage = nil
+        await performEmailAuth { self.session = try await self.repository.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password); self.pendingEmailAuth = nil; try await self.loadProfileAndRoute() }
     }
 
     func signUp(email: String, password: String) async {
-        await perform {
+        authRevision = UUID(); authMessage = nil
+        await performEmailAuth {
             if let session = try await self.repository.signUp(email: email, password: password) { self.session = session; self.route = .profileSetup }
-            else { self.errorMessage = "Prüfe dein E-Mail-Postfach und bestätige deine Adresse." }
+            else {
+                self.pendingEmailAuth = try await self.repository.pendingEmailAuth()
+                self.route = .emailConfirmation
+            }
         }
     }
 
-    func resetPassword(email: String) async { await perform { try await self.repository.resetPassword(email: email); self.errorMessage = "Wir haben dir einen Link zum Zurücksetzen gesendet." } }
+    func resetPassword(email: String) async {
+        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { authMessage = "Gib zuerst deine E-Mail-Adresse ein."; return }
+        authRevision = UUID(); authMessage = nil
+        await performEmailAuth {
+            try await self.repository.resetPassword(email: email)
+            self.pendingEmailAuth = try await self.repository.pendingEmailAuth()
+            self.route = .emailConfirmation
+        }
+    }
+
+    func resendEmailAuth() async {
+        guard !isBusy, let pending = pendingEmailAuth else { return }
+        isBusy = true; authMessage = nil; defer { isBusy = false }
+        do {
+            if pending.kind == .signup { try await repository.resendSignupEmail() }
+            else { try await repository.resetPassword(email: pending.email) }
+            pendingEmailAuth = try await repository.pendingEmailAuth()
+            authMessage = "Wenn die Adresse dafür verwendet werden kann, erhältst du einen neuen Link. Prüfe auch deinen Spam-Ordner."
+        } catch {
+            pendingEmailAuth = try? await repository.pendingEmailAuth()
+            authMessage = (error as? LocalizedError)?.errorDescription ?? "Der Link konnte gerade nicht gesendet werden. Versuche es erneut."
+        }
+    }
+
+    func cancelEmailAuth() async {
+        guard !isBusy else { return }
+        authRevision = UUID()
+        pendingEmailLink = nil
+        await repository.cancelEmailAuth()
+        pendingEmailAuth = nil; authMessage = nil; route = .signedOut
+    }
+
+    func updateRecoveredPassword(_ password: String) async {
+        guard !isBusy, route == .passwordRecovery else { return }
+        isBusy = true; authMessage = nil; defer { isBusy = false }
+        do {
+            try await repository.updateRecoveredPassword(password)
+            pendingEmailAuth = nil; route = .signedOut
+            authMessage = "Dein Passwort wurde geändert. Melde dich mit deinem neuen Passwort an."
+        } catch { authMessage = (error as? LocalizedError)?.errorDescription ?? "Das Passwort konnte gerade nicht geändert werden. Versuche es erneut." }
+    }
     func logout() async {
         guard !isBusy else { return }
         isBusy = true
@@ -283,7 +352,7 @@ final class AppStore {
         let generation = accountGeneration
         let normalized = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil else { errorMessage = "Der Username braucht 3–24 Buchstaben, Zahlen oder _."; return }
-        var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "friends", onboardingStep: "sports")
+        var value = profile ?? Profile(id: userID, username: normalized, displayName: displayName, avatarPath: nil, birthYear: nil, city: nil, bio: nil, sports: [], weeklyGoal: 4, activityVisibility: "nobody", onboardingStep: "sports")
         value.username = normalized
         value.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if birthYear != nil { value.birthYear = birthYear }
@@ -305,20 +374,33 @@ final class AppStore {
     }
 
     func saveOnboardingSports(_ sports: [SportKind]) async {
-        await saveProfile(
-            displayName: profile?.displayName ?? suggestedDisplayName,
-            username: profile?.username ?? "",
-            birthYear: profile?.birthYear,
-            city: profile?.city,
-            sports: sports
-        )
-        guard errorMessage == nil else { return }
-        await saveOnboardingStep(sports.contains(.gym) ? "gym" : "weekly_goal")
+        guard await saveSportsPreferences(sports), setup.beginJourney(at: .body) else { return }
+        route = .personalSetup
+    }
+
+    @discardableResult
+    func saveSportsPreferences(_ sports: [SportKind]) async -> Bool {
+        guard let owner = session?.userID, var value = profile else { return false }
+        let generation = accountGeneration
+        value.sports = SportKind.allCases.filter(Set(sports).contains)
+        var saved = false
+        await perform {
+            try await self.repository.saveProfile(value)
+            guard let confirmed = try await self.repository.profile(userID: owner),
+                  confirmed.id == owner, Set(confirmed.sports) == Set(sports),
+                  self.session?.userID == owner, self.accountGeneration == generation else { return }
+            self.profile = confirmed; saved = true
+        }
+        return saved
     }
 
     func saveOnboardingStep(_ step: String, gymFocus: [String]? = nil) async {
+        guard let owner = session?.userID else { return }
+        let generation = accountGeneration
         await perform {
-            self.profile = try await self.repository.saveOnboardingState(step: step, gymFocus: gymFocus)
+            let confirmed = try await self.repository.saveOnboardingState(step: step, gymFocus: gymFocus)
+            guard confirmed.id == owner, self.session?.userID == owner, self.accountGeneration == generation else { return }
+            self.profile = confirmed
             self.route = self.onboardingRoute(step)
         }
     }
@@ -327,18 +409,19 @@ final class AppStore {
         guard let userID = session?.userID else { return }
         await weekly.activate(userID: userID)
         guard await weekly.confirmGoal(goal), session?.userID == userID else { return }
-        route = .routineSetup
+        guard setup.moveJourney(to: .days) else { return }
+        route = .personalSetup
     }
 
     private func onboardingRoute(_ step: String?) -> Route {
-        switch step {
-        case "sports": .sportsSetup
-        case "gym": .gymSetup
-        case "weekly_goal": weekly.state?.goalConfirmed == true ? .routineSetup : .weeklyGoalSetup
-        case "friends": .friendsSetup
-        case "complete": setup.value?.completed == true ? .onboardingComplete : .personalSetup
-        default: .main
-        }
+        // NULL and done are established accounts, even with no selected sport.
+        guard let step, step != "done" else { return .main }
+        if setup.value?.setupJourney != nil { return .personalSetup }
+        if step == "sports" { return .sportsSetup }
+        let resume: SetupJourneyStep = step == "weekly_goal" && weekly.state?.goalConfirmed == true
+            ? .days : .legacyProfile(step, privatePage: setup.value?.setupPage)
+        _ = setup.beginJourney(at: resume)
+        return .personalSetup
     }
 
     func avatarImage(path: String) async -> UIImage? {
@@ -377,12 +460,15 @@ final class AppStore {
         }
     }
 
-    func finishOnboarding() async {
-        guard let userID = session?.userID else { return }
-        await weekly.activate(userID: userID)
-        guard weekly.needsGoalConfirmation == false else { route = .weeklyGoalSetup; return }
+    @discardableResult
+    func finishOnboarding() async -> Bool {
+        guard let userID = session?.userID, !isBusy else { return false }
+        let generation = accountGeneration
+        // Optional goals must not be invented merely to satisfy old setup gates.
+        // Backend migration 018 removes those gates without changing any goals.
         await saveOnboardingStep("done")
-        guard errorMessage == nil, session?.userID == userID else { return }
+        guard profile?.onboardingStep == "done", session?.userID == userID, accountGeneration == generation else { return false }
+        _ = setup.finishSetup()
         workouts.activate(userID: session?.userID)
         blind.activate(userID: session?.userID)
         shot.activate(userID: session?.userID)
@@ -390,6 +476,7 @@ final class AppStore {
         route = .main
         await analytics.track(.onboardingCompleted)
         await refresh()
+        return session?.userID == userID && accountGeneration == generation
     }
 
     func refresh() async {
@@ -650,9 +737,21 @@ final class AppStore {
     func react(_ activity: Activity, reaction: ReactionKind?) async { await perform { try await self.repository.react(activityID: activity.id, reaction: reaction) } }
 
     func searchUsers(_ query: String) async {
-        guard query.count >= 2 else { userSearchResults = []; return }
-        do { userSearchResults = try await repository.searchUsers(query: query) } catch { present(error) }
+        clearUserSearch()
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2, let owner = session?.userID else { return }
+        let revision = userSearchRevision, generation = accountGeneration
+        do {
+            let results = try await repository.searchUsers(query: query)
+            guard !Task.isCancelled, revision == userSearchRevision, generation == accountGeneration, session?.userID == owner else { return }
+            userSearchResults = results
+        } catch {
+            guard !Task.isCancelled, revision == userSearchRevision, generation == accountGeneration, session?.userID == owner else { return }
+            present(error)
+        }
     }
+
+    func clearUserSearch() { userSearchRevision = UUID(); userSearchResults = [] }
 
     func sendFriendRequest(to profile: Profile) async { await perform { try await self.repository.sendFriendRequest(to: profile.id); await self.analytics.track(.friendRequestSent); self.userSearchResults.removeAll { $0.id == profile.id } } }
     func answerRequest(from profile: Profile, accept: Bool) async { await perform { try await self.repository.answerFriendRequest(from: profile.id, accept: accept); if accept { await self.analytics.track(.friendRequestAccepted) }; await self.refresh() } }
@@ -771,12 +870,38 @@ final class AppStore {
     }
 
     func receiveAppLink(_ url: URL) async {
-        if FyrupProfileLink(url: url) != nil {
+        if EmailAuthCallback.matches(url) {
+            guard session == nil else { pendingEmailLink = nil; return }
+            guard (try? EmailAuthCallback.code(from: url)) != nil else {
+                authMessage = EmailAuthFailure.invalidLink.errorDescription; return
+            }
+            if isBusy { pendingEmailLink = url; return }
+            authRevision = UUID(); isBusy = true; authMessage = nil
+            defer { isBusy = false }
+            do {
+                switch try await repository.completeEmailAuth(url) {
+                case .signedIn(let verified):
+                    session = verified; pendingEmailAuth = nil
+                    try await loadProfileAndRoute()
+                case .passwordRecovery:
+                    pendingEmailAuth = try await repository.pendingEmailAuth()
+                    route = .passwordRecovery
+                }
+            } catch {
+                authMessage = (error as? EmailAuthFailure)?.errorDescription ?? "Der Link konnte nicht bestätigt werden. Ist er abgelaufen, fordere einen neuen an."
+            }
+        } else if FyrupProfileLink(url: url) != nil {
             pendingProfileLink = FyrupProfileLink(url: url)
             await deliverPendingProfileLink()
         } else {
             await receiveLiveLink(url)
         }
+    }
+
+    private func deliverPendingEmailLink() async {
+        guard !isBusy, let url = pendingEmailLink else { return }
+        pendingEmailLink = nil // Memory-only, one bounded callback; never log or persist the URL.
+        await receiveAppLink(url)
     }
 
     func deliverPendingProfileLink() async {
@@ -872,7 +997,6 @@ final class AppStore {
         profile = try await repository.profile(userID: userID)
         guard session?.userID == userID else { return }
         if profile == nil { route = .profileSetup }
-        else if profile?.sports.isEmpty == true { route = .sportsSetup }
         else {
             await weekly.activate(userID: userID)
             guard session?.userID == userID else { return }
@@ -891,6 +1015,14 @@ final class AppStore {
     private func present(_ error: Error) {
         if error as? AppError == .authentication { clearAfterAuthenticationLoss() }
         errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription
+    }
+
+    private func performEmailAuth(_ operation: () async throws -> Void) async {
+        guard !isBusy else { return }
+        isBusy = true; authMessage = nil; errorMessage = nil
+        defer { isBusy = false }
+        do { try await operation() }
+        catch { authMessage = (error as? LocalizedError)?.errorDescription ?? "Das hat gerade nicht geklappt. Versuche es erneut." }
     }
 
     private func clearAfterAuthenticationLoss() {

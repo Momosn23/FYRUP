@@ -8,8 +8,10 @@ struct RootView: View {
             case .loading: ProgressView().tint(FYColor.lime).controlSize(.large)
             case .configuration: ConfigurationView()
             case .signedOut: WelcomeView()
-            case .profileSetup: ProfileSetupView()
-            case .sportsSetup: SportsSetupView()
+            case .emailConfirmation: EmailConfirmationView()
+            case .passwordRecovery: PasswordRecoveryView()
+            case .profileSetup: NavigationStack { ProfileSetupView() }
+            case .sportsSetup: NavigationStack { SportsSetupView() }
             case .gymSetup: GymSetupView()
             case .weeklyGoalSetup: WeeklyGoalSelectionView(isOnboarding: true)
             case .routineSetup: TrainingRoutineEditor(isOnboarding: true)

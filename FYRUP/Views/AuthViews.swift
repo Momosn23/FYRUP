@@ -6,156 +6,13 @@ enum AuthMode: String, Identifiable {
     var id: String { rawValue }
 }
 
-struct WelcomeView: View {
-    @Environment(AppStore.self) private var store
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var page = 0
-    @State private var settledPage = -1
-    @State private var authMode: AuthMode?
-
-    var body: some View {
-        ZStack {
-            switch page {
-            case 0: splash
-            case 1: introOne
-            case 2: introTwo
-            default: loginChoice
-            }
-        }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: page)
-        .fullScreenCover(item: $authMode) { mode in AuthView(mode: mode).id(mode.id) }
-        .task(id: page) {
-            let displayedPage = page
-            if displayedPage == 0 {
-                do { try await Task.sleep(for: .seconds(1.4)) } catch { return }
-                guard !Task.isCancelled, page == 0 else { return }
-                page = 1
-            } else {
-                // A page is interactable only once its crossfade is finished. Snapshot tests
-                // wait for this enabled state instead of photographing a mid-transition overlay.
-                if !reduceMotion {
-                    do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
-                }
-                guard !Task.isCancelled, page == displayedPage else { return }
-                settledPage = displayedPage
-            }
-        }
-    }
-
-    private var splash: some View {
-        ZStack {
-            Image("SplashRunnerLight").resizable().scaledToFill().ignoresSafeArea()
-            LinearGradient(colors: [.clear, .black.opacity(0.04), .black.opacity(0.52)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-            VStack(spacing: 12) {
-                Spacer()
-                FYRUPWordmark(size: 57, color: .white)
-                Text("Your friends\nmake you move.")
-                    .font(.title3.weight(.bold)).multilineTextAlignment(.center).foregroundStyle(.white)
-                Spacer().frame(height: 54)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("FYRUP. Your friends make you move.")
-        .onTapGesture { page = 1 }
-    }
-
-    private var introOne: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Gemeinsam\nmehr erreichen.")
-                .font(.system(size: 34, weight: .black)).foregroundStyle(FYColor.ink)
-            Text("Sieh, wer heute aktiv ist, plane Sessions mit Freunden und motiviert euch gegenseitig.")
-                .font(.body).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Image("OnboardingCrewCollage").resizable().scaledToFill()
-                .frame(maxWidth: .infinity).frame(height: 390).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            PageDots(current: 0)
-            Button("Los geht's") { page = 2 }.buttonStyle(SecondaryButtonStyle())
-                .accessibilityIdentifier("welcome-intro-next").disabled(settledPage != 1)
-        }
-        .padding(.horizontal, 24).padding(.top, 54).padding(.bottom, 18)
-        .background(Color.white.ignoresSafeArea())
-    }
-
-    private var introTwo: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Image("OnboardingCrewCollage").resizable().scaledToFill()
-                .frame(maxWidth: .infinity).frame(height: 360).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            Text("Gemeinsam aktiv.\nEine stärkere Crew.")
-                .font(.system(size: 31, weight: .black)).foregroundStyle(FYColor.ink)
-            Text("Gym, Laufen, Fußball und mehr – alles in einer App.")
-                .font(.body).foregroundStyle(FYColor.muted)
-            Spacer(minLength: 4)
-            PageDots(current: 1)
-            Button("Weiter") { page = 3 }.buttonStyle(SecondaryButtonStyle())
-                .accessibilityIdentifier("welcome-crew-next").disabled(settledPage != 2)
-        }
-        .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 18)
-        .background(Color.white.ignoresSafeArea())
-    }
-
-    private var loginChoice: some View {
-        ZStack {
-            Image("WelcomeHeroLight").resizable().scaledToFill()
-                .ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
-            LinearGradient(stops: [
-                .init(color: .white.opacity(0.10), location: 0),
-                .init(color: .white.opacity(0.02), location: 0.38),
-                .init(color: .black.opacity(0.16), location: 0.58),
-                .init(color: .black.opacity(0.72), location: 1)
-            ], startPoint: .top, endPoint: .bottom).ignoresSafeArea().accessibilityHidden(true)
-            VStack(spacing: 14) {
-                Spacer().frame(height: 82)
-                Text("Willkommen bei").font(.title3.weight(.bold)).foregroundStyle(FYColor.ink)
-                    .shadow(color: .white.opacity(0.8), radius: 8)
-                FYRUPWordmark(size: 50)
-                    .shadow(color: .white.opacity(0.75), radius: 10)
-                Text("Your friends make you move.").font(.subheadline.weight(.medium)).foregroundStyle(FYColor.ink.opacity(0.76))
-                    .shadow(color: .white, radius: 7)
-                // Keep the actions inside the visible safe area on compact iPhones.
-                // A flexible spacer preserves the photo-first composition without
-                // pushing login controls out of the accessibility hierarchy.
-                Spacer(minLength: 24)
-                SignInWithAppleButton(.signIn) { store.configureAppleRequest($0) } onCompletion: { result in
-                    Task { await store.handleAppleResult(result) }
-                }
-                .signInWithAppleButtonStyle(.white).frame(height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
-                .disabled(store.isBusy)
-                Button("Mit E-Mail anmelden") { authMode = .signIn }
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.62)))
-                    .buttonStyle(FYPressStyle())
-                    .accessibilityIdentifier("welcome-email-login").disabled(store.isBusy)
-                Button("Account erstellen") { authMode = .registration }
-                    .font(.footnote.weight(.semibold)).foregroundStyle(.white).underline()
-                    .accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
-                Text("Mit der Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
-                    .font(.caption2).foregroundStyle(.white.opacity(0.78)).multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 26).padding(.bottom, 18)
-        }
-    }
-}
-
-private struct PageDots: View {
-    let current: Int
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<3, id: \.self) { index in
-                Circle().fill(index == current ? FYColor.ink : FYColor.line).frame(width: 6, height: 6)
-            }
-        }.frame(maxWidth: .infinity)
-    }
-}
 
 struct AuthView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var password = ""
+    @State private var showsPassword = false
     @State private var mode: AuthMode
     private var createsAccount: Bool { mode == .registration }
 
@@ -165,41 +22,53 @@ struct AuthView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(createsAccount ? "Account erstellen" : "Willkommen zurück")
+                    Text(createsAccount ? "E-Mail & Passwort" : "Willkommen zurück")
                         .font(.system(size: 29, weight: .black)).foregroundStyle(FYColor.ink)
                         .accessibilityIdentifier("auth-title")
-                    if createsAccount { Text("Erstelle dein FYRUP-Profil in wenigen Schritten.").font(.subheadline).foregroundStyle(FYColor.muted) }
+                    if createsAccount { Text("Erstelle ein Konto mit deiner E-Mail-Adresse.").font(.subheadline).foregroundStyle(FYColor.muted) }
                     Text("E-Mail-Adresse").onboardingLabel()
                     TextField("max@example.com", text: $email)
                         .textContentType(.emailAddress).textInputAutocapitalization(.never).keyboardType(.emailAddress).fyField()
                         .accessibilityIdentifier("auth-email")
                     Text("Passwort").onboardingLabel()
-                    SecureField("Mindestens 8 Zeichen", text: $password)
-                        .textContentType(createsAccount ? .newPassword : .password).fyField()
-                        .accessibilityIdentifier("auth-password")
+                    HStack(spacing: 8) {
+                        Group {
+                            if showsPassword { TextField("Dein Passwort", text: $password) }
+                            else { SecureField(createsAccount ? "Mindestens 6 Zeichen" : "Dein Passwort", text: $password) }
+                        }.textContentType(createsAccount ? .newPassword : .password)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .accessibilityIdentifier("auth-password")
+                        Button { showsPassword.toggle() } label: {
+                            Image(systemName: showsPassword ? "eye.slash" : "eye").frame(width: 44, height: 44)
+                        }.buttonStyle(.plain).accessibilityLabel(showsPassword ? "Passwort verbergen" : "Passwort anzeigen")
+                            .accessibilityIdentifier("auth-toggle-password")
+                    }.fyField()
                     if createsAccount {
-                        PasswordRule(text: "Mindestens 8 Zeichen", valid: password.count >= 8)
-                        PasswordRule(text: "Ein Großbuchstabe", valid: password.contains(where: \.isUppercase))
-                        PasswordRule(text: "Eine Zahl", valid: password.contains(where: \.isNumber))
+                        PasswordRule(text: "Mindestens 6 Zeichen", valid: password.count >= PendingEmailAuth.minimumPasswordLength)
+                        Text("Tipp: Verwende ein längeres, einzigartiges Passwort.").font(.footnote).foregroundStyle(FYColor.muted)
                     }
-                    Button(createsAccount ? "Weiter" : "Anmelden") {
+                    if let message = store.authMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral).accessibilityIdentifier("auth-feedback") }
+                    Button(createsAccount ? "Konto erstellen" : "Anmelden") {
                         let submittedMode = mode; let submittedEmail = email; let submittedPassword = password
                         Task {
                             if submittedMode == .registration { await store.signUp(email: submittedEmail, password: submittedPassword) }
                             else { await store.signIn(email: submittedEmail, password: submittedPassword) }
                         }
-                    }.buttonStyle(SecondaryButtonStyle()).disabled(email.isEmpty || password.count < 8 || store.isBusy)
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (createsAccount ? password.count < PendingEmailAuth.minimumPasswordLength : password.isEmpty) || store.isBusy)
                         .accessibilityIdentifier("auth-submit")
                     SignInWithAppleButton(.continue) { store.configureAppleRequest($0) } onCompletion: { result in Task { await store.handleAppleResult(result) } }
-                        .signInWithAppleButtonStyle(.black).frame(height: 50).clipShape(RoundedRectangle(cornerRadius: 12))
+                        .signInWithAppleButtonStyle(.black).frame(height: 50).clipShape(RoundedRectangle(cornerRadius: 12)).disabled(store.isBusy)
                     Button(createsAccount ? "Schon dabei? Anmelden" : "Noch kein Konto? Registrieren") {
+                        showsPassword = false
+                        store.authMessage = nil
                         mode = createsAccount ? .signIn : .registration
                     }
                         .foregroundStyle(FYColor.ink).frame(maxWidth: .infinity)
                         .accessibilityIdentifier("auth-switch-mode").disabled(store.isBusy)
                     if !createsAccount {
                         Button("Passwort vergessen") { Task { await store.resetPassword(email: email) } }
-                            .font(.footnote).foregroundStyle(FYColor.muted).frame(maxWidth: .infinity)
+                            .font(.footnote).foregroundStyle(FYColor.muted).frame(maxWidth: .infinity, minHeight: 44)
+                            .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isBusy)
                     }
                 }.padding(24)
             }
@@ -208,10 +77,14 @@ struct AuthView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "chevron.left") }
                         .accessibilityLabel("Zurück zur Anmeldung").accessibilityIdentifier("auth-close")
+                        .disabled(store.isBusy)
                 }
             }
         }
         .preferredColorScheme(.light)
+        .interactiveDismissDisabled(store.isBusy)
+        .scrollDismissesKeyboard(.interactively)
+        .onDisappear { password = ""; showsPassword = false }
     }
 }
 
@@ -238,6 +111,7 @@ struct ProfileSetupView: View {
     @State private var birthYear = ""
     @State private var city = ""
     @State private var avatarJPEG: Data?
+    @State private var fieldError: String?
     @FocusState private var focusedField: Field?
 
     private enum Field { case name, username, birthYear, city }
@@ -247,27 +121,37 @@ struct ProfileSetupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 15) {
-                OnboardingProgress(step: 1, total: 3) { Task { await store.logout() } }
+                FYSetupHeading(title: "Dein Profil", subtitle: "So finden dich deine Freunde in FYRUP.", step: 1, total: 1, showsProgress: false) { Task { await store.logout() } }
                     .accessibilityElement(children: .contain).accessibilityIdentifier("onboarding-progress")
-                Text("Erzähl uns von dir").font(.system(size: 30, weight: .black)).foregroundStyle(FYColor.ink)
                 AvatarPicker(profile: store.profile, jpegData: $avatarJPEG).frame(maxWidth: .infinity).padding(.vertical, 2)
-                OnboardingField(title: "Vorname", placeholder: "Max", text: $name, symbol: nil, suffix: nil)
+                FYInputField(title: "Anzeigename", placeholder: "Dein Name", text: $name, identifier: "profile-setup-name")
                     .textContentType(.name).focused($focusedField, equals: .name)
-                OnboardingField(title: "Username", placeholder: "maxfyrup", text: $username, symbol: "at", suffix: usernameIsValid ? "checkmark.circle.fill" : nil)
+                FYInputField(title: "Benutzername", placeholder: "Dein eindeutiger Benutzername", text: $username, identifier: "profile-setup-username")
                     .textInputAutocapitalization(.never).autocorrectionDisabled().focused($focusedField, equals: .username)
-                OnboardingField(title: "Geburtsjahr (optional)", placeholder: "2003", text: $birthYear, symbol: nil, suffix: nil)
+                Text("3–24 Buchstaben, Zahlen oder _. Die Verfügbarkeit wird beim Speichern geprüft.").font(.footnote).foregroundStyle(FYColor.muted)
+                FYInputField(title: "Geburtsjahr · optional", placeholder: "Keine Angabe", text: $birthYear, identifier: "profile-setup-birth-year")
                     .keyboardType(.numberPad).focused($focusedField, equals: .birthYear)
-                OnboardingField(title: "Stadt (optional)", placeholder: "Köln", text: $city, symbol: nil, suffix: nil)
-                    .textContentType(.addressCity).focused($focusedField, equals: .city).submitLabel(.done)
-                    .onSubmit { focusedField = nil }
-                Button("Weiter") {
-                    focusedField = nil
-                    Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(birthYear), city: city, avatarJPEG: avatarJPEG) }
-                }
-                .buttonStyle(SecondaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid)
-            }.padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 24)
+                Text("Das Geburtsjahr bleibt privat. Es erscheint nicht in der Suche oder auf Freundesprofilen.").font(.footnote).foregroundStyle(FYColor.muted)
+                if let fieldError { Text(fieldError).font(.footnote).foregroundStyle(FYColor.coral) }
+            }.padding(FYLayout.page)
         }
-        .scrollDismissesKeyboard(.interactively).background(OnboardingBackground())
+        .scrollDismissesKeyboard(.interactively).clipped().background(FYColor.background)
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .bottom) {
+            Button("Weiter") {
+                    focusedField = nil
+                    fieldError = nil
+                    let year = birthYear.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // Match the existing database field constraint, not a new age policy.
+                    guard year.isEmpty || Int(year).map({ (1900...(Calendar.current.component(.year, from: .now) - 13)).contains($0) }) == true else {
+                        fieldError = "Prüfe dein Geburtsjahr oder lass die Angabe leer."; return
+                    }
+                    Task { await store.saveProfile(displayName: name, username: normalizedUsername, birthYear: Int(year), city: city, avatarJPEG: avatarJPEG) }
+                }
+                .buttonStyle(PrimaryButtonStyle()).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usernameIsValid || store.isBusy)
+                .padding(FYLayout.page).background(FYColor.background).accessibilityIdentifier("profile-setup-save")
+        }
+        .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Fertig") { focusedField = nil } } }
         .task {
             guard name.isEmpty, username.isEmpty else { return }
             name = store.profile?.displayName ?? store.suggestedDisplayName
@@ -280,26 +164,38 @@ struct ProfileSetupView: View {
 
 struct SportsSetupView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    var isEditing = false
     @State private var selected = Set<SportKind>()
+    @State private var restored = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            OnboardingProgress(step: 2, total: 3) { store.route = .profileSetup }
-            Text("Was machst du gerne?").font(.system(size: 28, weight: .black)).foregroundStyle(FYColor.ink)
-            Text("Wähle eine oder mehrere Sportarten aus.").font(.subheadline).foregroundStyle(FYColor.muted)
+            FYSetupHeading(title: "Deine Sportarten", subtitle: "Wähle, was dir Spaß macht. Du kannst das später ändern.", step: 1, total: 1, showsProgress: false) {
+                if isEditing { dismiss() } else { store.route = .profileSetup }
+            }
             ScrollView { SportGrid(selected: $selected).padding(.vertical, 4) }
-            Button("Weiter") { Task { await store.saveOnboardingSports(Array(selected)) } }
-                .buttonStyle(SecondaryButtonStyle()).disabled(selected.isEmpty)
+            Button(isEditing ? "Speichern" : "Weiter") {
+                Task {
+                    if isEditing { if await store.saveSportsPreferences(Array(selected)) { dismiss() } }
+                    else { await store.saveOnboardingSports(Array(selected)) }
+                }
+            }.buttonStyle(PrimaryButtonStyle()).disabled(store.isBusy)
+            if !isEditing {
+                Button("Später auswählen") { Task { await store.saveOnboardingSports([]) } }.frame(minHeight: 44).disabled(store.isBusy)
+            }
         }
         .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 18)
         .background(OnboardingBackground())
-        .task { if selected.isEmpty { selected = Set(store.profile?.sports ?? []) } }
+        .toolbar(.hidden, for: .navigationBar)
+        .task { if !restored { selected = Set(store.profile?.sports ?? []); restored = true } }
     }
 }
 
 struct SportGrid: View {
     @Binding var selected: Set<SportKind>
-    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible()), count: typeSize.isAccessibilitySize ? 2 : 3) }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
@@ -307,15 +203,15 @@ struct SportGrid: View {
                 Button { selected.formSymmetricDifference([sport]) } label: {
                     VStack(spacing: 8) {
                         Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor)
-                        Text(sport.title).font(.caption2.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.68)
+                        Text(sport.title).font(.footnote.weight(.medium)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 84).foregroundStyle(FYColor.ink)
+                    .frame(maxWidth: .infinity, minHeight: 92).padding(.vertical, 8).foregroundStyle(FYColor.ink)
                     .background(selected.contains(sport) ? FYColor.limeSoft : FYColor.surface, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 1.5 : 0.8))
                     .overlay(alignment: .topTrailing) {
                         if selected.contains(sport) { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime).background(.white, in: Circle()).padding(6) }
                     }
-                }.accessibilityLabel(sport.title).accessibilityAddTraits(selected.contains(sport) ? .isSelected : [])
+                }.buttonStyle(FYPressStyle()).accessibilityLabel(sport.title).accessibilityAddTraits(selected.contains(sport) ? .isSelected : [])
             }
         }
     }

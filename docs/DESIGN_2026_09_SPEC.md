@@ -46,4 +46,4 @@ Körperdaten und Health sind optional. Wochenziel 2–7, unabhängig von bevorzu
 
 Vorhandene FYRUP-Assets bleiben nutzbar; die genaue Herkunft/Lizenz ist noch einzeln zu dokumentieren. Das Wanderer-Motiv aus R01, Lebensmittelbilder und kleine Übungsillustrationen liegen nicht als Originalassets vor. Ersatzmotive ausdrücklich benennen, keine Pixelgleichheit behaupten.
 
-Pro Seite: Screen-ID, Datenzustand, Commit, Simulatorgröße, tatsächliches PNG, Vergleich, Restabweichungen. Aktuell sind die neuen Referenzen erfasst; native Render- und Geräteabnahme sind offen.
+Pro Seite: Screen-ID, Datenzustand, Commit, Simulatorgröße, tatsächliches PNG, Vergleich, Restabweichungen. Sieben echte Simulatorbilder auf `e39caf6` wurden im ersten A01/R05-Prüfpunkt einschließlich eines A19-Zwischenstands geprüft; siehe [REFERENCE_QA_67.md](REFERENCE_QA_67.md). Die vollständige visuelle Referenz- und Geräteabnahme bleibt offen.
