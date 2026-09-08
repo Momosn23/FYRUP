@@ -18,3 +18,29 @@ enum ProfileActivityHistory {
         }
     }
 }
+
+/// Same Monday-based local week as Today and the weekly schedule.
+/// Historical records outside this interval must not inflate the strip count.
+struct ProfileWeekSnapshot {
+    let calendar: Calendar
+    let days: [Date]
+    let completedDays: Set<Date>
+    let plannedDays: Set<Date>
+
+    init(activities: [Activity], now: Date, timezone: TimeZone = .current) {
+        let calendar = TrainingWeekLogic.calendar(timezone: timezone)
+        self.calendar = calendar
+        days = TrainingWeekLogic.days(containing: now, calendar: calendar)
+        let visibleDays = Set(days)
+        completedDays = Set(activities.compactMap { activity -> Date? in
+            guard activity.status == .completed, let end = activity.endedAt else { return nil }
+            let day = calendar.startOfDay(for: end)
+            return visibleDays.contains(day) ? day : nil
+        })
+        plannedDays = Set(activities.compactMap { activity -> Date? in
+            guard [.planned, .ready].contains(activity.status), let start = activity.plannedAt else { return nil }
+            let day = calendar.startOfDay(for: start)
+            return visibleDays.contains(day) ? day : nil
+        })
+    }
+}

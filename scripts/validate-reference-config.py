@@ -13,7 +13,7 @@ full = workflows["ios-full-regression"]
 release = workflows["ios-testflight"]
 assert qa["triggering"]["events"] == [] and full["triggering"]["events"] == []
 assert qa["triggering"]["cancel_previous_builds"] is True
-assert qa["max_build_duration"] == 30 and full["max_build_duration"] == 60
+assert qa["max_build_duration"] == 20 and full["max_build_duration"] == 60
 assert qa["environment"]["vars"]["FYRUP_QA_FULL_REGRESSION"] == "false"
 assert full["environment"]["vars"]["FYRUP_QA_FULL_REGRESSION"] == "true"
 assert all(w["environment"]["xcode"] == "26.6" for w in workflows.values())

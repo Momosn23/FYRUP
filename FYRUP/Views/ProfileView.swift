@@ -106,7 +106,7 @@ private struct ProfileStatisticsView: View {
         ProfileActivityHistory.own(store.recentActivities, latest: store.myActivity, owner: store.profile?.id)
     }
     private var periodActivities: [Activity] {
-        var calendar = Calendar(identifier: .gregorian); calendar.firstWeekday = 2
+        let calendar = TrainingWeekLogic.calendar()
         let component: Calendar.Component = statisticsPeriod == 0 ? .weekOfYear : statisticsPeriod == 1 ? .month : .year
         return ProfileActivityHistory.completed(ownActivities, period: component, now: store.presentationDate, calendar: calendar)
     }
@@ -180,21 +180,22 @@ struct WeekActivityStrip: View {
     let activities: [Activity]
     var now: Date = Date()
     @Environment(\.dynamicTypeSize) private var typeSize
-    private let calendar = Calendar(identifier: .iso8601)
+    private var week: ProfileWeekSnapshot { ProfileWeekSnapshot(activities: activities, now: now) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             HStack {
                 Text("Diese Woche").font(.headline)
                 Spacer()
-                Text("\(completedDays.count) geschafft").font(.caption).foregroundStyle(FYColor.muted)
+                Text("\(week.completedDays.count) geschafft").font(.caption).foregroundStyle(FYColor.muted)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0)), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: 8) {
-                ForEach(Array(days.enumerated()), id: \.offset) { _, day in
-                    let isDone = completedDays.contains(calendar.startOfDay(for: day))
-                    let isPlanned = plannedDays.contains(calendar.startOfDay(for: day))
+                ForEach(Array(week.days.enumerated()), id: \.offset) { _, day in
+                    let isDone = week.completedDays.contains(day)
+                    let isPlanned = week.plannedDays.contains(day)
+                    let weekday = TrainingWeekLogic.weekday(day, calendar: week.calendar)
                     VStack(spacing: 7) {
-                        Text(day.formatted(.dateTime.weekday(.narrow))).font(.caption2.bold()).foregroundStyle(FYColor.muted)
+                        Text(day.formatted(.dateTime.weekday(.abbreviated))).font(.caption2.bold()).foregroundStyle(FYColor.muted)
                         ZStack {
                             Circle().fill(isDone ? FYColor.lime : isPlanned ? FYColor.planned : FYColor.elevated).frame(width: 31, height: 31)
                             if isDone { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) }
@@ -202,29 +203,15 @@ struct WeekActivityStrip: View {
                             else { Text(day.formatted(.dateTime.day())).font(.caption.bold()).foregroundStyle(FYColor.ink.opacity(0.72)) }
                         }
                     }.frame(maxWidth: .infinity)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("profile-week-day-\(weekday)")
+                        .accessibilityLabel(day.formatted(.dateTime.weekday(.wide).day().month()))
+                        .accessibilityValue(isDone ? "DONE" : isPlanned ? "PLANNED" : "Keine Aktivität")
                 }
             }
         }.fyCard()
     }
 
-    private var days: [Date] {
-        let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
-        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-    }
-
-    private var completedDays: Set<Date> {
-        Set(activities.compactMap { activity in
-            guard activity.status == .completed, let date = activity.endedAt ?? activity.startedAt else { return nil }
-            return calendar.startOfDay(for: date)
-        })
-    }
-
-    private var plannedDays: Set<Date> {
-        Set(activities.compactMap { activity in
-            guard [.planned, .ready].contains(activity.status), let date = activity.plannedAt else { return nil }
-            return calendar.startOfDay(for: date)
-        })
-    }
 }
 
 private struct RecentActivitiesCard: View {

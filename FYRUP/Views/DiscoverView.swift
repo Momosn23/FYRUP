@@ -12,7 +12,7 @@ struct DiscoverView: View {
     private var exercises: [GymExercise] { DiscoveryContent.exercises(store.workouts.exercises, owner: owner, query: query) }
     private var plans: [WorkoutPlan] { DiscoveryContent.plans(store.workouts.plans, owner: owner, query: query) }
     private var sports: [SportKind] { DiscoveryContent.sports(query: query) }
-    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(minimum: 0), spacing: 12), count: typeSize.isAccessibilitySize ? 1 : 2) }
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top), count: typeSize.isAccessibilitySize ? 1 : 2) }
 
     var body: some View {
         GeometryReader { geometry in
@@ -20,10 +20,13 @@ struct DiscoverView: View {
                 VStack(alignment: .leading, spacing: FYLayout.section) {
                     Text("Entdecken").font(.largeTitle.bold()).accessibilityIdentifier("discover-title")
                     searchField
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 8), count: typeSize.isAccessibilitySize ? 2 : 4), spacing: 8) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 8), count: typeSize.isAccessibilitySize ? 1 : 4), spacing: 8) {
                             ForEach(DiscoverySection.allCases) { item in
                                 Button { searching = false; section = item } label: {
-                                    Text(item.title).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                                    Text(item.title).font(.subheadline.weight(.semibold))
+                                        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                                        .minimumScaleFactor(typeSize.isAccessibilitySize ? 1 : 0.8)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.horizontal, 6).padding(.vertical, 6).frame(maxWidth: .infinity, minHeight: 44)
                                         .foregroundStyle(section == item ? .white : FYColor.ink)
                                         .background(section == item ? FYColor.lime : FYColor.elevated, in: Capsule())
@@ -81,7 +84,7 @@ struct DiscoverView: View {
                 ForEach(section == .sports || !query.isEmpty ? sports : Array(sports.prefix(4))) { sport in
                     Button { searching = false; selectedSport = sport } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor).frame(width: 32)
+                            Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor).frame(minWidth: 32)
                             Text(sport.title).font(.subheadline.bold()).fixedSize(horizontal: false, vertical: true)
                             Spacer(minLength: 0)
                         }.foregroundStyle(FYColor.ink).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).fyCard(padding: 12)

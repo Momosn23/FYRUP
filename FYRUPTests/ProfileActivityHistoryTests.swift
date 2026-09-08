@@ -44,4 +44,32 @@ final class ProfileActivityHistoryTests: XCTestCase {
         let next = activity(at: date("2026-03-29T22:00:00Z"))
         XCTAssertEqual(ProfileActivityHistory.completed([start, last, next], period: .weekOfYear, now: now, calendar: calendar), [start, last])
     }
+
+    func testProfileWeekMatchesScheduleAndExcludesOtherWeeks() {
+        let now = date("2026-09-08T12:00:00Z")
+        let monday = activity(at: date("2026-09-07T12:00:00Z"))
+        let previous = activity(at: date("2026-09-06T12:00:00Z"))
+        let next = activity(at: date("2026-09-14T12:00:00Z"))
+        var missingEnd = monday; missingEnd.endedAt = nil
+        var planned = monday; planned.status = .planned; planned.plannedAt = date("2026-09-13T12:00:00Z")
+        var laterPlan = planned; laterPlan.plannedAt = date("2026-09-14T12:00:00Z")
+        let week = ProfileWeekSnapshot(activities: [monday, monday, previous, next, missingEnd, planned, laterPlan], now: now, timezone: calendar.timeZone)
+        XCTAssertEqual(week.days, TrainingWeekLogic.days(containing: now, calendar: calendar))
+        XCTAssertEqual(week.days.map { TrainingWeekLogic.weekday($0, calendar: week.calendar) }, Array(1...7))
+        XCTAssertEqual(week.completedDays, [calendar.startOfDay(for: monday.endedAt!)])
+        XCTAssertEqual(week.plannedDays, [calendar.startOfDay(for: planned.plannedAt!)])
+    }
+
+    func testProfileWeekUsesLocalMidnightAcrossDST() {
+        let now = date("2026-03-29T12:00:00Z")
+        let start = activity(at: date("2026-03-22T23:00:00Z"))
+        let sunday = activity(at: date("2026-03-29T21:59:59Z"))
+        let next = activity(at: date("2026-03-29T22:00:00Z"))
+        let week = ProfileWeekSnapshot(activities: [start, sunday, next], now: now, timezone: calendar.timeZone)
+        XCTAssertEqual(week.days.count, 7)
+        XCTAssertEqual(week.days.first, calendar.startOfDay(for: start.endedAt!))
+        XCTAssertEqual(week.days.last, calendar.startOfDay(for: sunday.endedAt!))
+        XCTAssertEqual(week.completedDays.count, 2)
+        XCTAssertFalse(week.completedDays.contains(calendar.startOfDay(for: next.endedAt!)))
+    }
 }

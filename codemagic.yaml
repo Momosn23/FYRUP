@@ -5,7 +5,7 @@ workflows:
       events: []
       cancel_previous_builds: true
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 20
     environment: &ios_qa_environment
       groups:
         - fyrup_backend

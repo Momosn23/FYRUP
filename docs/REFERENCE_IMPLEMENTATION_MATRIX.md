@@ -8,6 +8,8 @@ Folgeblöcke nach `e39caf6`: [Einrichtung und kompaktere Übersichten](REFERENCE
 
 ## Bestand
 
+**Neuester Nachweis:** [QA #70](REFERENCE_QA_70.md) auf `704674e`, **539/540 Unit-Tests und 12/12 Referenz-UI-Tests PASS**, Gesamtstatus FAIL wegen des im Folgecode behobenen Suchfehlers. Alle 33 PNGs einzeln geprüft. Netzwerk-Regressionsfälle bestanden; echte iPhone-/TestFlight-Fälle bleiben NICHT AUSGEFÜHRT. Zusätzliche Filter-/Karten- und Profil-Wochenkorrekturen werden gebündelt nachgeprüft. Aktuelle Kosten/Reserve ausschließlich im [Budgetlaufbuch](CI_BUDGET_2026_09.md); die folgenden #68/#69-Angaben sind historische Belege.
+
 Folgeblock nach `f66069d`: [Layout/Wetter](REFERENCE_LAYOUT_WEATHER_2026_09_08.md) bearbeitet A01/A19/R06–R10/R18 sowie W01. [QA #69](REFERENCE_QA_69.md) für exakt `e6eee6c`: **515/515 Unit-Tests, 8/9 Referenz-UI-Tests PASS**, insgesamt FAIL wegen der Wetter-AX-Link-Abfrage. Alle 22 PNGs geprüft. A01-Großschrift-Überbreite und R08-Kreistextüberlauf zusätzlich aus Bildern/Hierarchien belegt und im lokalen Folgeblock korrigiert. Der separate lokale Block `953a0fd` (A02/Release-Berechtigungen) und diese Folgefixes sind nicht in #69 enthalten. Die unten ausdrücklich genannten #68-Bilder gehören weiterhin zum vorherigen Stand.
 
 Ausgangsbestand des Referenzauftrags: Native SwiftUI-App, iOS 17+, Swift 6, XcodeGen; Bundle `app.fyrup.ios`, Widget `app.fyrup.ios.live`. Supabase mit REST/Auth, separater SecureSessionStore, private Keychain-Einstellungen, serverseitige RPC-/RLS-Tests. HealthKit liest Schritte und optional aktive Energie; APNs, ActivityKit/App Group, gezielte Kontaktauswahl und Kartenort existieren. Inzwischen sind auch Migrationen 017–019 produktiv, WeatherKit im Code und ein privates lokales manuelles Ernährungstagebuch implementiert. Google OAuth ist gestrichen, externe Ernährungsdatenquelle und Ernährungssynchronisierung sind verschoben. Bestehende Accounts/Daten bleiben bestehen.
@@ -28,7 +30,7 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | R05 | Körperdaten | TEILWEISE | #68: Normal-/Tastatur-/Großschriftbilder geprüft; Speichern/Zurück mit 182 cm und Zielgewicht-Erreichbarkeit PASS. Ganze Einrichtungs-/Geräteabnahme offen |
 | R06 | Hauptziel | TEILWEISE | #69: Auswahl/Summary-Bearbeitung PASS, stabiles grünes Auswahlbild und kompakte Untertexte geprüft; gesamte Neueinrichtung/Gerät offen |
 | R07 | Weitere Ziele | TEILWEISE | #69: zwei Auswahlen, Untertexte und kompakte Karten geprüft; keine Freigabe durch Zielauswahl |
-| R08 | Wochenziel | TEILWEISE | 2–7; 017/018 produktiv, Unit-Test in #69 PASS. Bild zeigt zu kleine Kreise/umgebrochenes Einheiten-Label; belegte Ursache lokal korrigiert, neuer Bildnachweis offen |
+| R08 | Wochenziel | TEILWEISE | 2–7; 017/018 produktiv. #70: Auswahlkreise im richtigen Verhältnis und Einheiten-Text einzeilig; gezielte Geometrie-Assertions PASS, Einzelbild geprüft. Geräteabnahme offen |
 | R09 | Wochentage | TEILWEISE | #69: runde Mo/Sa-Auswahl, Speichern und Bearbeitungsrückkehr PASS; keine automatischen Termine. Vollständige Großschriftprüfung offen |
 | R10 | Uhrzeit | TEILWEISE | #69: Unterschiedlich gespeichert, neue Untertexte/Bild geprüft; keine Push-Erlaubnis durch Auswahl |
 | R11 | Supplements | TEILWEISE | Echtes Auswahlraster, bestehende private Einträge, eigene Menge/Einheit und Zeiten im Code. Keine Dosierungsvorgabe oder pauschale Zustimmung. Native Referenzprüfung offen |
@@ -45,8 +47,8 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 
 | ID | Bereich | Status | Konkrete Lücke/Nachweis |
 | --- | --- | --- | --- |
-| A01 | Heute | TEILWEISE | #69: Reihenfolge/Werte/Navigation PASS, Namen besser, Crew-Aktionen weiter scrollbar. Großer Schriftmodus läuft seitlich heraus; aus AX/PNG belegt und lokal korrigiert. Erneute Bildabnahme offen |
-| A02 | Wochenplan | TEILWEISE | Neuer eigener Tab mit Diese/Nächste Woche, Tagesdetails und realen Daten; native Funktions-/Layoutabnahme offen |
+| A01 | Heute | TEILWEISE | #70: Reihenfolge/Werte/Navigation PASS; Großschrift-Überbreite behoben und Bild geprüft. Crew-Aktionen weiter scrollbar, keine Pixelgleichheit der Gesamtcollage. Echte Health-/Kontodaten offen |
+| A02 | Wochenplan | TEILWEISE | #70: Diese/Nächste Woche, Montag–Sonntag und echter Tabwechsel aus Entdecken PASS; beide Bilder geprüft. Geräte-/produktive Mehrkontoabnahme offen |
 | A03–04 | Plus/Sport/Unterkategorien | TEILWEISE | Bestehende Flows; Layout und Kampfsportdimensionen prüfen |
 | A05–09 | Pläne/Bibliothek/eigene Übungen | TEILWEISE | Kernpfade und Historie vorhanden; neue Darstellung, Zeitvorgaben prüfen |
 | A10–11 | Planen/Einladen/Antworten | TEILWEISE | Kernpfade vorhanden; Änderungsbestätigung/Privatsphäre abnehmen |
@@ -60,14 +62,14 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A21 | Lebensmittel/Rezepte | VERSCHOBEN | Nährwertbasis, Zutaten, Portionen, Rezeptkopien/Sharing für spätere Version; keine derzeit nutzbaren Rezepte versprechen |
 | A22 | Supplements | TEILWEISE | Speicherung/Rückgängig sowie private Menge/Einheit im Code; 019 produktiv, neue native Abnahme und Tagesnavigation noch offen |
 | A23 | Schritte | TEILWEISE | Aggregate/Opt-in/Widerruf vorhanden; neuer Tageszugang |
-| A24 | Entdecken | TEILWEISE | Neue echte Übungs-/Plansuche, Filter, Favoriten-Detail und bebilderte Plan-/Wochenzugänge im Code; Kontofilter und native Referenztests vorbereitet. Keine aktuelle native/Bildabnahme. Rezept-/Lebensmittelbereich ausdrücklich verschoben |
-| A25 | Profil | TEILWEISE | Zentrierter Kopf, sechs Hauptzugänge und separate Statistiken im Code. Bestehende Körperdaten/Ernährung/Pläne/LIVE/Stammgym/Support weiter erreichbar, Navigationstests angepasst. Native Referenz-/Kennzahlenabnahme offen |
+| A24 | Entdecken | TEILWEISE | #70: Such-/Favorit-/Wochenweg und Großschrift-Bedienung PASS; vier Bilder geprüft. Rücken-Suchtest fehlgeschlagen, Wortanfangsfix plus Filter-/Kartenlayout im Folgecode, erneute native/Bildkontrolle offen. Rezept-/Lebensmittelbereich verschoben |
+| A25 | Profil | TEILWEISE | #70: Profil-/Statistik-/Bearbeitungs-/Supportnavigation und vier Profilmodelltests PASS; drei Bilder geprüft. Falscher Sonntag-Wochenbeginn zusätzlich visuell gefunden; gemeinsame Wochenlogik/Zeitraumgrenze samt zwei neuen Tests im Folgecode, erneute native Kontrolle offen |
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
-| W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #69: 8/8 Wetter-Einzeltests PASS, Berlin/18 im Fixture erkannt; AX-Link-Prüfung FAIL, lokal verbessert, Entfernungs-Bedienweg noch ungeprüft. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |
-| QA01 | Render-Vergleich | TEILWEISE | Zusätzlich alle 22 echten PNGs aus #69 einzeln geprüft; zwei neue belegte Layoutfehler lokal korrigiert. Keine Pixelgleichheit, keine Gesamtfreigabe |
+| W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #70: Wetter-Fixture, sichtbare/bedienbare Apple-Quelle und Entfernen ohne alte Temperatur PASS; Bilder einzeln geprüft. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |
+| QA01 | Render-Vergleich | TEILWEISE | Alle 33 echten PNGs aus #70 einzeln geprüft; vorherige A01/R08-Fehler behoben, Filter-/Profilwochenbefunde für Folgekorrektur dokumentiert. Keine Pixelgleichheit, keine Gesamtfreigabe |
 | QA02 | Geräte-/Mehrkontenprüfung | BLOCKIERT | Kein steuerbares physisches iPhone; NICHT GETESTET |
-| CI01 | Kostenkontrollierte QA | TEILWEISE | Sechs manuelle Läufe abgeschlossen, letzter #69 FAIL. 5,89 USD konservativ verbraucht, 4,11 USD unreserviert. Artefakte/22 PNGs geprüft, kein Lauf/Archiv/Upload und keine automatische Wiederholung |
+| CI01 | Kostenkontrollierte QA | TEILWEISE | Sieben manuelle Läufe abgeschlossen, letzter #70 FAIL. 7,36 USD konservativ verbraucht, 2,64 USD Rest vor weiterer Reserve. Nächster QA-Job auf maximal 20 Minuten begrenzt; Start/Reserve im Budgetlaufbuch, keine automatische Wiederholung |
 
 ## Arbeitsreihenfolge
 

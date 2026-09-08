@@ -281,6 +281,10 @@ import XCTest
         let app = launch()
         tap(app.buttons["tab-discover"], in: app)
         XCTAssertTrue(app.staticTexts["discover-title"].waitForExistence(timeout: 5))
+        let sportsFilter = app.buttons["discover-filter-sports"]
+        let allFilter = app.buttons["discover-filter-all"]
+        XCTAssertEqual(sportsFilter.frame.height, allFilter.frame.height, accuracy: 2,
+                       "All standard-size filter labels must fit on the same single-line row")
         try capture("A24-discover-top", app: app)
         tap(app.buttons["discover-open-week"], in: app)
         XCTAssertTrue(app.buttons["tab-week"].isSelected, "Week shortcut must select the real week tab and its loading lifecycle")
@@ -316,6 +320,12 @@ import XCTest
         tap(app.buttons["profile-statistics"], in: app)
         tap(app.staticTexts["profile-statistics-title"], in: app)
         XCTAssertTrue(app.staticTexts["Aus deinen geladenen Aktivitäten."].exists)
+        let monday = app.descendants(matching: .any).matching(identifier: "profile-week-day-1").firstMatch
+        let sunday = app.descendants(matching: .any).matching(identifier: "profile-week-day-7").firstMatch
+        XCTAssertTrue(monday.exists); XCTAssertTrue(sunday.exists)
+        XCTAssertLessThan(monday.frame.minX, sunday.frame.minX, "Profile and week plan both start on Monday")
+        XCTAssertTrue(monday.label.contains("Montag"))
+        XCTAssertTrue(monday.label.contains("19"), "The fixed Thursday, May 22 fixture starts its week on May 19")
         try capture("A25-profile-statistics", app: app)
         tap(app.navigationBars.buttons.element(boundBy: 0), in: app)
         tap(app.buttons["profile-edit"], in: app)
