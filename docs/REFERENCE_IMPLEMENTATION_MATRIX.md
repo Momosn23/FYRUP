@@ -6,7 +6,7 @@ Stand: 08.09.2026, erster Referenz-Prüfpunkt in Arbeit. FEHLT / TEILWEISE / IMP
 
 Native SwiftUI-App, iOS 17+, Swift 6, XcodeGen; Bundle `app.fyrup.ios`, Widget `app.fyrup.ios.live`. Supabase mit REST/Auth und Migrationen 001–016, bestehende Accounts/Daten bleiben bestehen. Separater SecureSessionStore, private Keychain-Einstellungen, serverseitige RPC-/RLS-Tests. HealthKit liest Schritte und bisher optional aktive Energie; APNs, ActivityKit/App Group, gezielte Kontaktauswahl und Kartenort existieren. WeatherKit, Google OAuth und Ernährung sind im Bestand nicht vorhanden.
 
-Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit strukturierten Muskelzuordnungen. Der genaue Asset-/Lizenznachweis und neue Originalmotive sind offen. 26 Referenzscreens sind ausgeschnitten, keine neuen App-Renderings. Kein lokales Xcode/Swift vorhanden. Der lokale Preflight umfasst jetzt 20 Prüfgruppen, darunter 12 PostgreSQL-Programme und Vergleichswerkzeug-/Konfigurationsprüfungen. Neue Swift-/UI-Tests sind geschrieben, NICHT AUSGEFÜHRT. Codemagic-YAML ist lokal auf manuelle Meilensteine, Xcode 26.6 und getrennte QA/Release-Wege umgestellt; pauschaler DerivedData-Cache entfernt. Noch nicht gepusht und deshalb auf GitHub/CI noch nicht aktiv. Tarif live geprüft: 0,095 USD/M2-Minute plus 19 % MwSt.; freies macOS-Kontingent verbraucht. Neue Builds: 0. Budget für neue kostenpflichtige Läufe offen.
+Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit strukturierten Muskelzuordnungen. Der genaue Asset-/Lizenznachweis und neue Originalmotive sind offen. 26 Referenzscreens sind ausgeschnitten, keine neuen App-Renderings. Kein lokales Xcode/Swift vorhanden. Der lokale Preflight umfasst jetzt 21 Prüfgruppen, darunter 12 PostgreSQL-Programme und Vergleichswerkzeug-/Konfigurationsprüfungen. Die bisherigen 20 Gruppen sowie die vier neu hinzugefügten Simulatorauswahlfälle bestanden lokal. Neue Swift-/UI-Tests sind geschrieben; noch kein bestandenes natives Ergebnis. Codemagic-YAML ist auf manuelle Meilensteine, Xcode 26.6 und getrennte QA/Release-Wege umgestellt; pauschaler DerivedData-Cache entfernt. `451ad09` und die Runner-Korrektur `ce071d0` sind auf main gepusht. Tarif live geprüft: 0,095 USD/M2-Minute plus 19 % MwSt.; freies macOS-Kontingent verbraucht. Erstlauf stoppte nach 1m24s vor der Kompilierung; zweiter Lauf auf nachgewiesenem `ce071d0` läuft. Neues Gesamtbudget: höchstens 10 USD inklusive MwSt.; siehe Laufbuch.
 
 ## Registrierung
 
@@ -19,7 +19,7 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | R03b | Login | TEILWEISE | Bestehende Auth-/Wiederherstellung prüfen; neues Layout |
 | R03c | Reset | TEILWEISE | Versand existiert; vollständiger Recovery-Deep-Link-Flow offen |
 | R04 | Persönliche Angaben | TEILWEISE | Foto/Name/Username vorhanden; Neuordnung/Privatsphäre prüfen |
-| R05 | Körperdaten | TEILWEISE | Neue freiwillige Felder mit Einheiten/Zielgewicht, Validierung und Speichern beim Weitergehen; gemeinsamer Profileditor. Swift-/Keyboard-/Dynamic-Type-Tests vorbereitet, noch kein natives Rendering |
+| R05 | Körperdaten | TEILWEISE | Neue freiwillige Felder, gemeinsamer Editor; native Bedien-Tests bestanden. Tatsächliche Großschrift-Bilder zeigen Footer-/Umbruchmängel; Korrektur und strengerer Test vorbereitet. Siehe REFERENCE_QA_65.md |
 | R06 | Hauptziel | FEHLT | Vier persistente Auswahlkarten |
 | R07 | Weitere Ziele | FEHLT | Optionale Mehrfachauswahl |
 | R08 | Wochenziel | TEILWEISE | App-Grenze 2–7; Migration 017 lokal mit Datenbestand, RLS und Wiederholung geprüft. NICHT produktiv angewendet; neues Referenzlayout offen |
@@ -59,9 +59,9 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
 | W01 | WeatherKit | TEILWEISE | Capability + App Service bei bestehender Apple-ID aktiviert, bestehendes Profil erneuert und nach Codemagic importiert. Swift-Reader, Stadt, Attribution, Cache/Backoff/Fehler und Fixture-Tests vorhanden. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |
-| QA01 | Render-Vergleich | TEILWEISE | Native A01/R05-Tests und PNG-/Metadatenexport sowie propor­tionserhaltender Vergleich vorbereitet; Werkzeug lokal getestet. Echte neue Screenshots und Sichtprüfung FEHLEN |
+| QA01 | Render-Vergleich | TEILWEISE | Vier echte R05-Bilder aus #65 geprüft; normaler Vergleich erstellt, visuelle Großschrift-Abnahme nicht bestanden. A01 scheiterte vor Export an geerbter Navigationskennung; gemeinsame Korrekturen vorbereitet |
 | QA02 | Geräte-/Mehrkontenprüfung | BLOCKIERT | Kein steuerbares physisches iPhone; NICHT GETESTET |
-| CI01 | Kostenkontrollierte QA | TEILWEISE | Konto/Tarif geprüft, YAML geparst, 30-Minuten-Erstlauf/60-Minuten-Vollregression ohne Auto-Retry vorbereitet. 10 USD inklusive MwSt. freigegeben; erster begrenzter Lauf wird vorbereitet. Laufbuch: CI_BUDGET_2026_09.md |
+| CI01 | Kostenkontrollierte QA | TEILWEISE | Konto/Tarif geprüft, YAML geparst, 30-Minuten-Prüfpunkt/60-Minuten-Vollregression ohne Auto-Retry eingerichtet. 10 USD inklusive MwSt. freigegeben; ein früher Runner-Fehler beendet, zweiter korrigierter Lauf aktiv. Laufbuch: CI_BUDGET_2026_09.md |
 
 ## Arbeitsreihenfolge
 

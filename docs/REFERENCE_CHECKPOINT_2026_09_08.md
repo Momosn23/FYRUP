@@ -4,7 +4,7 @@
 
 Der neue Auftrag `839a13d5-5cbe-483f-9c2c-66198bc0df65` hat Vorrang. Die 18 Registrierungs- und 8 Appseiten sind unter `docs/reference/2026-09/` zugeordnet. Dies sind ausgeschnittene Vorlagen, keine App-Screenshots. Vollständige [Funktionsmatrix](REFERENCE_IMPLEMENTATION_MATRIX.md) und [Designregeln](DESIGN_2026_09_SPEC.md).
 
-Erster Codeblock: Design-Tokens/Komponenten, Heute, Wochenplan-Tab, optionale Körperdaten, manuelles privates Ernährungstagebuch, ausgelagerte LIVE-/Satzpauseneinstellungen, Mindestwochenziel 2 sowie WeatherKit. Als `451ad09` auf main gepusht; erster begrenzter nativer Lauf am 08.09. gegen 09:49 UTC gestartet, Ergebnis noch offen. Kein neuer TestFlight-/Store-Upload. Die gesamte App ist **nicht abgeschlossen**. Die vollständige Registrierung ist weiterhin offen; bestehende gespeicherte Schritte wurden nicht pauschal umnummeriert.
+Erster Codeblock: Design-Tokens/Komponenten, Heute, Wochenplan-Tab, optionale Körperdaten, manuelles privates Ernährungstagebuch, ausgelagerte LIVE-/Satzpauseneinstellungen, Mindestwochenziel 2 sowie WeatherKit. Als `451ad09` auf main gepusht; erster begrenzter Lauf scheiterte vor der Kompilierung an der Simulatorauswahl. Korrektur `ce071d0` ist auf main; der zweite Lauf lädt nachweislich diese Revision (Checkout-Log), Ergebnis noch offen. Kein neuer TestFlight-/Store-Upload. Die gesamte App ist **nicht abgeschlossen**. Die vollständige Registrierung ist weiterhin offen; bestehende gespeicherte Schritte wurden nicht pauschal umnummeriert.
 
 Bei Arbeitsbeginn vorhandene Änderungen an `docs/MODERN_SETUP_LIVE_CHECKLIST.md` und der Ordner `AppStoreAssets/` wurden erhalten. Nicht ungeprüft einem neuen Commit hinzufügen.
 
@@ -12,14 +12,14 @@ Bei Arbeitsbeginn vorhandene Änderungen an `docs/MODERN_SETUP_LIVE_CHECKLIST.md
 
 | Ebene | Stand |
 | --- | --- |
-| Quellcode | Erster A01/R05-Prüfpunkt und Grundlagen geändert; Swift-Kompilierung offen |
-| Lokal | Alle 20 Preflight-Gruppen PASS, einschließlich 2 synthetischer Tests des Vergleichswerkzeugs sowie YAML/Entitlement-Prüfung. Bericht `build/reference-preflight/report.json`; kein Swift-/Gerätenachweis |
+| Quellcode | `ce071d0` erfolgreich kompiliert; gemeinsame Layout-/Navigationskorrektur nach #65 vorbereitet |
+| Lokal | Alle 21 Preflight-Gruppen PASS, einschließlich 2 synthetischer Tests des Vergleichswerkzeugs, YAML/Entitlements und 4 Simulatorauswahlfällen. Bericht `build/reference-preflight/report.json`; lokales Ergebnis ist kein Swift-/Gerätenachweis |
 | Datenbank | Migration 017 lokal gegen bestehende Migrationen geprüft: Bestandsdaten bleiben, 2 ist zulässig, 1/8/null unzulässig, Folgewoche, Idempotenz und fremder/anon Zugriff |
 | Produktives Supabase | Migration 017 NICHT angewendet; Ernährung noch rein lokal, keine Behauptung vollständiger Mehrgeräte-Synchronisierung |
 | Apple-Konfiguration | WeatherKit-Capability und App Service bei bestehender `app.fyrup.ios` aktiviert; Profil `FYRUP App Store 2026` erneuert, Zertifikat und Live-Extension unverändert |
 | Codemagic-Signierung | Profil direkt über bestehende Apple-Integration als `fyrup_app_store_weatherkit` gespeichert; neuer YAML-Verweis gesetzt. Profilbytes/IPA-Entitlements werden erst im signierten Lauf geprüft |
-| Native Unit-/UI-Tests | Lauf #64 stoppte vor der Kompilierung bei der Simulatorauswahl (`StopIteration`), 1m24s. Tests weiterhin NICHT AUSGEFÜHRT. Auswahl nun lokal mit vier Fällen geprüft und Fehlerdiagnose verbessert |
-| Neue echte Screenshots | NICHT VORHANDEN; nur Export-/Vergleichsablauf vorbereitet |
+| Native Unit-/UI-Tests | #65 führte 490 Unit-Tests (zwei Methoden mit alten Wochenziel-Negativfällen fehlgeschlagen) und 3 UI-Fälle (2 R05 bestanden, A01-Identifier fehlgeschlagen) aus. Details: REFERENCE_QA_65.md |
+| Neue echte Screenshots | Vier echte R05-PNGs vorhanden und geprüft. Normaldarstellung/Keyboard/Großschrift dokumentiert; visuelle Großschrift-Abnahme nicht bestanden, Korrektur vorbereitet. A01-PNG noch offen |
 | WeatherKit live | NICHT GETESTET; keine echte Wetterantwort bisher abgerufen |
 | Physisches iPhone/TestFlight | NICHT AUSGEFÜHRT für diese Änderungen |
 
@@ -27,7 +27,7 @@ Bei Arbeitsbeginn vorhandene Änderungen an `docs/MODERN_SETUP_LIVE_CHECKLIST.md
 
 Live im Codemagic-Konto geprüft: Pay as you go, M2 0,095 USD/Minute zuzüglich 19 % MwSt. Freies macOS-Kontingent verbraucht (Anzeige 501 Minuten). Bereits aufgelaufen laut Konto: 821 bezahlte Minuten, 78 USD netto, 92,82 USD einschließlich MwSt., nächste Abrechnung 01.10.2026. Das ist kein nachgewiesenes Prepaid-Guthaben; es wurde kein kontoseitiger Ausgabenstopp angezeigt.
 
-Der Nutzer hat am 08.09.2026 mit „ok“ **maximal 10 USD zusätzlich inklusive MwSt.** für die nächsten gebündelten Prüfungen freigegeben. Keine Abos, Tarife oder Wetter-Zusatzkontingente gebucht. Bisher 0 neue Läufe; geplante und tatsächliche Kosten werden in [CI_BUDGET_2026_09.md](CI_BUDGET_2026_09.md) fortgeschrieben. Vor jedem weiteren Lauf Restbudget prüfen; keine Freigabe für eine unbegrenzte Schleife.
+Der Nutzer hat am 08.09.2026 mit „ok“ **maximal 10 USD zusätzlich inklusive MwSt.** für die nächsten gebündelten Prüfungen freigegeben. Keine Abos, Tarife oder Wetter-Zusatzkontingente gebucht. Zwei Läufe beendet (konservativ insgesamt 1,02 USD); geplante und tatsächliche Kosten werden in [CI_BUDGET_2026_09.md](CI_BUDGET_2026_09.md) fortgeschrieben. Vor jedem weiteren Lauf Restbudget prüfen; keine Freigabe für eine unbegrenzte Schleife.
 
 - `ios-cloud-validation`: manueller erster Prüfpunkt, 30 Minuten hartes Joblimit, Scriptlimit 24 Minuten, ungefähr höchstens 3,40 USD inklusive MwSt. bei angezeigtem Tarif. Keine automatische Wiederholung, kein Archiv/Upload.
 - `ios-full-regression`: getrennt manuell, 60 Minuten Joblimit, nur nach Prüfung des Restbudgets. Nicht parallel zum ersten Prüfpunkt starten.

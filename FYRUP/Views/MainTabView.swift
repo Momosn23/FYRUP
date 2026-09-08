@@ -94,7 +94,8 @@ private struct FYMainNavigation: View {
             .overlay(RoundedRectangle(cornerRadius: 28).stroke(FYColor.line, lineWidth: 0.5))
             .padding(.horizontal, 12).padding(.bottom, 4)
             .background(FYColor.background.opacity(0.96))
-            .accessibilityIdentifier("main-navigation")
+            // A parent identifier overrides the individual buttons on iOS 26.
+            // Keep identifiers on the five actual controls only.
     }
     private func tab(_ title: String, symbol: String, index: Int, id: String) -> some View {
         Button { store.selectedTab = index } label: {

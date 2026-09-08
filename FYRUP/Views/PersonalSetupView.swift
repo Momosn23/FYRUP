@@ -26,7 +26,7 @@ struct PersonalSetupView: View {
                         switch page {
                         case 0: stepsPage
                         case 1:
-                            Text("Diese Angaben sind freiwillig. Du kannst FYRUP auch ohne sie für Sport und Freunde nutzen.").foregroundStyle(FYColor.muted)
+                            Text("Freiwillige Angaben für deine persönlichen Ziele.").foregroundStyle(FYColor.muted)
                             BodyMeasurementsView(draft: $bodyDraft)
                         case 2: permissionsPage
                         default: overviewPage
@@ -36,8 +36,12 @@ struct PersonalSetupView: View {
                     if store.setup.value == nil {
                         Button("Einstellungen erneut laden") { store.setup.activate(userID: store.session?.userID) }.buttonStyle(OutlineButtonStyle())
                     }
+                    if page != 1 {
+                        Text("Optionale Freigaben kannst du später ändern.")
+                            .font(.footnote).foregroundStyle(FYColor.muted)
+                    }
                 }.padding(FYLayout.page)
-            }.scrollDismissesKeyboard(.interactively)
+            }.scrollDismissesKeyboard(.interactively).clipped()
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 8) {
                     Button(page == 3 ? "Einrichtung abschließen" : "Weiter") {
@@ -62,8 +66,6 @@ struct PersonalSetupView: View {
                         }
                     }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy)
                         .accessibilityIdentifier("personal-setup-next")
-                    Text("Du entscheidest. Optionale Freigaben dürfen aus bleiben und lassen sich später ändern.")
-                        .font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 }.padding(FYLayout.page).background(FYColor.background)
             }
         }.background(FYColor.background).toolbar(.hidden, for: .navigationBar)

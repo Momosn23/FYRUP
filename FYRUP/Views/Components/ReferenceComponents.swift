@@ -19,7 +19,7 @@ struct FYInputField: View {
                     .accessibilityLabel(title + (unit.map { ", \($0)" } ?? ""))
                     .accessibilityIdentifier(identifier ?? title)
                 if let unit { Text(unit).font(.subheadline).foregroundStyle(FYColor.muted) }
-            }.padding(.horizontal, 14).frame(minHeight: 52)
+            }.padding(.horizontal, 14).padding(.vertical, 12).frame(minHeight: 52)
                 .background(.white, in: RoundedRectangle(cornerRadius: FYLayout.controlRadius))
                 .overlay(RoundedRectangle(cornerRadius: FYLayout.controlRadius).stroke(FYColor.line))
         }
@@ -77,14 +77,15 @@ struct FYSetupHeading: View {
         VStack(alignment: .leading, spacing: 24) {
             HStack {
                 if showsBack {
-                    Button(action: back) { Image(systemName: "arrow.left").frame(width: 44, height: 44) }
+                    Button(action: back) { Image(systemName: "arrow.left").font(.system(size: 20, weight: .medium)).frame(width: 44, height: 44) }
                         .accessibilityLabel("Zurück")
                 } else { Color.clear.frame(width: 44, height: 44).accessibilityHidden(true) }
                 Spacer()
                 ProgressView(value: Double(step), total: Double(max(1, total))).tint(FYColor.lime).frame(width: 120)
                     .accessibilityLabel("Einrichtung, Schritt \(step) von \(total)")
                 Spacer()
-                Text("\(step)/\(total)").font(.caption).foregroundStyle(FYColor.muted).frame(width: 44)
+                Text("\(step)/\(total)").font(.caption).foregroundStyle(FYColor.muted)
+                    .lineLimit(1).fixedSize().dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(minWidth: 44)
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text(title).font(.title.weight(.bold))

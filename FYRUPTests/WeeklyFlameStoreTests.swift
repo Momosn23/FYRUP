@@ -402,7 +402,7 @@ final class WeeklyFlameStoreTests: XCTestCase {
 
     func testInvalidServerGoalAndForgedEarnedStateAreRejected() async {
         let rig = WeeklyRig(); defer { rig.cleanUp() }
-        await rig.repository.put(WeeklyFixture.state(goal: 2))
+        await rig.repository.put(WeeklyFixture.state(goal: 1))
         await rig.store.activate(userID: WeeklyFixture.momo)
         XCTAssertNil(rig.store.currentWeek)
         XCTAssertFalse(rig.store.isStateConfirmed)
@@ -410,6 +410,14 @@ final class WeeklyFlameStoreTests: XCTestCase {
         XCTAssertFalse(inconsistent.isValid)
         XCTAssertFalse(WeeklyFixture.state(week: inconsistent).isValid)
         XCTAssertFalse(WeeklyFixture.state(currentStreak: 4, bestStreak: 3).isValid)
+    }
+
+    func testTwoUnitsAreAnAllowedConfirmedServerGoal() async {
+        let rig = WeeklyRig(); defer { rig.cleanUp() }
+        await rig.repository.put(WeeklyFixture.state(goal: 2))
+        await rig.store.activate(userID: WeeklyFixture.momo)
+        XCTAssertEqual(rig.store.currentWeek?.weeklyGoal, 2)
+        XCTAssertTrue(rig.store.isStateConfirmed)
     }
 
     func testModelsRoundTripRequiredServerFieldsAndDoNotTrustUnfinalizedHistory() throws {

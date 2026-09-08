@@ -14,7 +14,8 @@ import XCTest
         XCTAssertTrue(element.waitForExistence(timeout: 8))
         for _ in 0..<10 {
             if element.isHittable { element.tap(); return }
-            if element.frame.midY < app.frame.midY { app.swipeDown() } else { app.swipeUp() }
+            let scroll = app.scrollViews.firstMatch
+            if element.frame.midY < app.frame.midY { scroll.swipeDown() } else { scroll.swipeUp() }
         }
         XCTFail("Element nicht erreichbar: \(element.identifier)")
     }
@@ -24,6 +25,8 @@ import XCTest
         let directory = URL(fileURLWithPath: "/tmp/fyrup-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try screenshot.pngRepresentation.write(to: directory.appendingPathComponent("\(id).png"), options: .atomic)
+        // Only this isolated fixture suite exports its accessibility hierarchy.
+        try app.debugDescription.write(to: directory.appendingPathComponent("\(id)-accessibility.txt"), atomically: true, encoding: .utf8)
         let configuration: [String: Any] = ["screen": id, "widthPoints": app.frame.width, "heightPoints": app.frame.height,
             "fixture": "ReferenceCheckpointFixtures", "date": "2025-05-22T07:41:00Z", "locale": "de_DE", "timezone": "Europe/Berlin",
             "source": "Production SwiftUI views with isolated fixtures; NOT a physical-device test"]
@@ -35,15 +38,15 @@ import XCTest
         let app = launch()
         XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["home-greeting"].label, "Guten Morgen")
+        try capture("A01-top", app: app)
         XCTAssertTrue(app.buttons["tab-week"].exists)
         XCTAssertFalse(app.buttons["home-start-hero"].exists)
         XCTAssertFalse(app.buttons["start-rest-timer"].exists)
         XCTAssertTrue(app.staticTexts["Supplements heute"].exists)
         XCTAssertLessThan(app.staticTexts["Supplements heute"].frame.minY, app.staticTexts["Deine Crew"].firstMatch.frame.minY)
-        try capture("A01-top", app: app)
         app.swipeUp(); try capture("A01-scroll", app: app)
         tap(app.buttons["tab-week"], in: app)
-        XCTAssertTrue(app.staticTexts["Wochenplan"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Wochenplan"].firstMatch.waitForExistence(timeout: 5))
         tap(app.buttons["activity-composer"], in: app)
         XCTAssertTrue(app.staticTexts["activity-composer-title"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Schließen"].exists)
@@ -77,9 +80,13 @@ import XCTest
         let app = launch(body: true, largeText: true)
         XCTAssertTrue(app.textFields["setup-height"].waitForExistence(timeout: 10))
         try capture("R05-large-type-top", app: app)
-        app.swipeUp(); try capture("R05-large-type-scroll", app: app)
+        let target = app.textFields["setup-target-weight"]
         let action = app.buttons["personal-setup-next"]
+        for _ in 0..<10 where !target.isHittable || target.frame.maxY >= action.frame.minY { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(target.isHittable, "All body fields must be reachable, not only the fixed footer")
+        try capture("R05-large-type-scroll", app: app)
         XCTAssertTrue(action.isHittable)
+        XCTAssertLessThan(target.frame.maxY, action.frame.minY)
         XCTAssertLessThanOrEqual(action.frame.maxY, app.frame.maxY)
         tap(action, in: app)
         XCTAssertTrue(app.staticTexts["Berechtigungen"].waitForExistence(timeout: 5))

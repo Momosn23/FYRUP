@@ -37,7 +37,7 @@ struct BodyMeasurementsView: View {
                 .keyboardType(.decimalPad).focused($focused)
             FYInputField(title: "Zielgewicht · optional", placeholder: "Dein Ziel", text: $draft.targetWeight, unit: "kg", identifier: "setup-target-weight")
                 .keyboardType(.decimalPad).focused($focused)
-            Label("Privat auf diesem iPhone. Für deine persönlichen Ziele und eine separate Verbrauchsschätzung – nicht für die Kalorien deiner Mahlzeiten.", systemImage: "lock")
+            Label("Privat auf diesem iPhone. Getrennt von den Kalorien deiner Mahlzeiten.", systemImage: "lock")
                 .font(.footnote).foregroundStyle(FYColor.muted)
         }.toolbar {
             ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Fertig") { focused = false } }
@@ -55,7 +55,7 @@ struct BodyMeasurementsEditor: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FYLayout.section) {
                 Text("Körperdaten").font(.title.bold())
-                Text("Diese Angaben sind freiwillig. Du kannst FYRUP auch ohne sie für Sport und Freunde nutzen.").foregroundStyle(FYColor.muted)
+                Text("Freiwillige Angaben für deine persönlichen Ziele.").foregroundStyle(FYColor.muted)
                 BodyMeasurementsView(draft: $draft)
                 if let message = message ?? store.setup.errorMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral) }
             }.padding(FYLayout.page)

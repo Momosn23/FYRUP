@@ -54,6 +54,7 @@ workflows:
       - /tmp/fyrup-contact-sheet.png
       - /tmp/fyrup-screenshots/*.png
       - /tmp/fyrup-screenshots/*.json
+      - /tmp/fyrup-screenshots/*-accessibility.txt
       - build/FYRUP.xcresult
       - build/reference-qa/**
       - /Users/builder/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/FYRUP.app

@@ -187,7 +187,7 @@ final class WeeklyFlameRepositoryTests: XCTestCase {
         let clock = WeeklyRepositoryTestClock(noon)
         let momo = repository(clock, storage: DemoWeeklyFlameStorage(now: { clock.now() }))
         await assertDenied { _ = try await momo.setNextWeeklyGoal(4) }
-        await assertDenied { _ = try await momo.confirmWeeklyGoal(2, timezone: "UTC") }
+        await assertDenied { _ = try await momo.confirmWeeklyGoal(1, timezone: "UTC") }
         await assertDenied { _ = try await momo.confirmWeeklyGoal(8, timezone: "UTC") }
         await assertDenied { _ = try await momo.confirmWeeklyGoal(3, timezone: "Invalid/Zone") }
         let initial = try await momo.confirmWeeklyGoal(4, timezone: "UTC")
