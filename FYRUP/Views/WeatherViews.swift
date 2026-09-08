@@ -16,7 +16,7 @@ struct WeatherDateCard: View {
                         Image(systemName: "cloud").foregroundStyle(FYColor.muted)
                         Text(store.weather.isLoading ? "Wetter laden …" : "Wetter nicht verfügbar").font(.caption)
                     } else { Label("Ort wählen", systemImage: "mappin").font(.caption) }
-                }.foregroundStyle(FYColor.muted).frame(minHeight: 54)
+                }.foregroundStyle(FYColor.muted).frame(minHeight: 44)
             }.buttonStyle(.plain).accessibilityIdentifier("home-weather")
             if let value = store.weather.value, value.isFresh(at: date) {
                 Link(destination: value.attributionLink) {

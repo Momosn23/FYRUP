@@ -5,6 +5,7 @@ struct TodayDashboardContent: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         VStack(alignment: .leading, spacing: FYLayout.section) {
+            VStack(alignment: .leading, spacing: 8) {
             HStack {
                 FYRUPWordmark(size: 23)
                 Spacer()
@@ -25,7 +26,8 @@ struct TodayDashboardContent: View {
                     WeatherDateCard(date: date)
                 }
             }
-            VStack(spacing: 20) {
+            }
+            VStack(spacing: 12) {
                 let metricLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 20)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
                 metricLayout {
                     NavigationLink { StepSettingsView() } label: {
@@ -56,7 +58,7 @@ struct TodayDashboardContent: View {
                 HStack {
                     FYSectionHeader(title: "Deine Crew")
                     Spacer()
-                    NavigationLink("Alle anzeigen") { FriendsView() }.font(.footnote.weight(.semibold)).accessibilityIdentifier("open-crew")
+                    NavigationLink("Alle anzeigen") { FriendsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).accessibilityIdentifier("open-crew")
                 }
                 if store.crew.isEmpty {
                     NavigationLink { FriendsView() } label: {
@@ -101,7 +103,7 @@ struct TodayDashboardContent: View {
         return count >= goal ? "Ziel erreicht" : "Noch \(StepCountFormat.string(goal - count)) Schritte"
     }
     private func metric(value: String?, goal: String?, title: String, detail: String, symbol: String, progress: Double?, accent: Color) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             FYProgressRing(progress: progress, symbol: symbol, accent: accent)
             Text(value ?? "–").font(.title3.bold()) + Text(goal.map { " / \($0)" } ?? "").font(.subheadline).foregroundColor(FYColor.muted)
             Text(title).font(.footnote).foregroundStyle(FYColor.muted)
@@ -141,12 +143,13 @@ struct TodayWeekStrip: View {
 
 private struct TodaySupplementsSection: View {
     @Environment(AppStore.self) private var store
+    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 60
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 FYSectionHeader(title: "Supplements heute")
                 Spacer()
-                NavigationLink("Alle ansehen") { SupplementsView() }.font(.footnote.weight(.semibold)).accessibilityIdentifier("open-supplements")
+                NavigationLink("Alle ansehen") { SupplementsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).accessibilityIdentifier("open-supplements")
             }
             if let snapshot = store.supplements.snapshot, store.supplements.isCurrentDay, !snapshot.doses.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -158,7 +161,7 @@ private struct TodaySupplementsSection: View {
                                     Image(systemName: "pills.fill").font(.title2).foregroundStyle(FYColor.muted)
                                     Text(name).font(.footnote.weight(.medium)).lineLimit(2).frame(minHeight: 34)
                                     Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.line)
-                                }.frame(width: 100).padding(12).background(.white, in: RoundedRectangle(cornerRadius: 12))
+                                }.frame(width: contentWidth).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 12))
                             }.buttonStyle(FYPressStyle()).foregroundStyle(FYColor.ink)
                                 .disabled(store.supplements.changesDisabled || store.supplements.pending.contains { $0.doseID == dose.id })
                                 .accessibilityLabel("\(name), \(dose.status.title)").accessibilityHint(dose.status == .taken ? "Einnahme rückgängig machen" : "Als genommen markieren")
@@ -183,6 +186,7 @@ private struct TodayCrewCard: View {
     @Environment(AppStore.self) private var store
     let member: CrewMember
     @State private var joining = false
+    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 84
     var body: some View {
         VStack(spacing: 10) {
             NavigationLink { FriendProfileView(member: member) } label: {
@@ -199,7 +203,7 @@ private struct TodayCrewCard: View {
                     Button("MITMACHEN") { Task { await store.joinPlannedSession(id) } }.font(.caption.bold())
                 }
             } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()) }
-        }.frame(width: 126).padding(12).background(.white, in: RoundedRectangle(cornerRadius: 16))
+        }.frame(width: contentWidth).padding(12).background(.white, in: RoundedRectangle(cornerRadius: 16))
             .fullScreenCover(isPresented: $joining) {
                 if let activity = member.activity, let planID = activity.workoutPlanID {
                     NavigationStack { WorkoutPlanDetailView(planID: planID, linkedActivityID: activity.id)

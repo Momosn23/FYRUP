@@ -14,7 +14,7 @@ struct TodayView: View {
             .padding(.horizontal, FYLayout.page).padding(.top, 10).padding(.bottom, 24)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: store.myActivity?.status)
         }
-        .background(FYColor.background)
+        .clipped().background(FYColor.background)
         .refreshable { await store.refresh(); await store.personal.loadWeek(now: store.presentationDate); await store.personal.loadRoutine(); await store.supplements.refresh(); await store.steps.refresh(force: true); await store.energy.refresh(force: true); await store.weekly.refresh(force: true); await store.weekly.refreshFriends(); await store.blind.refreshSummaries() }
         .navigationBarHidden(true)
         .task(id: store.selectedTab) {

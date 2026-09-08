@@ -13,7 +13,17 @@ import XCTest
     private func tap(_ element: XCUIElement, in app: XCUIApplication) {
         XCTAssertTrue(element.waitForExistence(timeout: 8))
         for _ in 0..<10 {
-            if element.isHittable { element.tap(); return }
+            // XCTest may call an element below the floating bar hittable, then
+            // tap a navigation button instead. Require its full visible bounds.
+            let mainTab = app.buttons["tab-today"]
+            let footer = app.buttons["personal-setup-next"]
+            let isNavigation = element.identifier.hasPrefix("tab-") || element.identifier == "activity-composer"
+            var lowerBound = app.frame.maxY
+            if mainTab.exists && !isNavigation { lowerBound = mainTab.frame.minY }
+            if footer.exists && element.identifier != "personal-setup-next" && element.label != "Fertig" { lowerBound = min(lowerBound, footer.frame.minY) }
+            if element.isHittable && element.frame.minY >= app.frame.minY && element.frame.maxY <= lowerBound {
+                element.tap(); return
+            }
             let scroll = app.scrollViews.firstMatch
             if element.frame.midY < app.frame.midY { scroll.swipeDown() } else { scroll.swipeUp() }
         }
@@ -53,8 +63,8 @@ import XCTest
         tap(app.buttons["Schließen"], in: app)
         tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["profile-nutrition"], in: app)
-        XCTAssertTrue(app.buttons["nutrition-goal-summary"].waitForExistence(timeout: 5))
         try capture("A19-manual-diary-checkpoint", app: app)
+        XCTAssertTrue(app.buttons["nutrition-goal-summary"].waitForExistence(timeout: 5))
     }
 
     func testR05BodyReferenceSavesOnContinueAndDoesNotForceHealth() throws {

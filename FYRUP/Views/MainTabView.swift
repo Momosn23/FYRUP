@@ -6,6 +6,8 @@ struct MainTabView: View {
 
     var body: some View {
         @Bindable var store = store
+        GeometryReader { geometry in
+        VStack(spacing: 0) {
         TabView(selection: $store.selectedTab) {
                 NavigationStack {
                     TodayView().navigationDestination(isPresented: $store.opensNotifications) { NotificationCenterView() }
@@ -24,7 +26,15 @@ struct MainTabView: View {
         }
         .tint(FYColor.lime)
         .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) { FYMainNavigation() }
+        .clipped()
+        FYMainNavigation()
+        }
+        // UIKit's TabView scroll surfaces otherwise extend to the full window.
+        // Real sibling navigation + explicit safe-area bounds keep both the
+        // rendered content and tappable area out of the system/navigation bars.
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .clipped()
+        }
         .fullScreenCover(isPresented: $store.showsActivityComposer) { ActivityComposerView(initialMode: store.activityComposerMode) }
         .fullScreenCover(isPresented: $store.showsLiveSession) {
             NavigationStack {

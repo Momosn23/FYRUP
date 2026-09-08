@@ -15,6 +15,7 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var favoriteGymPlace: SessionPlace?
     var setupPage: Int?
     var weatherPlace: WeatherPlace?
+    var setupChoices: SetupChoices?
 
     var validationMessage: String? {
         if version != 1 { return "Diese Einstellungen benötigen eine neuere App-Version." }
