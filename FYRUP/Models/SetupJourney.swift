@@ -34,7 +34,7 @@ enum SetupJourneyStep: String, Codable, CaseIterable, Sendable {
         case .weeklyGoal: "Wie oft willst du pro Woche aktiv sein?"
         case .days: "Das sind Planungswünsche, keine bereits erledigten Einheiten."
         case .time: "Wann bist du am liebsten aktiv?"
-        case .supplements: "Deine eigene Liste. Nichts ist vorausgewählt."
+        case .supplements: "Deine eigene Liste. Du entscheidest, was dazugehört."
         case .nutrition: "Mahlzeiten und eigene Tagesziele – wenn du möchtest."
         case .health: "Deine Schritte im Blick. Nur mit deiner Entscheidung."
         case .permissions: "Du entscheidest für jede Funktion einzeln."

@@ -97,6 +97,7 @@ private struct FYMainNavigation: View {
                     .shadow(color: FYColor.lime.opacity(0.18), radius: 6, y: 3)
             }.buttonStyle(FYPressStyle()).frame(maxWidth: .infinity)
                 .accessibilityLabel("Neue Aktivität").accessibilityIdentifier("activity-composer")
+                .accessibilityShowsLargeContentViewer { Label("Neue Aktivität", systemImage: "plus") }
             tab("Entdecken", symbol: "safari", index: 3, id: "discover")
             tab("Profil", symbol: "person.crop.circle", index: 4, id: "profile")
         }.padding(.horizontal, 8).padding(.vertical, 6)
@@ -104,6 +105,10 @@ private struct FYMainNavigation: View {
             .overlay(RoundedRectangle(cornerRadius: 28).stroke(FYColor.line, lineWidth: 0.5))
             .padding(.horizontal, 12).padding(.bottom, 4)
             .background(FYColor.background.opacity(0.96))
+            // Navigation has a fixed spatial budget; only this bar is capped.
+            // Apple's large-content viewer provides the full enlarged label.
+            // Main content keeps the user's unrestricted Dynamic Type size.
+            .dynamicTypeSize(...DynamicTypeSize.large)
             // A parent identifier overrides the individual buttons on iOS 26.
             // Keep identifiers on the five actual controls only.
     }
@@ -117,6 +122,7 @@ private struct FYMainNavigation: View {
                 .background(store.selectedTab == index ? FYColor.limeSoft : .clear, in: RoundedRectangle(cornerRadius: 24))
         }.buttonStyle(.plain).accessibilityLabel(title).accessibilityIdentifier("tab-\(id)")
             .accessibilityAddTraits(store.selectedTab == index ? [.isSelected] : [])
+            .accessibilityShowsLargeContentViewer { Label(title, systemImage: symbol) }
     }
 }
 

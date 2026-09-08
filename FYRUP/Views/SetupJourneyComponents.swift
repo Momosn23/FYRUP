@@ -12,9 +12,13 @@ struct SetupWeeklyChoices: View {
                             .background(selection == goal ? FYColor.limeSoft : .white, in: RoundedRectangle(cornerRadius: 16))
                             .overlay(RoundedRectangle(cornerRadius: 16).stroke(selection == goal ? FYColor.lime : FYColor.line))
                     } else {
-                        goalLabel(goal).padding(8).frame(maxWidth: .infinity).aspectRatio(1, contentMode: .fit)
-                            .background(selection == goal ? FYColor.limeSoft : .white, in: Circle())
+                        // Let the grid's offered width size the circle. A square
+                        // aspect ratio on the text itself shrinks to its ideal
+                        // height, leaving only ~38 pt for "Einheiten".
+                        Circle().fill(selection == goal ? FYColor.limeSoft : .white)
+                            .aspectRatio(1, contentMode: .fit)
                             .overlay(Circle().stroke(selection == goal ? FYColor.lime : FYColor.line, lineWidth: selection == goal ? 2 : 1))
+                            .overlay { goalLabel(goal).padding(12) }
                     }
                 }.buttonStyle(FYPressStyle()).foregroundStyle(FYColor.ink).accessibilityIdentifier("weekly-goal-\(goal)")
                     .accessibilityLabel("\(goal) Einheiten pro Woche").accessibilityAddTraits(selection == goal ? .isSelected : [])

@@ -67,6 +67,14 @@ import XCTest
         try JSONSerialization.data(withJSONObject: configuration, options: [.prettyPrinted, .sortedKeys])
             .write(to: directory.appendingPathComponent("\(id).json"), options: .atomic)
     }
+    private func assertHorizontalBounds(_ element: XCUIElement, in app: XCUIApplication,
+                                        file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(element.exists, file: file, line: line)
+        XCTAssertGreaterThanOrEqual(element.frame.minX, app.frame.minX - 1,
+                                    "Element is clipped at the left edge: \(element.identifier)", file: file, line: line)
+        XCTAssertLessThanOrEqual(element.frame.maxX, app.frame.maxX + 1,
+                                 "Element is clipped at the right edge: \(element.identifier)", file: file, line: line)
+    }
 
     func testA01TodayReferenceAndNavigation() throws {
         let app = launch()
@@ -105,8 +113,15 @@ import XCTest
         XCTAssertTrue(weather.waitForExistence(timeout: 10))
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS 'Berlin'"), object: weather)], timeout: 5), .completed)
         XCTAssertTrue(weather.label.contains("18"), "Weather rendering uses an isolated fixture, not a live Apple response")
-        XCTAssertTrue(app.links["weather-attribution"].exists)
         try capture("A01-weather-fixture", app: app)
+        // SwiftUI can expose Link as a button rather than an AX link on iOS.
+        // Require the real, named, usable attribution control without assuming
+        // its platform-specific element type. Capture before assertions so a
+        // future failure preserves both its pixels and accessibility hierarchy.
+        let attribution = app.descendants(matching: .any).matching(identifier: "weather-attribution").firstMatch
+        XCTAssertTrue(attribution.waitForExistence(timeout: 5), "Apple Weather attribution must remain available")
+        XCTAssertEqual(attribution.label, "Apple Weather · Datenquellen")
+        XCTAssertTrue(attribution.isHittable, "Attribution must be reachable, not merely present in the hierarchy")
         tap(weather, in: app)
         tap(app.buttons["Wetterort entfernen"], in: app, presented: true)
         tap(app.buttons["Schließen"].firstMatch, in: app, presented: true)
@@ -119,6 +134,15 @@ import XCTest
         let app = launch(largeText: true)
         XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 10))
         try capture("A01-large-type-top", app: app)
+        assertHorizontalBounds(app.scrollViews.firstMatch, in: app)
+        assertHorizontalBounds(app.staticTexts["home-greeting"], in: app)
+        assertHorizontalBounds(app.buttons["Mitteilungen"], in: app)
+        assertHorizontalBounds(app.buttons["home-weather"], in: app)
+        assertHorizontalBounds(app.buttons["own-steps-card"], in: app)
+        for id in ["tab-today", "tab-week", "activity-composer", "tab-discover", "tab-profile"] {
+            assertHorizontalBounds(app.buttons[id], in: app)
+            XCTAssertTrue(app.buttons[id].isHittable)
+        }
         tap(app.buttons["home-nutrition-card"], in: app)
         XCTAssertTrue(app.buttons["nutrition-goal-summary"].waitForExistence(timeout: 5))
         try capture("A19-large-type-top", app: app)
@@ -197,6 +221,11 @@ import XCTest
         tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.buttons["weekly-goal-2"].waitForExistence(timeout: 5))
         try capture("R08-weekly-goal", app: app)
+        let firstGoal = app.buttons["weekly-goal-2"]
+        XCTAssertGreaterThan(firstGoal.frame.width, 90, "Goal circle must use the offered reference-grid cell, not the label's ideal height")
+        XCTAssertEqual(firstGoal.frame.width, firstGoal.frame.height, accuracy: 2)
+        XCTAssertLessThanOrEqual(firstGoal.staticTexts["Einheiten"].frame.height, firstGoal.staticTexts["2"].frame.height,
+                                 "At standard text size Einheiten must fit on one line inside the circle")
         tap(app.buttons["personal-setup-skip"], in: app)
         tap(app.buttons["setup-day-1"], in: app); tap(app.buttons["setup-day-6"], in: app)
         try capture("R09-preferred-days", app: app)

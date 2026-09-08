@@ -5,12 +5,16 @@ struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(alignment: .leading, spacing: FYLayout.section) {
                 TodayDashboardContent()
                 BlindInboxCards()
                 ForEach(store.invitations.filter { $0.status == .pending }) { invitation in InvitationCard(invitation: invitation) }
             }
+            // A vertical scroll view must not expand to a wide child's ideal
+            // size. The cards still grow vertically with Dynamic Type.
+            .frame(width: max(0, geometry.size.width - FYLayout.page * 2), alignment: .leading)
             .padding(.horizontal, FYLayout.page).padding(.top, 10).padding(.bottom, 24)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: store.myActivity?.status)
         }
@@ -41,6 +45,7 @@ struct TodayView: View {
                 await store.weekly.refreshFriends()
                 await store.blind.refreshSummaries()
             }
+        }
         }
     }
 

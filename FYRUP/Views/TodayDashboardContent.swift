@@ -45,21 +45,25 @@ struct TodayDashboardContent: View {
                 Divider()
                 TodayWeekStrip()
                 NavigationLink { WeeklyFlameDetailView() } label: {
-                    HStack {
-                        Image(systemName: "flame.fill").foregroundStyle(FYColor.nutrition)
-                        Text("Deine Streak").font(.subheadline.weight(.semibold))
-                        Spacer()
+                    let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+                    layout {
+                        Label { Text("Deine Streak").font(.subheadline.weight(.semibold)) }
+                            icon: { Image(systemName: "flame.fill").foregroundStyle(FYColor.nutrition) }
+                        if !typeSize.isAccessibilitySize { Spacer() }
                         Text(store.weekly.currentWeek.map { "\($0.progressText) Einheiten" } ?? "Wochenziel öffnen").font(.footnote).foregroundStyle(FYColor.muted)
-                        Image(systemName: "chevron.right").font(.caption)
-                    }.frame(minHeight: 44).foregroundStyle(FYColor.ink)
+                        if !typeSize.isAccessibilitySize { Image(systemName: "chevron.right").font(.caption) }
+                    }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).foregroundStyle(FYColor.ink)
                 }.accessibilityIdentifier("own-weekly-card")
             }.fyCard(padding: 12)
             TodaySupplementsSection()
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
+                let headerLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout())
+                headerLayout {
                     FYSectionHeader(title: "Deine Crew")
-                    Spacer()
-                    NavigationLink("Alle anzeigen") { FriendsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).frame(minHeight: 44).accessibilityIdentifier("open-crew")
+                    if !typeSize.isAccessibilitySize { Spacer() }
+                    NavigationLink { FriendsView() } label: {
+                        Text("Alle anzeigen").font(.footnote.weight(.semibold)).frame(minHeight: 44).contentShape(Rectangle())
+                    }.foregroundStyle(FYColor.lime).accessibilityIdentifier("open-crew")
                 }
                 if store.crew.isEmpty {
                     NavigationLink { FriendsView() } label: {
@@ -119,10 +123,11 @@ struct TodayDashboardContent: View {
 
 struct TodayWeekStrip: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let date = store.referenceDate ?? context.date
-            HStack(spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: 8) {
                 ForEach(TrainingWeekLogic.days(containing: date), id: \.self) { day in
                     let done = store.profile.map { TrainingWeekLogic.completed(store.personal.week?.activities ?? [], owner: $0.id, day: day).count > 0 } ?? false
                     let planned = store.personal.week?.sessions.contains { Calendar.current.isDate($0.startsAt, inSameDayAs: day) } == true
@@ -133,7 +138,7 @@ struct TodayWeekStrip: View {
                             Image(systemName: done ? "checkmark.circle.fill" : planned ? "clock" : "circle")
                                 .font(.body).foregroundStyle(done ? FYColor.lime : FYColor.line)
                                 .padding(3).overlay(Circle().stroke(today ? FYColor.lime : .clear, lineWidth: 1.5))
-                        }.frame(maxWidth: .infinity, minHeight: 44).foregroundStyle(FYColor.muted)
+                        }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle()).foregroundStyle(FYColor.muted)
                     }.buttonStyle(.plain).accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))): \(done ? "Abgeschlossen" : planned ? "Geplant" : "Offen")")
                         .accessibilityIdentifier("training-week-day-\(TrainingWeekLogic.weekday(day))")
                 }
@@ -144,13 +149,17 @@ struct TodayWeekStrip: View {
 
 private struct TodaySupplementsSection: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 70
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            let headerLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout())
+            headerLayout {
                 FYSectionHeader(title: "Supplements heute")
-                Spacer()
-                NavigationLink("Alle ansehen") { SupplementsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).frame(minHeight: 44).accessibilityIdentifier("open-supplements")
+                if !typeSize.isAccessibilitySize { Spacer() }
+                NavigationLink { SupplementsView() } label: {
+                    Text("Alle ansehen").font(.footnote.weight(.semibold)).frame(minHeight: 44).contentShape(Rectangle())
+                }.foregroundStyle(FYColor.lime).accessibilityIdentifier("open-supplements")
             }
             if let snapshot = store.supplements.snapshot, store.supplements.isCurrentDay, !snapshot.doses.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -207,19 +216,19 @@ private struct TodayCrewCard: View {
                         Text(member.profile.displayName).font(.footnote.bold()).lineLimit(2)
                         if member.todayStatus == .live { Text("LIVE").font(.caption2.bold()).foregroundStyle(FYColor.lime) }
                     }
-                }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
             Text(member.activity.map { [$0.sport.title, $0.displaySubtype].compactMap { $0 }.joined(separator: " · ") } ?? "Noch nichts geteilt")
                 .font(.caption).foregroundStyle(FYColor.muted).lineLimit(2).frame(minHeight: 28)
             if let activity = member.activity {
                 if activity.status == .live {
-                    Button("MITZIEHEN 🔥") { joining = true }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("join-live-activity")
+                    Button { joining = true } label: { actionLabel("MITZIEHEN 🔥") }.accessibilityIdentifier("join-live-activity")
                 } else if activity.status == .completed {
-                    Button("Stark! 🙌") { Task { await store.react(activity, reaction: .applause) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
+                    Button { Task { await store.react(activity, reaction: .applause) } } label: { actionLabel("Stark! 🙌") }
                 } else if let id = activity.plannedSessionID {
-                    Button("MITMACHEN") { Task { await store.joinPlannedSession(id) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
+                    Button { Task { await store.joinPlannedSession(id) } } label: { actionLabel("MITMACHEN") }
                 }
-            } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44) }
+            } else { Button { Task { await store.fyrup(member) } } label: { actionLabel("FYR UP 🔥") } }
         }.frame(width: contentWidth).padding(8).background(.white, in: RoundedRectangle(cornerRadius: 16))
             .fullScreenCover(isPresented: $joining) {
                 if let activity = member.activity, let planID = activity.workoutPlanID {
@@ -227,5 +236,8 @@ private struct TodayCrewCard: View {
                         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { joining = false } } } }
                 } else { ActivityComposerView(linkedActivityID: member.activity?.id) }
             }
+    }
+    private func actionLabel(_ title: String) -> some View {
+        Text(title).font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
     }
 }
