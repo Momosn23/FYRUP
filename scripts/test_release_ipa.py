@@ -14,15 +14,15 @@ class ReleaseIPATests(unittest.TestCase):
     url = "https://fixture.supabase.co"
     key = "fixture-not-a-real-key"
 
-    def fixture(self, info_override=None, backend_override=None, fmt=plistlib.FMT_XML, extra_app=False, widget_override=None, missing_widget=False):
+    def fixture(self, info_override=None, backend_override=None, fmt=plistlib.FMT_XML, extra_app=False, widget_override=None, missing_widget=False, signing=False, missing_signing=None):
         info = {"CFBundleIdentifier": "app.fyrup.ios",
                 "NSHealthShareUsageDescription": "Read selected steps",
                 "NSHealthUpdateUsageDescription": "No Health writes requested",
                 "NSSupportsLiveActivities": True,
                 "CFBundleURLTypes": [{"CFBundleURLSchemes": ["fyrup"]}],
-                "CFBundleVersion": "11", "CFBundleShortVersionString": "1.0.0"}
+                "CFBundleVersion": "11", "CFBundleShortVersionString": "1.0.0", "CFBundleExecutable": "FYRUP"}
         widget = {"CFBundleIdentifier": "app.fyrup.ios.live", "CFBundleVersion": "11",
-                  "CFBundleShortVersionString": "1.0.0",
+                  "CFBundleShortVersionString": "1.0.0", "CFBundleExecutable": "FYRUPLive",
                   "NSExtension": {"NSExtensionPointIdentifier": "com.apple.widgetkit-extension"}}
         widget.update(widget_override or {})
         backend = {"SUPABASE_URL": self.url, "SUPABASE_PUBLISHABLE_KEY": self.key,
@@ -41,6 +41,16 @@ class ReleaseIPATests(unittest.TestCase):
                 archive.writestr("Payload/FYRUP.app/PlugIns/FYRUPLive.appex/Info.plist", plistlib.dumps(widget, fmt=fmt))
             if extra_app:
                 archive.writestr("Payload/Other.app/Info.plist", plistlib.dumps(info))
+            if signing:
+                components = {
+                    "Payload/FYRUP.app/embedded.mobileprovision": b"profile-main",
+                    "Payload/FYRUP.app/FYRUP": b"binary-main",
+                    "Payload/FYRUP.app/PlugIns/FYRUPLive.appex/embedded.mobileprovision": b"profile-live",
+                    "Payload/FYRUP.app/PlugIns/FYRUPLive.appex/FYRUPLive": b"binary-live",
+                }
+                for name, data in components.items():
+                    if name != missing_signing:
+                        archive.writestr(name, data)
         result.seek(0)
         return result
 
@@ -91,6 +101,56 @@ class ReleaseIPATests(unittest.TestCase):
                       {"CFBundleShortVersionString": "2.0"}, {"NSExtension": {}}, {"NSExtension": "invalid"}]:
             with self.assertRaises(ValueError):
                 validator.validate_ipa(self.fixture(widget_override=field), self.url, self.key)
+
+    def entitlements(self, target):
+        return {"application-identifier": validator.signing_profile.TARGET_IDENTIFIERS[target],
+                "com.apple.security.application-groups": [validator.signing_profile.APP_GROUP],
+                "com.apple.developer.weatherkit": True, "com.apple.developer.healthkit": True,
+                "com.apple.developer.applesignin": ["Default"], "aps-environment": "production",
+                "get-task-allow": False}
+
+    def check_signing(self, archive=None, change_binary=None, change_profile=None):
+        def profile_decoder(data):
+            values = self.entitlements(data.decode().removeprefix("profile-"))
+            values.update(change_profile or {})
+            return plistlib.dumps({"Entitlements": values})
+
+        def binary_reader(data):
+            values = self.entitlements(data.decode().removeprefix("binary-"))
+            values.update(change_binary or {})
+            return values
+
+        validator.validate_ipa(archive or self.fixture(signing=True), self.url, self.key,
+                               profile_decoder=profile_decoder, entitlements_reader=binary_reader)
+
+    def test_embedded_profiles_and_actual_binary_entitlements_are_both_checked(self):
+        self.check_signing()
+        for key, invalid in (("com.apple.developer.weatherkit", False), ("com.apple.developer.healthkit", False),
+                             ("com.apple.security.application-groups", []), ("aps-environment", "development"),
+                             ("com.apple.developer.applesignin", []), ("application-identifier", "WRONG")):
+            for where in ("change_profile", "change_binary"):
+                with self.subTest(key=key, where=where), self.assertRaises(ValueError):
+                    self.check_signing(**{where: {key: invalid}})
+
+    def test_store_profiles_and_executables_must_not_allow_debugging(self):
+        for where in ("change_profile", "change_binary"):
+            for invalid in (True, "false", 0):
+                with self.subTest(where=where, value=invalid), self.assertRaisesRegex(ValueError, "debugging"):
+                    self.check_signing(**{where: {"get-task-allow": invalid}})
+
+    def test_missing_embedded_profile_or_executable_fails(self):
+        for name in ("embedded.mobileprovision", "FYRUP", "PlugIns/FYRUPLive.appex/embedded.mobileprovision", "PlugIns/FYRUPLive.appex/FYRUPLive"):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "signing component"):
+                self.check_signing(self.fixture(signing=True, missing_signing="Payload/FYRUP.app/" + name))
+
+    def test_executable_path_cannot_escape_archive_root(self):
+        for name in ("../other", "/bin/other", "a\\b", "", "a/b"):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "executable name"):
+                self.check_signing(self.fixture(info_override={"CFBundleExecutable": name}, signing=True))
+
+    def test_embedded_checks_cannot_be_partially_enabled(self):
+        with self.assertRaisesRegex(ValueError, "Both embedded"):
+            validator.validate_ipa(self.fixture(), self.url, self.key, profile_decoder=lambda data: data)
 
 
 if __name__ == "__main__":

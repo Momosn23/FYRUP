@@ -26,6 +26,24 @@ final class PersonalTrainingTests: XCTestCase {
         XCTAssertNotNil(TrainingRoutine(goals: [.init(sport: .gym), .init(sport: .gym)]).validationMessage)
         XCTAssertNotNil(TrainingRoutine(revision: Int.max).validationMessage)
     }
+    func testDaySummaryDistinguishesMissingDataFromEmptyDay() {
+        let day = date("2026-09-08T12:00:00Z")
+        XCTAssertEqual(WeeklyDaySummary(snapshot: nil, ownerID: owner, day: day, calendar: calendar).title, "Noch nicht geladen")
+        XCTAssertEqual(WeeklyDaySummary(snapshot: .init(), ownerID: owner, day: day, calendar: calendar).title, "Keine Session geplant")
+    }
+    func testDaySummaryKeepsUpcomingSessionAlongsideActualCompletions() {
+        let day = date("2026-09-08T12:00:00Z")
+        let done = activity(end: day)
+        let session = PlannedSession(id: UUID(), hostID: owner, sport: .gym, subtype: "Mein Push Day", startsAt: day.addingTimeInterval(3600),
+                                     durationMinutes: 60, note: nil, placeName: nil, friendsCanJoin: false, status: "planned")
+        var cancelled = session; cancelled.status = "cancelled"
+        let summary = WeeklyDaySummary(snapshot: .init(activities: [done, done, activity(owner: other, end: day)], sessions: [cancelled, session, session]),
+                                       ownerID: owner, day: day, calendar: calendar)
+        XCTAssertEqual(summary.completed.count, 1)
+        XCTAssertEqual(summary.planned.count, 1)
+        XCTAssertEqual(summary.title, "Mein Push Day")
+        XCTAssertEqual(summary.detail, "1 abgeschlossen · 1 geplant")
+    }
     func testFeedbackSupportsOptionalEffortReplacementAndClear() throws {
         let exercise = UUID(); var value = PersonalWorkoutFeedback(activityID: UUID())
         value.setEffort(.easy, for: exercise); value.setEffort(.hardcore, for: exercise)

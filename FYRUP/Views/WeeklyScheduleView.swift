@@ -7,7 +7,7 @@ struct WeeklyScheduleView: View {
     private var anchor: Date { Calendar.current.date(byAdding: .weekOfYear, value: weekOffset, to: store.presentationDate) ?? store.presentationDate }
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text("Wochenplan").font(.title.bold())
                 Picker("Woche", selection: $weekOffset) { Text("Diese Woche").tag(0); Text("Nächste Woche").tag(1) }.pickerStyle(.segmented)
                 HStack(spacing: 4) {
@@ -23,12 +23,18 @@ struct WeeklyScheduleView: View {
                     }
                 }
                 if store.personal.isLoadingWeek { ProgressView("Woche laden …").frame(maxWidth: .infinity) }
-                ForEach(TrainingWeekLogic.days(containing: anchor), id: \.self) { day in
-                    Button { openedDay = day } label: { dayRow(day) }.buttonStyle(.plain)
-                }
+                VStack(spacing: 0) {
+                    let days = TrainingWeekLogic.days(containing: anchor)
+                    ForEach(days, id: \.self) { day in
+                        let weekday = TrainingWeekLogic.weekday(day)
+                        Button { openedDay = day } label: { dayRow(day) }.buttonStyle(FYPressStyle())
+                            .accessibilityIdentifier("week-day-row-\(weekday)")
+                        if day != days.last { Divider() }
+                    }
+                }.fyCard(padding: 12)
                 if let error = store.personal.weekError { Text(error).font(.footnote).foregroundStyle(FYColor.muted) }
                 Button("Session planen") { store.activityComposerMode = 1; store.showsActivityComposer = true }.buttonStyle(PrimaryButtonStyle())
-                NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { Label("Persönliche Wochenwünsche", systemImage: "slider.horizontal.3") }.font(.subheadline)
+                NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { Label("Persönliche Wochenwünsche", systemImage: "slider.horizontal.3").frame(minHeight: 44) }.font(.subheadline)
             }.padding(FYLayout.page)
         }.background(FYColor.background).navigationBarHidden(true)
             .task(id: "\(weekOffset)-\(store.selectedTab)-\(store.friendAccessRevision)") {
@@ -43,20 +49,18 @@ struct WeeklyScheduleView: View {
             .refreshable { await store.refresh(); await store.personal.loadWeek(now: anchor) }
     }
     private func dayRow(_ day: Date) -> some View {
-        let completed = store.profile.map { TrainingWeekLogic.completed(store.personal.week?.activities ?? [], owner: $0.id, day: day) } ?? []
-        let sessions = store.personal.week?.sessions.filter { Calendar.current.isDate($0.startsAt, inSameDayAs: day) } ?? []
-        return HStack(alignment: .top, spacing: 14) {
-            Image(systemName: !completed.isEmpty ? "checkmark.circle.fill" : "circle")
-                .font(.title2).foregroundStyle(!completed.isEmpty ? FYColor.lime : FYColor.line)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(day.formatted(.dateTime.weekday(.wide))).font(.headline)
-                ForEach(completed) { activity in Text("\(activity.sport.title) · DONE").font(.subheadline).foregroundStyle(FYColor.muted) }
-                ForEach(sessions) { session in
-                    Text("\(session.sport.title) · \(session.startsAt.formatted(date: .omitted, time: .shortened))").font(.subheadline).foregroundStyle(FYColor.muted)
-                }
-                if completed.isEmpty && sessions.isEmpty { Text("Keine Session geplant").font(.subheadline).foregroundStyle(FYColor.muted) }
+        let hasMatchingWeek = store.personal.weekInterval.map { $0.start <= day && day < $0.end } ?? false
+        let snapshot = hasMatchingWeek ? store.personal.week : nil
+        let summary = WeeklyDaySummary(snapshot: snapshot, ownerID: store.profile?.id, day: day)
+        return HStack(alignment: .center, spacing: 12) {
+            Image(systemName: !summary.planned.isEmpty ? "clock" : !summary.completed.isEmpty ? "checkmark.circle.fill" : "circle")
+                .font(.title2).foregroundStyle(!summary.completed.isEmpty || !summary.planned.isEmpty ? FYColor.lime : FYColor.line)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(day.formatted(.dateTime.weekday(.wide))).font(.subheadline.weight(.semibold))
+                Text(summary.title).font(.subheadline).foregroundStyle(FYColor.ink)
+                if let detail = summary.detail { Text(detail).font(.footnote).foregroundStyle(FYColor.muted) }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.right").font(.caption).padding(.top, 6)
-        }.foregroundStyle(FYColor.ink).padding(.vertical, 12)
+            Image(systemName: "chevron.right").font(.caption)
+        }.foregroundStyle(FYColor.ink).frame(minHeight: 44).padding(.vertical, 8).contentShape(Rectangle())
     }
 }

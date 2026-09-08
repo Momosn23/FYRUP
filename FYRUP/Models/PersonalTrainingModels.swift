@@ -30,6 +30,41 @@ struct TrainingWeekSnapshot: Codable, Sendable {
     var sessions: [PlannedSession] = []
 }
 
+/// A compact row previews a day; its detail view retains every entry.
+/// Missing data must not be presented as an empty calendar.
+struct WeeklyDaySummary {
+    let completed: [Activity]
+    let planned: [PlannedSession]
+    let isLoaded: Bool
+
+    init(snapshot: TrainingWeekSnapshot?, ownerID: UUID?, day: Date, calendar: Calendar = TrainingWeekLogic.calendar()) {
+        guard let snapshot, let ownerID else { completed = []; planned = []; isLoaded = false; return }
+        isLoaded = true
+        completed = TrainingWeekLogic.completed(snapshot.activities, owner: ownerID, day: day, calendar: calendar)
+            .sorted { ($0.endedAt ?? .distantPast) > ($1.endedAt ?? .distantPast) }
+        var seen = Set<UUID>()
+        planned = snapshot.sessions.filter {
+            ["planned", "ready"].contains($0.status) && calendar.isDate($0.startsAt, inSameDayAs: day) && seen.insert($0.id).inserted
+        }.sorted { $0.startsAt < $1.startsAt }
+    }
+    var title: String {
+        if let next = planned.first { return next.displaySubtype ?? next.sport.title }
+        if let latest = completed.first { return latest.displaySubtype ?? latest.sport.title }
+        return isLoaded ? "Keine Session geplant" : "Noch nicht geladen"
+    }
+    var detail: String? {
+        if !completed.isEmpty && !planned.isEmpty { return "\(completed.count) abgeschlossen · \(planned.count) geplant" }
+        if let next = planned.first {
+            let time = next.startsAt.formatted(date: .omitted, time: .shortened)
+            return planned.count > 1 ? "Ab \(time) · \(planned.count) Sessions" : "\(next.sport.title) · \(time)"
+        }
+        if let latest = completed.first {
+            return completed.count > 1 ? "\(completed.count) Einheiten · DONE" : "\(latest.sport.title) · DONE"
+        }
+        return nil
+    }
+}
+
 enum ExerciseEffort: String, Codable, CaseIterable, Identifiable, Sendable {
     case easy, medium, hardcore
     var id: String { rawValue }
