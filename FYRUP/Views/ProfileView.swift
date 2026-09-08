@@ -4,64 +4,69 @@ import UserNotifications
 
 struct ProfileView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showsDelete = false
     @State private var showsEdit = false
-    @State private var statisticsPeriod = 0
     var body: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(spacing: 18) {
                 HStack {
-                    Text("Profil").font(.title2.weight(.bold))
+                    Text("Profil").font(.title2.weight(.bold)).accessibilityIdentifier("profile-title")
                     Spacer()
-                    Button { showsEdit = true } label: { Image(systemName: "pencil").font(.title3).frame(width: 36, height: 36).background(FYColor.elevated, in: Circle()) }
-                        .accessibilityLabel("Profil bearbeiten")
+                    NavigationLink { SettingsView() } label: {
+                        Image(systemName: "gearshape").font(.title3).frame(width: 44, height: 44)
+                    }.accessibilityLabel("Profileinstellungen").accessibilityIdentifier("profile-settings-shortcut")
                 }
                 if let profile = store.profile {
-                    HStack(spacing: 16) {
-                        AvatarView(profile: profile).scaleEffect(1.45).padding(14)
-                        VStack(alignment: .leading, spacing: 3) { Text(profile.displayName).font(.title3.bold()); Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted); if let bio = profile.bio { Text(bio).font(.caption).foregroundStyle(FYColor.ink.opacity(0.78)).padding(.top, 3) } }
-                        Spacer()
-                    }
-                    HStack { Metric(value: "\(store.crew.count)", label: "Freunde"); Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat"); Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak") }
-                    OwnWeeklyCard()
-                    NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: {
-                        HStack { Label("Mein Wochenplan", systemImage: "calendar").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
-                    }.buttonStyle(.plain).accessibilityIdentifier("profile-weekly-routine")
-                    WeekActivityStrip(activities: store.recentActivities + [store.myActivity].compactMap { $0 })
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Meine Statistiken").font(.headline)
-                        Picker("Zeitraum", selection: $statisticsPeriod) { Text("Woche").tag(0); Text("Monat").tag(1); Text("Jahr").tag(2) }.pickerStyle(.segmented)
-                        HStack { Text("Abgeschlossene Einheiten"); Spacer(); Text("\(periodActivities.count)").bold() }
-                        HStack { Text("Aktive Zeit"); Spacer(); Text("\(Int(periodActivities.compactMap(\.duration).reduce(0, +) / 60)) min").bold() }
-                        Text("Aus deinen geladenen Aktivitäten.").font(.caption2).foregroundStyle(FYColor.muted)
-                    }.fyCard()
-                    VStack(alignment: .leading, spacing: 16) {
-                        Label("Sportarten", systemImage: "figure.run").bold()
-                        Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
-                        if let focus = profile.gymFocus, !focus.isEmpty { Text(focus.map { FyrupLanguage.subtype($0, sport: .gym) ?? $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted) }
-                    }.fyCard()
-                    NavigationLink { WorkoutPlansView() } label: {
-                        HStack { Label("Meine Workout-Pläne", systemImage: "list.clipboard").font(.headline); Spacer(); Image(systemName: "chevron.right") }.foregroundStyle(FYColor.ink).fyCard()
-                    }.buttonStyle(.plain).accessibilityIdentifier("profile-workout-plans")
-                    RecentActivitiesCard(activities: store.recentActivities, profile: profile)
+                    VStack(spacing: 8) {
+                        Button { showsEdit = true } label: {
+                            AvatarView(profile: profile, size: 88)
+                                .overlay(alignment: .bottomTrailing) { Image(systemName: "pencil.circle.fill").font(.title2).symbolRenderingMode(.palette).foregroundStyle(FYColor.lime, .white) }
+                        }.buttonStyle(FYPressStyle()).accessibilityLabel("Profil bearbeiten").accessibilityIdentifier("profile-edit")
+                        Text(profile.displayName).font(.title.bold()).accessibilityIdentifier("profile-name")
+                        Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted)
+                        if let bio = profile.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(FYColor.muted) }
+                    }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                    let metricsLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 8))
+                    metricsLayout {
+                        Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat")
+                        Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak")
+                        Metric(value: "\(store.crew.count)", label: "Freunde")
+                    }.fyCard(padding: 14)
                 }
                 VStack(spacing: 0) {
-                    PersonalSetupHomeCard()
-                    NavigationLink { LiveAndRestSettingsView() } label: { SettingsRow(title: "LIVE & Satzpausen", symbol: "timer") }
-                    NavigationLink { BodyMeasurementsEditor() } label: { SettingsRow(title: "Körperdaten", symbol: "figure.stand") }.accessibilityIdentifier("profile-body-data")
+                    NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { SettingsRow(title: "Ziele & Wochenwünsche", symbol: "scope") }.accessibilityIdentifier("profile-weekly-routine")
+                    Divider(); NavigationLink { ProfileStatisticsView() } label: { SettingsRow(title: "Statistiken", symbol: "chart.xyaxis.line") }.accessibilityIdentifier("profile-statistics")
+                    Divider(); NavigationLink { BodyMeasurementsEditor() } label: { SettingsRow(title: "Körperdaten", symbol: "figure.stand") }.accessibilityIdentifier("profile-body-data")
+                    Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Erinnerungen", symbol: "bell") }
+                    Divider(); NavigationLink { SettingsView() } label: { SettingsRow(title: "Einstellungen", symbol: "gearshape") }
+                    Divider(); NavigationLink { SupportView() } label: { SettingsRow(title: "Hilfe & Feedback", symbol: "questionmark.circle") }.accessibilityIdentifier("profile-support")
+                }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                Text("Dein Alltag").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 0) {
+                    NavigationLink { WorkoutPlansView() } label: { SettingsRow(title: "Meine Workout-Pläne", symbol: "list.clipboard") }.accessibilityIdentifier("profile-workout-plans")
+                    Divider()
+                    NavigationLink { LiveAndRestSettingsView().toolbar(.visible, for: .navigationBar) } label: { SettingsRow(title: "LIVE & Satzpausen", symbol: "timer") }
+                    Divider()
                     NavigationLink { NutritionView() } label: { SettingsRow(title: "Ernährung", symbol: "fork.knife") }.accessibilityIdentifier("profile-nutrition")
-                    NavigationLink { ScrollView { BodyAndEnergySettings().padding(FYLayout.page) }.background(FYColor.background).navigationTitle("Aktive Energie") } label: { SettingsRow(title: "Aktive Energie", symbol: "flame") }.accessibilityIdentifier("active-energy-card")
+                    Divider()
+                    NavigationLink { ScrollView { BodyAndEnergySettings().padding(FYLayout.page) }.background(FYColor.background).navigationTitle("Aktive Energie").toolbar(.visible, for: .navigationBar) } label: { SettingsRow(title: "Aktive Energie", symbol: "flame") }.accessibilityIdentifier("active-energy-card")
+                    Divider()
                     NavigationLink { FavoriteGymView() } label: { SettingsRow(title: "Stammgym", symbol: "mappin.and.ellipse") }
                         .accessibilityIdentifier("profile-favorite-gym")
-                    SystemNotificationSettingsRow()
-                    Divider(); NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell.badge") }
                     Divider(); NavigationLink { SupplementsView() } label: { SettingsRow(title: "Supplements", symbol: "pills") }
-                    Divider(); NavigationLink { SettingsView() } label: { SettingsRow(title: "Einstellungen", symbol: "gearshape") }
+                }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                PersonalSetupHomeCard()
+                VStack(spacing: 0) {
+                    SystemNotificationSettingsRow()
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
                     Divider(); Button { Task { await store.logout() } } label: { SettingsRow(title: "Abmelden", symbol: "rectangle.portrait.and.arrow.right") }
                     Divider(); Button(role: .destructive) { showsDelete = true } label: { SettingsRow(title: "Account löschen", symbol: "trash") }
                 }.background(FYColor.surface, in: RoundedRectangle(cornerRadius: 22))
-            }.padding(20)
+            }.frame(width: max(0, geometry.size.width - FYLayout.page * 2))
+                .padding(FYLayout.page)
+        }
         }
         .background(FYColor.background)
         .navigationBarHidden(true)
@@ -69,16 +74,41 @@ struct ProfileView: View {
         .sheet(isPresented: $showsEdit) { ProfileEditView() }
         .confirmationDialog("Account dauerhaft löschen?", isPresented: $showsDelete, titleVisibility: .visible) { Button("Account löschen", role: .destructive) { Task { await store.deleteAccount() } }; Button("Abbrechen", role: .cancel) {} } message: { Text("Deine personenbezogenen Daten und Verknüpfungen werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.") }
     }
+}
+
+private struct ProfileStatisticsView: View {
+    @Environment(AppStore.self) private var store
+    @State private var statisticsPeriod = 0
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: FYLayout.section) {
+                OwnWeeklyCard()
+                WeekActivityStrip(activities: ownActivities, now: store.presentationDate)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Meine Statistiken").font(.headline).accessibilityIdentifier("profile-statistics-title")
+                    Picker("Zeitraum", selection: $statisticsPeriod) { Text("Woche").tag(0); Text("Monat").tag(1); Text("Jahr").tag(2) }.pickerStyle(.segmented)
+                    LabeledContent("Abgeschlossene Einheiten", value: "\(periodActivities.count)")
+                    LabeledContent("Aktive Zeit", value: "\(Int(periodActivities.compactMap(\.duration).reduce(0, +) / 60)) min")
+                    Text("Aus deinen geladenen Aktivitäten.").font(.caption).foregroundStyle(FYColor.muted)
+                }.fyCard()
+                if let profile = store.profile {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Sportarten", systemImage: "figure.run").bold()
+                        Text(profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted)
+                        if let focus = profile.gymFocus, !focus.isEmpty { Text(focus.map { FyrupLanguage.subtype($0, sport: .gym) ?? $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(FYColor.muted) }
+                    }.fyCard()
+                    RecentActivitiesCard(activities: ownActivities.filter { $0.status == .completed }, profile: profile)
+                }
+            }.padding(FYLayout.page)
+        }.background(FYColor.background).navigationTitle("Statistiken").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+    }
+    private var ownActivities: [Activity] {
+        ProfileActivityHistory.own(store.recentActivities, latest: store.myActivity, owner: store.profile?.id)
+    }
     private var periodActivities: [Activity] {
         var calendar = Calendar(identifier: .gregorian); calendar.firstWeekday = 2
         let component: Calendar.Component = statisticsPeriod == 0 ? .weekOfYear : statisticsPeriod == 1 ? .month : .year
-        guard let interval = calendar.dateInterval(of: component, for: Date()) else { return [] }
-        var seen = Set<UUID>()
-        return (store.recentActivities + [store.myActivity].compactMap { $0 }).filter { activity in
-            guard activity.userID == store.profile?.id, activity.status == .completed, let ended = activity.endedAt,
-                  interval.start <= ended, ended < interval.end else { return false }
-            return seen.insert(activity.id).inserted
-        }
+        return ProfileActivityHistory.completed(ownActivities, period: component, now: store.presentationDate, calendar: calendar)
     }
 }
 
@@ -148,6 +178,8 @@ private struct Metric: View { let value: String; let label: String; var body: so
 
 struct WeekActivityStrip: View {
     let activities: [Activity]
+    var now: Date = Date()
+    @Environment(\.dynamicTypeSize) private var typeSize
     private let calendar = Calendar(identifier: .iso8601)
 
     var body: some View {
@@ -157,7 +189,7 @@ struct WeekActivityStrip: View {
                 Spacer()
                 Text("\(completedDays.count) geschafft").font(.caption).foregroundStyle(FYColor.muted)
             }
-            HStack(spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0)), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: 8) {
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     let isDone = completedDays.contains(calendar.startOfDay(for: day))
                     let isPlanned = plannedDays.contains(calendar.startOfDay(for: day))
@@ -176,7 +208,7 @@ struct WeekActivityStrip: View {
     }
 
     private var days: [Date] {
-        let start = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? calendar.startOfDay(for: Date())
+        let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
         return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
     }
 
@@ -232,7 +264,7 @@ private struct RecentActivitiesCard: View {
     }
 }
 
-private struct SettingsRow: View { let title: String; let symbol: String; var body: some View { HStack { Label(title, systemImage: symbol); Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted) }.foregroundStyle(FYColor.ink).padding() } }
+private struct SettingsRow: View { let title: String; let symbol: String; var body: some View { HStack(spacing: 12) { Label(title, systemImage: symbol).fixedSize(horizontal: false, vertical: true); Spacer(minLength: 0); Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted) }.foregroundStyle(FYColor.ink).frame(minHeight: 44).padding(.horizontal, 16).padding(.vertical, 6).contentShape(Rectangle()) } }
 
 private struct SettingsView: View {
     @Environment(AppStore.self) private var store
@@ -243,7 +275,7 @@ private struct SettingsView: View {
                     HStack(spacing: 14) {
                         AvatarView(profile: profile).scaleEffect(1.15).padding(6)
                         VStack(alignment: .leading) { Text(profile.displayName).font(.headline); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }
-                        Spacer(); Image(systemName: "chevron.right").foregroundStyle(FYColor.muted)
+                        Spacer()
                     }.fyCard()
                 }
                 VStack(spacing: 0) {
@@ -260,7 +292,7 @@ private struct SettingsView: View {
                     Label("Logout", systemImage: "rectangle.portrait.and.arrow.right").foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading).padding()
                 }.background(.white, in: RoundedRectangle(cornerRadius: 16))
             }.padding(18)
-        }.background(FYColor.background).navigationTitle("Einstellungen")
+        }.background(FYColor.background).navigationTitle("Einstellungen").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
     }
 }
 

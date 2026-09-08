@@ -157,6 +157,90 @@ final class WorkoutStoreTests: XCTestCase {
         XCTAssertFalse(value.isLoadingPlans)
     }
 
+    func testTransientReadsRemainSilentKeepDataAndRecoverWithoutReplayingWrites() async {
+        for failure in [AppError.offline, .network, .serverUnavailable] {
+            let original = plan(); let item = exercise(); let originalLog = log()
+            let repository = WorkoutStoreRepositoryStub(plans: [original], exercises: [item], logs: [originalLog.activityID: originalLog],
+                failing: [.plans, .library, .log], failureError: failure)
+            let value = store(repository)
+            value.plans = [original]; value.exercises = [item]; value.logs[originalLog.activityID] = originalLog
+            var retryRequests = 0
+            value.onConnectionRetryNeeded = { retryRequests += 1 }
+            await value.loadPlans(); await value.loadLibrary(); _ = await value.loadLog(activityID: originalLog.activityID)
+            XCTAssertNil(value.errorMessage)
+            XCTAssertEqual(value.plans, [original]); XCTAssertEqual(value.exercises, [item])
+            XCTAssertEqual(value.logs[originalLog.activityID]?.exercises, originalLog.exercises)
+            XCTAssertTrue(value.needsConnectionRetry); XCTAssertEqual(retryRequests, 3)
+            for operation in [WorkoutStoreStubOperation.plans, .library, .log] { await repository.setFailure(operation, enabled: false) }
+            await value.retryPendingReads()
+            XCTAssertFalse(value.needsConnectionRetry); XCTAssertNil(value.errorMessage)
+            let planReads = await repository.count(.plans); XCTAssertEqual(planReads, 2)
+            let writes = await repository.count(.savePlan); XCTAssertEqual(writes, 0)
+        }
+    }
+
+    func testPermissionFailureIsVisibleAndNotQueuedForSilentRetry() async {
+        let value = store(WorkoutStoreRepositoryStub(failing: [.plans], failureError: .accessDenied))
+        await value.loadPlans()
+        XCTAssertEqual(value.errorMessage, AppError.accessDenied.errorDescription)
+        XCTAssertFalse(value.needsConnectionRetry)
+    }
+
+    func testPreviousPerformanceReadRetriesSilentlyWithoutDiscardingSessionLog() async {
+        let original = log()
+        let repository = WorkoutStoreRepositoryStub(logs: [original.activityID: original], failing: [.performance], failureError: .offline)
+        let value = store(repository)
+        let result = await value.loadLog(activityID: original.activityID)
+        XCTAssertEqual(result?.activityID, original.activityID); XCTAssertEqual(result?.exercises, original.exercises)
+        XCTAssertNil(value.errorMessage); XCTAssertTrue(value.needsConnectionRetry)
+        await repository.setFailure(.performance, enabled: false)
+        await value.retryPendingReads()
+        XCTAssertFalse(value.needsConnectionRetry)
+        let count = await repository.count(.performance); XCTAssertEqual(count, 2)
+    }
+
+    func testLatePerformanceReplyCannotReturnPreviousAccountsSession() async {
+        let original = log()
+        let repository = WorkoutStoreRepositoryStub(logs: [original.activityID: original], held: [.performance])
+        let value = store(repository)
+        let pending = Task { await value.loadLog(activityID: original.activityID) }
+        await repository.waitUntilStarted(.performance)
+        value.activate(userID: otherOwner)
+        await repository.release(.performance)
+        let result = await pending.value
+        XCTAssertNil(result); XCTAssertTrue(value.logs.isEmpty); XCTAssertFalse(value.needsConnectionRetry)
+    }
+
+    func testAccountChangeDropsPendingRetryTargets() async {
+        let repository = WorkoutStoreRepositoryStub(failing: [.plans], failureError: .offline)
+        let value = store(repository)
+        await value.loadPlans(); XCTAssertTrue(value.needsConnectionRetry)
+        value.activate(userID: otherOwner)
+        await value.retryPendingReads()
+        let count = await repository.count(.plans)
+        XCTAssertEqual(count, 1); XCTAssertFalse(value.needsConnectionRetry); XCTAssertNil(value.errorMessage)
+    }
+
+    func testOfflineWriteDoesNotClaimSuccessOrQueueDuplicateMutation() async {
+        let repository = WorkoutStoreRepositoryStub(failing: [.savePlan], failureError: .offline)
+        let value = store(repository)
+        let original = plan(); value.plans = [original]
+        let result = await value.savePlan(plan(name: "Entwurf"))
+        XCTAssertNil(result); XCTAssertEqual(value.plans, [original])
+        XCTAssertEqual(value.errorMessage, AppError.network.errorDescription)
+        XCTAssertFalse(value.needsConnectionRetry)
+        await value.retryPendingReads()
+        let count = await repository.count(.savePlan); XCTAssertEqual(count, 1)
+    }
+
+    func testSuccessfulBackgroundReadDoesNotClearAnUnacknowledgedSave() async {
+        let repository = WorkoutStoreRepositoryStub(failing: [.savePlan], failureError: .offline)
+        let value = store(repository)
+        _ = await value.savePlan(plan())
+        await value.loadLibrary(); await value.loadPlans()
+        XCTAssertEqual(value.errorMessage, AppError.network.errorDescription)
+    }
+
     func testMutationsDoNotOverlapOrSilentlyChangeSecondResourceWhileBusy() async {
         let draft = plan()
         let repository = WorkoutStoreRepositoryStub(held: [.savePlan])
@@ -438,7 +522,7 @@ final class WorkoutStoreTests: XCTestCase {
 }
 
 private enum WorkoutStoreStubOperation: Hashable, Sendable {
-    case plans, plan, library, favorites, log, savePlan, saveExercise, saveLog
+    case plans, plan, library, favorites, log, performance, savePlan, saveExercise, saveLog
     case archivePlan, archiveExercise, favorite, copy, share
 }
 
@@ -455,6 +539,7 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     private var savedLogs: [UUID: WorkoutLog]
     private var held: Set<WorkoutStoreStubOperation>
     private var failing: Set<WorkoutStoreStubOperation>
+    private let failureError: AppError?
     private var calls: [WorkoutStoreStubOperation: Int] = [:]
     private var gates: [WorkoutStoreStubOperation: [CheckedContinuation<Void, Never>]] = [:]
     private var observers: [WorkoutStoreStubOperation: [(id: UUID, count: Int, continuation: CheckedContinuation<Void, Never>)]] = [:]
@@ -464,9 +549,10 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     private var copyOverride: WorkoutPlan?
 
     init(plans: [WorkoutPlan] = [], exercises: [GymExercise] = [], favorites: Set<UUID> = [], logs: [UUID: WorkoutLog] = [:],
-         held: Set<WorkoutStoreStubOperation> = [], failing: Set<WorkoutStoreStubOperation> = []) {
+         held: Set<WorkoutStoreStubOperation> = [], failing: Set<WorkoutStoreStubOperation> = [], failureError: AppError? = nil) {
         savedPlans = plans; savedExercises = exercises; savedFavorites = favorites; savedLogs = logs
         self.held = held; self.failing = failing
+        self.failureError = failureError
     }
 
     func count(_ operation: WorkoutStoreStubOperation) -> Int { calls[operation, default: 0] }
@@ -508,7 +594,10 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
         observers[operation] = observers[operation, default: []].filter { $0.count > calls[operation, default: 0] }
         for observer in ready { observer.continuation.resume() }
         if held.contains(operation) { await withCheckedContinuation { gates[operation, default: []].append($0) } }
-        if failing.contains(operation) { throw WorkoutStoreStubError.failed }
+        if failing.contains(operation) {
+            if let failureError { throw failureError }
+            throw WorkoutStoreStubError.failed
+        }
     }
 
     func exercises() async throws -> [GymExercise] {
@@ -516,6 +605,9 @@ private actor WorkoutStoreRepositoryStub: WorkoutRepository {
     }
     func exerciseFavorites() async throws -> [UUID] {
         let snapshot = Array(savedFavorites); try await checkpoint(.favorites); return snapshot
+    }
+    func exercisePerformance(exerciseIDs: [UUID]) async throws -> [ExercisePerformance] {
+        try await checkpoint(.performance); return []
     }
     func workoutPlans(ownerID: UUID?) async throws -> [WorkoutPlan] {
         let snapshot = savedPlans.filter { ownerID == nil || $0.ownerID == ownerID }

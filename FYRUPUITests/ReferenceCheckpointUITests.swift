@@ -277,6 +277,73 @@ import XCTest
         XCTAssertFalse(app.buttons["auth-submit"].isEnabled, "Password does not leak between forms")
     }
 
+    func testA24DiscoverySearchFavoriteAndWeekNavigation() throws {
+        let app = launch()
+        tap(app.buttons["tab-discover"], in: app)
+        XCTAssertTrue(app.staticTexts["discover-title"].waitForExistence(timeout: 5))
+        try capture("A24-discover-top", app: app)
+        tap(app.buttons["discover-open-week"], in: app)
+        XCTAssertTrue(app.buttons["tab-week"].isSelected, "Week shortcut must select the real week tab and its loading lifecycle")
+        XCTAssertTrue(app.buttons["week-day-row-1"].waitForExistence(timeout: 5))
+        tap(app.buttons["tab-discover"], in: app)
+        tap(app.buttons["discover-filter-exercises"], in: app)
+        let search = app.textFields["discover-search"]
+        tap(search, in: app); search.typeText("Bankdrücken Langhantel\n")
+        let bench = app.buttons["discover-exercise-10000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(bench.waitForExistence(timeout: 8))
+        try capture("A24-library-search", app: app)
+        tap(bench, in: app)
+        XCTAssertTrue(app.staticTexts["discover-exercise-title"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["discover-exercise-title"].label, "Bankdrücken Langhantel")
+        let favorite = app.buttons["discover-exercise-favorite"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 5))
+        let originalLabel = favorite.label
+        tap(favorite, in: app)
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@ AND enabled == true", originalLabel), object: favorite)
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
+        try capture("A24-exercise-details", app: app)
+        tap(favorite, in: app)
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@ AND enabled == true", originalLabel), object: favorite)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed, "Restore the fixture's original favorite state")
+    }
+
+    func testA25ProfileGroupsStatisticsAndEditRemainReachable() throws {
+        let app = launch()
+        tap(app.buttons["tab-profile"], in: app)
+        XCTAssertTrue(app.staticTexts["profile-name"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["profile-statistics-title"].exists, "Detailed statistics belong on their own page")
+        try capture("A25-profile-top", app: app)
+        tap(app.buttons["profile-statistics"], in: app)
+        tap(app.staticTexts["profile-statistics-title"], in: app)
+        XCTAssertTrue(app.staticTexts["Aus deinen geladenen Aktivitäten."].exists)
+        try capture("A25-profile-statistics", app: app)
+        tap(app.navigationBars.buttons.element(boundBy: 0), in: app)
+        tap(app.buttons["profile-edit"], in: app)
+        XCTAssertTrue(app.navigationBars["Profil bearbeiten"].waitForExistence(timeout: 5))
+        tap(app.buttons["Schließen"], in: app, presented: true)
+        tap(app.buttons["profile-settings-shortcut"], in: app)
+        XCTAssertTrue(app.navigationBars["Einstellungen"].waitForExistence(timeout: 5))
+        tap(app.buttons["settings-support"], in: app)
+        XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 5))
+    }
+
+    func testA24A25LargeTextKeepsSearchAndProfileInsideScreen() throws {
+        let app = launch(largeText: true)
+        tap(app.buttons["tab-discover"], in: app)
+        tap(app.buttons["discover-filter-sports"], in: app)
+        assertHorizontalBounds(app.textFields["discover-search"], in: app)
+        assertHorizontalBounds(app.buttons["discover-filter-sports"], in: app)
+        try capture("A24-large-text", app: app)
+        tap(app.buttons["Laufen"], in: app)
+        XCTAssertTrue(app.staticTexts["activity-composer-title"].waitForExistence(timeout: 5))
+        tap(app.buttons["Schließen"], in: app, presented: true)
+        tap(app.buttons["tab-profile"], in: app)
+        assertHorizontalBounds(app.staticTexts["profile-name"], in: app)
+        try capture("A25-large-text", app: app)
+        tap(app.buttons["profile-body-data"], in: app)
+        XCTAssertTrue(app.navigationBars["Körperdaten"].waitForExistence(timeout: 5))
+    }
+
     func testSetupSupplementSavesOwnAmountWithoutDosageOrReminderConsent() throws {
         let app = launch(body: true)
         for _ in 0..<6 { tap(app.buttons["personal-setup-skip"], in: app) }

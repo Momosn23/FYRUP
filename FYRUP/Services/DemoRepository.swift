@@ -22,9 +22,11 @@ actor DemoRepository: AppRepository {
     private var demoInvitations: [SessionInvitation] = []
     private var demoNotifications: [AppNotification] = []
     private var simulatedFeedFailure = false
+    private var simulatedProfileFailure: AppError?
 
     // Explicit fault injection for offline demo regression tests only.
     func simulateUnavailableFeed(_ unavailable: Bool) { simulatedFeedFailure = unavailable }
+    func simulateProfileReadFailure(_ failure: AppError?) { simulatedProfileFailure = failure }
 
     init(startsWithoutProfile: Bool = false, includesSocialFixtures: Bool = false, userID: UUID = DemoRepository.defaultUserID, workoutStorage: DemoWorkoutStorage = DemoWorkoutStorage(), stepStorage: DemoStepStorage = DemoStepStorage(), weeklyStorage: DemoWeeklyFlameStorage = DemoWeeklyFlameStorage(), blindStorage: DemoBlindWorkoutStorage = DemoBlindWorkoutStorage(), supplementStorage: DemoSupplementStorage = DemoSupplementStorage(), now: @escaping @Sendable () -> Date = { Date() }) {
         meID = userID
@@ -83,6 +85,7 @@ actor DemoRepository: AppRepository {
     func resetPassword(email: String) async throws {}
     func signOut() async {}
     func profile(userID: UUID) async throws -> Profile? {
+        if let simulatedProfileFailure { throw simulatedProfileFailure }
         try await restoreCrewAccess()
         return userID == meID ? (profileExists ? me : nil) : crew.first { $0.id == userID }
     }

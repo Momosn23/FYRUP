@@ -13,6 +13,7 @@ final class ConnectivityMonitor: @unchecked Sendable {
     private let queue = DispatchQueue(label: "app.fyrup.connectivity")
     private let lock = NSLock()
     private var available: Bool?
+    private var interfaces: [Bool] = []
     private let logger = Logger(subsystem: "app.fyrup.ios", category: "Connectivity")
 
     var isAvailable: Bool? { lock.withLock { available } }
@@ -28,13 +29,16 @@ final class ConnectivityMonitor: @unchecked Sendable {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             let next = path.status == .satisfied
-            let previous = self.lock.withLock { () -> Bool? in
+            let signature = [path.usesInterfaceType(.wifi), path.usesInterfaceType(.cellular), path.usesInterfaceType(.wiredEthernet), path.usesInterfaceType(.other), path.usesInterfaceType(.loopback)]
+            let previous = self.lock.withLock { () -> (Bool?, Bool) in
                 let old = self.available
+                let changed = self.interfaces != signature
                 self.available = next
-                return old
+                self.interfaces = signature
+                return (old, changed)
             }
             self.logger.info("Network path available=\(next, privacy: .public)")
-            if previous == false && next {
+            if Self.shouldReconnect(wasAvailable: previous.0, isAvailable: next, interfacesChanged: previous.1) {
                 self.logger.info("Reconnect detected; scheduling core refresh")
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: Self.didReconnect, object: nil)
@@ -42,5 +46,9 @@ final class ConnectivityMonitor: @unchecked Sendable {
             }
         }
         monitor.start(queue: queue)
+    }
+
+    static func shouldReconnect(wasAvailable: Bool?, isAvailable: Bool, interfacesChanged: Bool) -> Bool {
+        isAvailable && wasAvailable != nil && (wasAvailable == false || interfacesChanged)
     }
 }

@@ -60,12 +60,12 @@ struct BodyMeasurementsEditor: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FYLayout.section) {
-                Text("Körperdaten").font(.title.bold())
                 Text("Freiwillige Angaben für deine persönlichen Ziele.").foregroundStyle(FYColor.muted)
                 BodyMeasurementsView(draft: $draft)
                 if let message = message ?? store.setup.errorMessage { Text(message).font(.footnote).foregroundStyle(FYColor.coral) }
             }.padding(FYLayout.page)
-        }.background(FYColor.background).navigationBarTitleDisplayMode(.inline)
+        }.background(FYColor.background).navigationTitle("Körperdaten").navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .safeAreaInset(edge: .bottom) {
                 Button("Speichern") {
                     message = draft.validationMessage

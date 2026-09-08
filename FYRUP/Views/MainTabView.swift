@@ -125,32 +125,3 @@ private struct FYMainNavigation: View {
             .accessibilityShowsLargeContentViewer { Label(title, systemImage: symbol) }
     }
 }
-
-private struct DiscoverView: View {
-    @Environment(AppStore.self) private var store
-    @State private var selectedSport: SportKind?
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Entdecken").font(.largeTitle.weight(.black))
-                Text("Was hast du vor?").foregroundStyle(FYColor.muted)
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(SportKind.allCases) { sport in
-                        Button {
-                            selectedSport = sport
-                        } label: {
-                            VStack(alignment: .leading, spacing: 20) {
-                                Image(systemName: sport.symbol).font(.title).foregroundStyle(sport.accentColor)
-                                Text(sport.title).font(.headline).foregroundStyle(FYColor.ink)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading).fyCard()
-                        }.buttonStyle(.plain)
-                    }
-                }
-            }.padding(18)
-        }.background(FYColor.background).navigationBarHidden(true)
-            .fullScreenCover(item: $selectedSport) { sport in ActivityComposerView(initialSport: sport) }
-    }
-}

@@ -1,5 +1,18 @@
 # TestFlight-Verbindungsprüfung – 06.09.2026
 
+## Folgekorrekturen vom 08.09.2026 – noch nicht ausgeliefert
+
+Erneuter ausdrücklicher Nutzerhinweis: keine wiederkehrenden „Kein Netzwerk“-/„Kein Internet“-Anzeigen in TestFlight. Der aktuelle Quellstand enthielt noch einen direkten Darstellungsweg außerhalb des bereits stillen Heute-Feeds: `WorkoutStore` gab vorübergehende Transportfehler aus Bibliotheks-/Plan-/Protokollabfragen direkt an die Oberfläche weiter. Dies ist ein belegter verbleibender Codepfad, nicht die abschließend bewiesene Ursache auf dem nicht steuerbaren iPhone.
+
+- Workout-Leseausfälle bleiben jetzt still; bereits bestätigte Pläne, Übungen und Satzdaten bleiben bestehen. Die konkret fehlgeschlagenen Lesevorgänge werden kontogebunden für den bestehenden Reconnect vorgemerkt. Auch fehlende vorherige Übungsleistungen werden erneut gelesen. Kein automatisches Wiederholen von Speichern, Einladungen oder Workout-Starts nach unklarem Schreibausgang.
+- Der zentrale Reconnect bindet diese ausstehenden Workout-Abfragen ein. Rückmeldung nur im vorhandenen technischen Systemprotokoll; keine neuen Secrets, Nutzernamen, Mailadressen oder Inhaltsdaten im Log. Ein erfolgreicher Feed allein setzt die Wartezeit nicht zurück, solange Workout-Abfragen noch ausstehen.
+- Ein vorübergehender Profil-Ladefehler beim Kaltstart hält die wiederhergestellte Sitzung und wiederholt den Start still, statt zur abgemeldeten Seite zu wechseln. Definitiv ungültige Authentifizierung bleibt ein eigener Fehler; sie wird nicht als Netzproblem unterdrückt.
+- Ein direkter Wechsel der Schnittstelle bei weiterhin verfügbarer Route, etwa WLAN → Mobilfunk, löst nun ebenfalls Aktualisierung aus. Unveränderte Meldungen und der erste unbekannte Zustand tun dies nicht. Es werden nur Schnittstellentypen, keine WLAN-Namen/IPs/Standorte verglichen.
+- Automatische Lesestatus-Versuche erzeugen bei kurzem Transportausfall kein Modal. Der frühere Offline-Standardtext wurde aus dem App-Code entfernt. Ein bewusst ausgelöster, nicht bestätigter Schreibvorgang behält dagegen eine neutrale Fehlerrückmeldung: „Die Aktion wurde noch nicht bestätigt. Versuche es erneut.“ Ein Hintergrund-Refresh löscht dieses Speicherergebnis nicht und täuscht keinen Erfolg vor.
+- Zwölf zusätzliche native Tests vorbereitet: Fehlerkategorien; Kaltstart/Anmeldeverlust; Schnittstellenwechsel; Schutz nicht bestätigter Aktionen sowohl im Haupt- als auch im Workout-Store; stille Workout-Leseausfälle und Erholung; Berechtigungsfehler; Kontowechsel; keine doppelte Schreibaktion; Übungsleistungs-Nachladen und späte Leistungsantwort nach Kontowechsel. **NICHT AUSGEFÜHRT** – noch kein neuer Mac-/TestFlight-Lauf.
+
+Die darunterstehenden Build-13-/Codemagic-56-Nachweise beziehen sich auf den älteren Commit, nicht auf diese Änderungen. Alle echten Gerätefälle am Dokumentende bleiben **NICHT AUSGEFÜHRT**. Die installierte TestFlight-Buildnummer wurde in dieser Runde nicht bestimmt; kein Upload erfolgt.
+
 ## Gefundene Ursachen und Korrekturen im Quellstand
 
 - Die signierten Builds setzen `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` und `APP_ENVIRONMENT=production` vor der Projektgenerierung in `BackendConfig.plist`. Die fertige IPA wird bereits entpackt und gegen genau diese Build-Werte geprüft. Der Ablauf bricht nun zusätzlich sofort ab, wenn URL oder Schlüssel im Codemagic-Bereich fehlen. Die signierte Test-Suite läuft ausdrücklich mit der Release-Konfiguration. Außerdem verdeckt die eingecheckte Platzhalterdatei gültige Debug-/Release-Buildwerte nicht mehr; zuvor gewann der Platzhalter allein durch seine Existenz.

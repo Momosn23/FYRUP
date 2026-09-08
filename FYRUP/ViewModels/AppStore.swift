@@ -27,6 +27,7 @@ final class AppStore {
     private var reconnectRefreshRequested = false
     private var silentReconnectTask: Task<Void, Never>?
     private var silentReconnectAttempt = 0
+    private var isBootstrapping = false
     private var lastFeedRefreshHadTransientFailure = false
     var friendRequests: [Profile] = []
     var notifications: [AppNotification] = []
@@ -146,6 +147,7 @@ final class AppStore {
         }, write: { owner, value, expected in
             try await repository.saveActivityVisibility(userID: owner, value: value, expected: expected)
         })
+        self.workouts.onConnectionRetryNeeded = { [weak self] in self?.scheduleSilentReconnect() }
     }
 
     static func make() -> AppStore {
@@ -173,6 +175,9 @@ final class AppStore {
     }
 
     func bootstrap() async {
+        guard !isBootstrapping else { return }
+        isBootstrapping = true
+        defer { isBootstrapping = false }
         if repository is DemoRepositoryPlaceholder { route = .configuration; return }
         let revision = authRevision
         errorMessage = nil
@@ -197,7 +202,16 @@ final class AppStore {
             #if DEBUG || targetEnvironment(simulator)
             if referenceSnapshot && ProcessInfo.processInfo.arguments.contains("--reference-body") { route = .personalSetup }
             #endif
-        } catch { if revision == authRevision { present(error); route = .signedOut } }
+        } catch {
+            guard revision == authRevision else { return }
+            if isTransientConnectionFailure(error) {
+                // Keep the keychain session and retry profile restoration. A
+                // temporary read failure is not evidence of invalid credentials.
+                errorMessage = nil; route = .loading
+                connectionLogger.info("Startup read deferred; session retained, silent reconnect scheduled")
+                scheduleSilentReconnect()
+            } else { present(error); route = .signedOut }
+        }
     }
 
     func signIn(email: String, password: String) async {
@@ -544,14 +558,13 @@ final class AppStore {
             if let loadedRecent { recentActivities = loadedRecent }
             FeedCache.save(userID: userID, activity: myActivity, crew: crew, goals: goals)
             lastFeedRefreshHadTransientFailure = false
-            cancelSilentReconnect()
+            if !workouts.needsConnectionRetry { cancelSilentReconnect() }
         } catch {
             guard generation == accountGeneration, session?.userID == userID, accessRevision == friendAccessRevision else { return }
             if !isActivityCurrent, let cached = FeedCache.load(userID: userID) { myActivity = cached.0; crew = cached.1.filter { !revokedFriendIDs.contains($0.id) }; goals = cached.2 }
             if isTransientConnectionFailure(error) {
                 lastFeedRefreshHadTransientFailure = true
                 connectionLogger.error("Feed refresh failed transiently; keeping current UI and scheduling a silent reconnect")
-                clearTransientConnectionMessage()
                 scheduleSilentReconnect()
             } else { present(error) }
         }
@@ -633,7 +646,7 @@ final class AppStore {
 
     func handleNetworkReturn() async {
         guard route == .main, session?.userID != nil else {
-            if session == nil && route != .configuration { await bootstrap() }
+            if route == .loading || (session == nil && route != .configuration) { await bootstrap() }
             return
         }
         reconnectRefreshRequested = true
@@ -642,16 +655,22 @@ final class AppStore {
             return
         }
         reconnectRefreshRequested = false
+        let owner = session?.userID
         connectionLogger.info("Reconnect refresh started; auth=present")
-        errorMessage = nil
         await refresh()
+        guard session?.userID == owner, route == .main else { return }
+        await workouts.retryPendingReads()
+        guard session?.userID == owner, route == .main else { return }
         await supplements.refresh()
         await steps.refresh(force: true)
         await energy.refresh(force: true)
         await weekly.refresh(force: true)
         await weekly.refreshFriends()
         await blind.refreshSummaries()
-        if !lastFeedRefreshHadTransientFailure, errorMessage == nil {
+        guard session?.userID == owner, route == .main else { return }
+        if workouts.needsConnectionRetry { scheduleSilentReconnect() }
+        if !lastFeedRefreshHadTransientFailure, !workouts.needsConnectionRetry, errorMessage == nil {
+            cancelSilentReconnect()
             connectionLogger.info("Reconnect refresh succeeded")
         } else {
             connectionLogger.error("Reconnect refresh finished with a classified failure")
@@ -659,17 +678,11 @@ final class AppStore {
     }
 
     private func isTransientConnectionFailure(_ error: Error) -> Bool {
-        guard let appError = error as? AppError else { return false }
-        return appError == .offline || appError == .network || appError == .serverUnavailable
-    }
-
-    private func clearTransientConnectionMessage() {
-        let transientMessages = [AppError.offline, .network, .serverUnavailable].compactMap(\.errorDescription)
-        if errorMessage.map(transientMessages.contains) == true { errorMessage = nil }
+        AppError.isTransientConnection(error)
     }
 
     private func scheduleSilentReconnect() {
-        guard silentReconnectTask == nil, route == .main, session?.userID != nil else { return }
+        guard silentReconnectTask == nil, route == .loading || (route == .main && session?.userID != nil) else { return }
         let delays = [5, 15, 30, 60]
         let delay = delays[min(silentReconnectAttempt, delays.count - 1)]
         silentReconnectAttempt = min(silentReconnectAttempt + 1, delays.count - 1)
@@ -940,7 +953,11 @@ final class AppStore {
             try await repository.markNotificationsRead()
             guard generation == accountGeneration else { return }
             notifications = notifications.map { var item = $0; item.readAt = item.readAt ?? Date(); return item }
-        } catch { if generation == accountGeneration { present(error) } }
+        } catch {
+            guard generation == accountGeneration else { return }
+            if isTransientConnectionFailure(error) { scheduleSilentReconnect() }
+            else { present(error) }
+        }
     }
     @discardableResult
     func saveNotificationPreferences(_ preferences: NotificationPreferences, expected: NotificationPreferences) async -> Bool {
@@ -1015,6 +1032,13 @@ final class AppStore {
 
     private func present(_ error: Error) {
         if error as? AppError == .authentication { clearAfterAuthenticationLoss() }
+        if isTransientConnectionFailure(error) {
+            // Explicit actions still need a failed-acknowledgement result so
+            // editors do not dismiss as if a save succeeded. No offline alert.
+            errorMessage = AppError.network.errorDescription
+            scheduleSilentReconnect()
+            return
+        }
         errorMessage = (error as? LocalizedError)?.errorDescription ?? AppError.server.errorDescription
     }
 

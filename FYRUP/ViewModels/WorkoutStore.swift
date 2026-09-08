@@ -19,8 +19,13 @@ final class WorkoutStore {
     private var libraryRevision = 0
     private var logRevisions: [UUID: Int] = [:]
     private var errorRevision = 0
+    private var readErrorRevision: Int?
     private var revokedFriends = Set<UUID>()
     private var accessRevision = 0
+    private enum PendingRead: Hashable { case plans, library, log(UUID) }
+    private var pendingReads = Set<PendingRead>()
+    var needsConnectionRetry: Bool { !pendingReads.isEmpty }
+    var onConnectionRetryNeeded: (() -> Void)?
     private let repository: any WorkoutRepository
     private let copyRequests: WorkoutCopyRequestStore
 
@@ -32,9 +37,10 @@ final class WorkoutStore {
         guard self.userID != userID else { return }
         self.userID = userID
         generation = UUID()
-        plansRevision = 0; libraryRevision = 0; logRevisions = [:]; errorRevision = 0
+        plansRevision = 0; libraryRevision = 0; logRevisions = [:]; errorRevision = 0; readErrorRevision = nil
         plans = []; exercises = []; favorites = []; logs = [:]; performance = [:]
         revokedFriends = []; accessRevision = 0
+        pendingReads = []
         isLoadingPlans = false; isLoadingLibrary = false; isBusy = false; errorMessage = nil
     }
 
@@ -58,8 +64,9 @@ final class WorkoutStore {
             let values = try await repository.workoutPlans(ownerID: nil)
             guard generation == request, plansRevision == revision else { return }
             plans = values
-            if errorRevision == messageRevision { errorMessage = nil }
-        } catch { if generation == request && plansRevision == revision && errorRevision == messageRevision { present(error) } }
+            pendingReads.remove(.plans)
+            clearReadError(ifRevision: messageRevision)
+        } catch { if generation == request && plansRevision == revision { failedRead(error, resource: .plans, messageRevision: messageRevision) } }
     }
 
     func loadLibrary() async {
@@ -75,8 +82,9 @@ final class WorkoutStore {
             let result = try await (items, starred)
             guard generation == request, libraryRevision == revision else { return }
             exercises = result.0; favorites = Set(result.1)
-            if errorRevision == messageRevision { errorMessage = nil }
-        } catch { if generation == request && libraryRevision == revision && errorRevision == messageRevision { present(error) } }
+            pendingReads.remove(.library)
+            clearReadError(ifRevision: messageRevision)
+        } catch { if generation == request && libraryRevision == revision { failedRead(error, resource: .library, messageRevision: messageRevision) } }
     }
 
     func plan(id: UUID) async -> WorkoutPlan? {
@@ -179,19 +187,29 @@ final class WorkoutStore {
         guard userID != nil else { return nil }
         let request = generation
         let revision = logRevisions[activityID, default: 0]
+        let messageRevision = errorRevision
         do {
             let log = try await repository.workoutLog(activityID: activityID)
             guard userID != nil, generation == request else { return nil }
             guard logRevisions[activityID, default: 0] == revision else { return logs[activityID] }
             logs[activityID] = log
+            pendingReads.remove(.log(activityID))
             let exerciseIDs = Array(Set(log.exercises.map(\.exercise.id)))
-            if let values = try? await repository.exercisePerformance(exerciseIDs: exerciseIDs),
-               userID != nil, generation == request, logRevisions[activityID, default: 0] == revision {
+            do {
+                let values = try await repository.exercisePerformance(exerciseIDs: exerciseIDs)
+                guard userID != nil, generation == request else { return nil }
+                guard logRevisions[activityID, default: 0] == revision else { return logs[activityID] }
                 for id in exerciseIDs { performance.removeValue(forKey: id) }
                 for value in values where exerciseIDs.contains(value.exerciseID) { performance[value.exerciseID] = value }
+                clearReadError(ifRevision: messageRevision)
+            } catch {
+                if generation == request && logRevisions[activityID, default: 0] == revision {
+                    failedRead(error, resource: .log(activityID), messageRevision: messageRevision)
+                }
             }
-            return log
-        } catch { if generation == request && logRevisions[activityID, default: 0] == revision { present(error) }; return nil }
+            guard userID != nil, generation == request else { return nil }
+            return logs[activityID]
+        } catch { if generation == request && logRevisions[activityID, default: 0] == revision { failedRead(error, resource: .log(activityID), messageRevision: messageRevision) }; return nil }
     }
 
     func saveLog(_ log: WorkoutLog) async -> WorkoutLog? {
@@ -217,6 +235,38 @@ final class WorkoutStore {
 
     private func present(_ error: Error) {
         errorRevision += 1
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Das Speichern hat nicht geklappt. Deine Eingaben bleiben erhalten. Versuche es erneut."
+        readErrorRevision = nil
+        errorMessage = AppError.isTransientConnection(error) ? AppError.network.errorDescription
+            : (error as? LocalizedError)?.errorDescription ?? "Das Speichern hat nicht geklappt. Deine Eingaben bleiben erhalten. Versuche es erneut."
+    }
+
+    /// Retry only reads that actually failed. Never replay a save, invitation,
+    /// workout start or other write whose server acknowledgement was lost.
+    func retryPendingReads() async {
+        let request = generation
+        let pending = pendingReads
+        for resource in pending {
+            guard generation == request, userID != nil, !Task.isCancelled else { return }
+            switch resource {
+            case .plans: await loadPlans()
+            case .library: await loadLibrary()
+            case .log(let id): _ = await loadLog(activityID: id)
+            }
+        }
+    }
+
+    private func failedRead(_ error: Error, resource: PendingRead, messageRevision: Int) {
+        if AppError.isTransientConnection(error) {
+            pendingReads.insert(resource)
+            onConnectionRetryNeeded?()
+            return
+        }
+        pendingReads.remove(resource)
+        if errorRevision == messageRevision { present(error); readErrorRevision = errorRevision }
+    }
+
+    private func clearReadError(ifRevision revision: Int) {
+        guard errorRevision == revision, readErrorRevision == revision else { return }
+        errorMessage = nil; readErrorRevision = nil
     }
 }

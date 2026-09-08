@@ -63,7 +63,9 @@ enum AppError: LocalizedError, Equatable {
         case .authentication: "Bitte melde dich erneut an."
         case .accessDenied: "Du hast auf diesen Inhalt keinen Zugriff mehr."
         case .validation(let message), .conflict(let message): message
-        case .offline, .network: "Kein Internet. Sobald du wieder online bist, lädt FYRUP automatisch neu."
+        // Passive reads suppress transport failures before presentation. An
+        // explicit write must still report that it was not acknowledged.
+        case .offline, .network: "Die Aktion wurde noch nicht bestätigt. Versuche es erneut."
         case .serverUnavailable: "Der Server ist vorübergehend nicht erreichbar. FYRUP versucht es erneut."
         case .server: "Die Daten konnten nicht geladen werden. Versuche es erneut."
         }
@@ -72,5 +74,12 @@ enum AppError: LocalizedError, Equatable {
     var isAccessDenied: Bool {
         self == .authentication || self == .accessDenied
             || self == .conflict("Du hast auf diesen Inhalt keinen Zugriff mehr.")
+    }
+
+    static func isTransientConnection(_ error: Error) -> Bool {
+        if let value = error as? AppError { return [.offline, .network, .serverUnavailable].contains(value) }
+        guard let value = error as? URLError else { return false }
+        return [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost,
+                .cannotConnectToHost, .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff].contains(value.code)
     }
 }

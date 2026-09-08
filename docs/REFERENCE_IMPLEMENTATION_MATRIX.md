@@ -60,8 +60,8 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A21 | Lebensmittel/Rezepte | VERSCHOBEN | Nährwertbasis, Zutaten, Portionen, Rezeptkopien/Sharing für spätere Version; keine derzeit nutzbaren Rezepte versprechen |
 | A22 | Supplements | TEILWEISE | Speicherung/Rückgängig sowie private Menge/Einheit im Code; 019 produktiv, neue native Abnahme und Tagesnavigation noch offen |
 | A23 | Schritte | TEILWEISE | Aggregate/Opt-in/Widerruf vorhanden; neuer Tageszugang |
-| A24 | Entdecken | TEILWEISE | Bisher Sportkacheln, echte Aktivitäts-/Workout-Inhalte und neue Anordnung fehlen; der Rezept-/Lebensmittelbereich der Vorlage ist ausdrücklich auf spätere Version verschoben |
-| A25 | Profil | TEILWEISE | Körperdaten, Ernährung, Crew sowie LIVE/Satzpausen von dort erreichbar; vollständiges Referenzlayout und Kennzahlenabnahme offen |
+| A24 | Entdecken | TEILWEISE | Neue echte Übungs-/Plansuche, Filter, Favoriten-Detail und bebilderte Plan-/Wochenzugänge im Code; Kontofilter und native Referenztests vorbereitet. Keine aktuelle native/Bildabnahme. Rezept-/Lebensmittelbereich ausdrücklich verschoben |
+| A25 | Profil | TEILWEISE | Zentrierter Kopf, sechs Hauptzugänge und separate Statistiken im Code. Bestehende Körperdaten/Ernährung/Pläne/LIVE/Stammgym/Support weiter erreichbar, Navigationstests angepasst. Native Referenz-/Kennzahlenabnahme offen |
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
 | W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #69: 8/8 Wetter-Einzeltests PASS, Berlin/18 im Fixture erkannt; AX-Link-Prüfung FAIL, lokal verbessert, Entfernungs-Bedienweg noch ungeprüft. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |

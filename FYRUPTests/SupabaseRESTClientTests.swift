@@ -56,10 +56,21 @@ final class SupabaseRESTClientTests: XCTestCase {
     }
 
     func testConnectionMessagesDoNotCallEveryFailureOffline() {
-        XCTAssertTrue(AppError.offline.errorDescription?.contains("Kein Internet") == true)
+        XCTAssertEqual(AppError.offline.errorDescription, "Die Aktion wurde noch nicht bestätigt. Versuche es erneut.")
         XCTAssertTrue(AppError.serverUnavailable.errorDescription?.contains("Server") == true)
         XCTAssertTrue(AppError.authentication.errorDescription?.contains("melde dich erneut") == true)
         XCTAssertTrue(AppError.accessDenied.errorDescription?.contains("keinen Zugriff") == true)
         XCTAssertTrue(AppError.server.errorDescription?.contains("Daten konnten nicht geladen") == true)
+    }
+
+    func testSilentConnectionClassificationDoesNotHideAuthOrPermissionErrors() {
+        for error in [AppError.offline, .network, .serverUnavailable] { XCTAssertTrue(AppError.isTransientConnection(error)) }
+        for error in [AppError.authentication, .accessDenied, .configuration, .server, .validation("Prüfe Eingaben")] {
+            XCTAssertFalse(AppError.isTransientConnection(error))
+        }
+        XCTAssertTrue(AppError.isTransientConnection(URLError(.networkConnectionLost)))
+        XCTAssertTrue(AppError.isTransientConnection(URLError(.notConnectedToInternet)))
+        XCTAssertFalse(AppError.isTransientConnection(URLError(.cancelled)))
+        XCTAssertFalse(AppError.isTransientConnection(URLError(.badURL)))
     }
 }
