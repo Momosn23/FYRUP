@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NutritionView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var day = Date()
     @State private var initializedDay = false
     @State private var showsGoal = false
@@ -13,7 +14,7 @@ struct NutritionView: View {
     private var isToday: Bool { Calendar.current.isDate(day, inSameDayAs: store.presentationDate) }
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FYLayout.section) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Button { moveDay(-1) } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }.accessibilityLabel("Vorheriger Tag")
                     Spacer()
@@ -24,18 +25,19 @@ struct NutritionView: View {
                 if let diary = store.nutrition.diary {
                     let value = NutritionDayPresentation(diary: diary, day: dayKey)
                     Button { showsGoal = true } label: {
-                        HStack(spacing: 22) {
-                            FYProgressRing(progress: value.progress, symbol: "flame.fill", accent: FYColor.nutrition)
-                            VStack(alignment: .leading, spacing: 6) {
+                        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 16))
+                        layout {
+                            FYProgressRing(progress: value.progress, symbol: "flame.fill", accent: FYColor.nutrition, diameter: 64)
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text((value.calories.map { Int($0.rounded()).formatted() } ?? "–") + (diary.goal.map { " / \($0.kcal.formatted())" } ?? " kcal"))
                                     .font(.title3.bold()).monospacedDigit()
                                 Text(isToday ? "Kalorien heute" : "Kalorien an diesem Tag").font(.subheadline).foregroundStyle(FYColor.muted)
                                 Text(diary.remainingText(on: dayKey)).font(.footnote).foregroundStyle(FYColor.muted)
                             }
-                            Spacer(minLength: 0)
-                        }.foregroundStyle(FYColor.ink).fyCard()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }.foregroundStyle(FYColor.ink).fyCard(padding: 12)
                     }.buttonStyle(.plain).accessibilityIdentifier("nutrition-goal-summary")
-                    VStack(spacing: 20) {
+                    VStack(spacing: 12) {
                         macro("Protein", value: totals.protein, goal: diary.goal?.protein, color: FYColor.lime)
                         macro("Kohlenhydrate", value: totals.carbohydrates, goal: diary.goal?.carbohydrates, color: FYColor.cyan)
                         macro("Fett", value: totals.fat, goal: diary.goal?.fat, color: FYColor.nutrition)
@@ -45,19 +47,19 @@ struct NutritionView: View {
                             let mealEntries = entries.filter { $0.meal == meal }
                             Button { selectedMeal = meal } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: meal.symbol).font(.title2).foregroundStyle(FYColor.nutrition)
-                                        .frame(width: 44, height: 44).background(FYColor.elevated, in: Circle())
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(meal.title).font(.body.weight(.medium))
+                                    Image(systemName: meal.symbol).font(.title3).foregroundStyle(FYColor.nutrition)
+                                        .frame(width: 36, height: 36).background(FYColor.elevated, in: Circle())
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(meal.title).font(.subheadline.weight(.medium))
                                         Text(mealEntries.isEmpty ? "Noch nichts eingetragen" : "\(Int(NutritionValues.total(mealEntries.map(\.consumed)).kcal.rounded()).formatted()) kcal")
                                             .font(.footnote).foregroundStyle(FYColor.muted)
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
-                                }.foregroundStyle(FYColor.ink).padding(.vertical, 10).contentShape(Rectangle())
+                                }.frame(minHeight: 44).foregroundStyle(FYColor.ink).padding(.vertical, 6).contentShape(Rectangle())
                             }.buttonStyle(FYPressStyle()).accessibilityIdentifier("nutrition-meal-\(meal.rawValue)")
                             if meal != NutritionMeal.allCases.last { Divider() }
                         }
-                    }.fyCard()
+                    }.fyCard(padding: 12)
                     Text("Erfasste Nahrung – unabhängig von deiner aktiven Energie. Dieses Tagebuch wird derzeit privat auf diesem iPhone gespeichert.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
                 }
@@ -67,13 +69,13 @@ struct NutritionView: View {
                         Button("Erneut öffnen") { store.nutrition.activate(owner: store.session?.userID) }.buttonStyle(OutlineButtonStyle())
                     }
                 }
-            }.padding(FYLayout.page)
+            }.padding(.horizontal, FYLayout.page).padding(.vertical, 8)
         }.background(FYColor.background).navigationTitle("Ernährung").navigationBarTitleDisplayMode(.inline)
             .onAppear { if !initializedDay { day = store.presentationDate; initializedDay = true } }
             .toolbar { ToolbarItem(placement: .primaryAction) { Button("Ziele") { showsGoal = true }.disabled(store.nutrition.diary == nil) } }
             .safeAreaInset(edge: .bottom) {
                 Button("Eintragen") { editing = emptyEntry(.snack) }.buttonStyle(PrimaryButtonStyle())
-                    .disabled(store.nutrition.diary == nil).padding(FYLayout.page).background(FYColor.background)
+                    .disabled(store.nutrition.diary == nil).padding(.horizontal, FYLayout.page).padding(.vertical, 12).background(FYColor.background)
                     .accessibilityIdentifier("nutrition-add-entry")
             }
             .sheet(isPresented: $showsGoal) { NutritionGoalView() }
@@ -85,9 +87,10 @@ struct NutritionView: View {
     }
     private func moveDay(_ offset: Int) { if let value = Calendar.current.date(byAdding: .day, value: offset, to: day) { day = value } }
     private func macro(_ title: String, value: Double?, goal: Double?, color: Color) -> some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text(title).font(.subheadline.weight(.medium)); Spacer()
+        VStack(spacing: 6) {
+            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout())
+            layout {
+                Text(title).font(.subheadline.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
                 Text(value.map { "\(Int($0.rounded()))" } ?? "Unvollständig")
                     + Text(goal.map { " / \(Int($0.rounded())) g" } ?? (value == nil ? "" : " g"))
             }.font(.footnote)

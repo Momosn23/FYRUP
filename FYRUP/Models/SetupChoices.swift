@@ -27,6 +27,14 @@ enum SetupPrimaryGoal: String, Codable, CaseIterable, Sendable {
         case .stayActive: "figure.walk"
         }
     }
+    var detail: String {
+        switch self {
+        case .buildMuscle: "Stärker werden. Fortschritte festhalten."
+        case .feelFitter: "Mehr Ausdauer. Mehr Energie im Alltag."
+        case .loseWeight: "Deine Gewohnheiten bewusst gestalten."
+        case .stayActive: "Bewegung zu einem Teil deines Alltags machen."
+        }
+    }
 }
 
 enum SetupAdditionalGoal: String, Codable, CaseIterable, Sendable {
@@ -45,6 +53,14 @@ enum SetupAdditionalGoal: String, Codable, CaseIterable, Sendable {
         case .steps: "shoeprints.fill"
         case .nutrition: "fork.knife"
         case .consistency: "calendar"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .friends: "Gemeinsam macht’s mehr Spaß."
+        case .steps: "Mehr Bewegung in deinen Alltag bringen."
+        case .nutrition: "Mahlzeiten und eigene Ziele im Blick."
+        case .consistency: "Eine feste Routine aufbauen."
         }
     }
 }

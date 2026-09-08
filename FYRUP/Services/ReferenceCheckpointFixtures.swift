@@ -12,7 +12,8 @@ import Foundation
         let defaults = UserDefaults(suiteName: "app.fyrup.reference.\(UUID().uuidString)")!
         let store = AppStore(repository: repository,
             steps: StepStore(repository: repository, reader: StepPreviewReader(), defaults: defaults, now: { instant }),
-            supplements: SupplementStore(repository: repository, persistence: MemorySupplementPendingPersistence(), clock: { instant }))
+            supplements: SupplementStore(repository: repository, persistence: MemorySupplementPendingPersistence(), clock: { instant }),
+            weather: CurrentWeatherStore(reader: ReferenceWeatherReader(), now: { instant }))
         store.referenceSnapshot = true; store.referenceDate = date
         return store
     }
@@ -20,6 +21,9 @@ import Foundation
         let owner = DemoRepository.defaultUserID
         try await repository.configureReferenceActivities(at: date)
         _ = store.setup.update { $0.completed = true; $0.heightCM = 180; $0.weightKG = 75; $0.targetWeightKG = 70 }
+        if ProcessInfo.processInfo.arguments.contains("--reference-weather") {
+            _ = store.setup.update { $0.weatherPlace = .init(name: "Berlin", latitude: 52.52, longitude: 13.405) }
+        }
         _ = store.nutrition.saveGoal(.init(kcal: 2500, protein: 180, carbohydrates: 300, fat: 90))
         _ = store.nutrition.save(.init(id: UUID(uuidString: "00000000-0000-4000-8000-000000000100")!, name: "Beispielmahlzeit", day: StepDay.key(for: date), meal: .lunch,
                                      grams: 500, per100g: .init(kcal: 370, protein: 24, carbohydrates: 36, fat: 12)))
@@ -31,6 +35,16 @@ import Foundation
         await store.supplements.refresh()
         if let first = store.supplements.snapshot?.doses.first { await store.supplements.mark(first.id, as: .taken) }
         if ProcessInfo.processInfo.arguments.contains("--reference-body") { _ = store.setup.update { $0.completed = false; $0.setupPage = 1 } }
+    }
+}
+
+/// Isolated rendering fixture, never evidence of a real Apple weather response.
+@MainActor private struct ReferenceWeatherReader: CurrentWeatherReading {
+    func current(for place: WeatherPlace) async throws -> CurrentWeatherSnapshot {
+        .init(observedAt: ReferenceCheckpointFixtures.date, receivedAt: ReferenceCheckpointFixtures.date,
+              temperatureCelsius: 18, condition: "Wetter-Testdaten", symbol: "sun.max.fill",
+              attributionMark: URL(fileURLWithPath: "/nonexistent-fyrup-weather-fixture.png"),
+              attributionLink: URL(string: "https://example.invalid/weather-fixture")!)
     }
 }
 

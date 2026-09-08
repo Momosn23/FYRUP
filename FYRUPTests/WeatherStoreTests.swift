@@ -24,6 +24,51 @@ import XCTest
         await store.refresh(); XCTAssertEqual(source.requests, 2)
     }
 
+    func testVisiblePageMinuteTicksUseCacheThenRenewWithoutReopening() async {
+        let source = WeatherTestReader()
+        let store = CurrentWeatherStore(reader: source, now: { source.clock })
+        await store.select(city)
+        for _ in 0..<29 {
+            source.clock = source.clock.addingTimeInterval(60)
+            await store.refresh()
+        }
+        XCTAssertEqual(source.requests, 1)
+        source.clock = source.clock.addingTimeInterval(60)
+        await store.refresh()
+        XCTAssertEqual(source.requests, 2)
+        XCTAssertEqual(store.value?.receivedAt, source.clock)
+    }
+
+    func testOfflineWeatherRecoversAfterBackoffWithoutChangingCity() async {
+        let source = WeatherTestReader()
+        source.failure = .offline
+        let store = CurrentWeatherStore(reader: source, now: { source.clock })
+        await store.select(city)
+        XCTAssertEqual(store.failure, .offline)
+        source.failure = nil
+        source.clock = source.clock.addingTimeInterval(59)
+        await store.refresh()
+        XCTAssertEqual(source.requests, 1)
+        source.clock = source.clock.addingTimeInterval(1)
+        await store.refresh()
+        XCTAssertEqual(source.requests, 2)
+        XCTAssertNotNil(store.value)
+        XCTAssertNil(store.failure)
+    }
+
+    func testRemovingPlaceCannotRestoreItFromALateResponse() async {
+        let source = DelayedWeatherTestReader()
+        let store = CurrentWeatherStore(reader: source, now: { source.clock })
+        let pending = Task { await store.select(city) }
+        for _ in 0..<100 where source.requests == 0 { await Task.yield() }
+        await store.select(nil)
+        source.resolve()
+        await pending.value
+        XCTAssertNil(store.place)
+        XCTAssertNil(store.value)
+        XCTAssertFalse(store.isLoading)
+    }
+
     func testNewCityNeverShowsOldWeatherAndFailureDoesNotRetryContinuously() async {
         let source = WeatherTestReader()
         let store = CurrentWeatherStore(reader: source, now: { source.clock })

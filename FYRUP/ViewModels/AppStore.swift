@@ -97,7 +97,7 @@ final class AppStore {
     let arrival: ArrivalReminderStore
     let setup: PersonalSetupStore
     let nutrition: NutritionStore
-    let weather = CurrentWeatherStore()
+    let weather: CurrentWeatherStore
     let energy: ActiveEnergyStore
     let liveSurface: SessionLiveActivityStore
     let personal: PersonalTrainingStore
@@ -113,7 +113,7 @@ final class AppStore {
     private var appleNonce: String?
     private var avatarCache: [String: UIImage] = [:]
 
-    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil, supplements: SupplementStore? = nil, restDefaults: UserDefaults? = nil) {
+    init(repository: any AppRepository, analytics: any AnalyticsTracking = DevelopmentAnalytics(), workoutDrafts: WorkoutDraftStore? = nil, steps: StepStore? = nil, weekly: WeeklyFlameStore? = nil, workoutCopies: WorkoutCopyRequestStore? = nil, trackingDrafts: WorkoutTrackingDraftStore? = nil, supplements: SupplementStore? = nil, restDefaults: UserDefaults? = nil, weather: CurrentWeatherStore? = nil) {
         self.repository = repository; self.analytics = analytics
         self.workouts = WorkoutStore(repository: repository, copyRequests: workoutCopies ?? WorkoutCopyRequestStore(defaults: .standard))
         self.workoutDrafts = workoutDrafts ?? WorkoutDraftStore()
@@ -126,6 +126,7 @@ final class AppStore {
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
         self.nutrition = NutritionStore(persistence: repository is DemoRepository ? MemoryNutritionPersistence() : ProtectedNutritionPersistence())
+        self.weather = weather ?? CurrentWeatherStore()
         self.energy = ActiveEnergyStore(setup: setup)
         self.liveSurface = SessionLiveActivityStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.live") ?? .standard : FYRUPWidgetState.defaults)
         self.personal = PersonalTrainingStore(repository: repository)

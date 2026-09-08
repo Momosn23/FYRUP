@@ -2,10 +2,11 @@ import XCTest
 
 @MainActor final class ReferenceCheckpointUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
-    private func launch(body: Bool = false, largeText: Bool = false) -> XCUIApplication {
+    private func launch(body: Bool = false, largeText: Bool = false, weather: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--reference-checkpoint", "-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
         if body { app.launchArguments.append("--reference-body") }
+        if weather { app.launchArguments.append("--reference-weather") }
         if largeText { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launch()
         return app
@@ -19,15 +20,17 @@ import XCTest
             // XCTest may call an element below the floating bar hittable, then
             // tap a navigation button instead. Require its full visible bounds.
             let mainTab = app.buttons["tab-today"]
-            let footer = app.buttons["personal-setup-next"]
             let isNavigation = element.identifier.hasPrefix("tab-") || element.identifier == "activity-composer"
             var lowerBound = app.frame.maxY
             // Underlying navigation remains in the AX tree beneath sheets.
             // It cannot obscure a sheet's own footer or the keyboard toolbar.
             let isKeyboardAction = element.label == "Fertig" && app.keyboards.firstMatch.exists
             if !presented && !isKeyboardAction && mainTab.exists && !isNavigation { lowerBound = mainTab.frame.minY }
-            let isSetupFooter = ["personal-setup-next", "personal-setup-skip"].contains(element.identifier)
-            if !presented && !isKeyboardAction && footer.exists && !isSetupFooter { lowerBound = min(lowerBound, footer.frame.minY) }
+            if !presented && !isKeyboardAction {
+                let isSetupFooter = ["personal-setup-next", "personal-setup-skip"].contains(element.identifier)
+                if !isSetupFooter && app.buttons["personal-setup-next"].exists { lowerBound = min(lowerBound, app.buttons["personal-setup-next"].frame.minY) }
+                if element.identifier != "nutrition-add-entry" && app.buttons["nutrition-add-entry"].exists { lowerBound = min(lowerBound, app.buttons["nutrition-add-entry"].frame.minY) }
+            }
             if element.isHittable && element.frame.minY >= app.frame.minY && element.frame.maxY <= lowerBound {
                 element.tap(); return
             }
@@ -86,6 +89,37 @@ import XCTest
         tap(app.buttons["profile-nutrition"], in: app)
         try capture("A19-manual-diary-checkpoint", app: app)
         XCTAssertTrue(app.buttons["nutrition-goal-summary"].waitForExistence(timeout: 5))
+        let lastMeal = app.buttons["nutrition-meal-snack"]
+        XCTAssertTrue(lastMeal.isHittable, "All four meal rows should be visible before scrolling at standard text size")
+        XCTAssertLessThanOrEqual(lastMeal.frame.maxY, app.buttons["nutrition-add-entry"].frame.minY)
+    }
+
+    func testWeatherCardRendersSelectedCityAndRemovalWithoutGPS() throws {
+        let app = launch(weather: true)
+        let weather = app.buttons["home-weather"]
+        XCTAssertTrue(weather.waitForExistence(timeout: 10))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS 'Berlin'"), object: weather)], timeout: 5), .completed)
+        XCTAssertTrue(weather.label.contains("18"), "Weather rendering uses an isolated fixture, not a live Apple response")
+        XCTAssertTrue(app.links["weather-attribution"].exists)
+        try capture("A01-weather-fixture", app: app)
+        tap(weather, in: app)
+        tap(app.buttons["Wetterort entfernen"], in: app, presented: true)
+        tap(app.buttons["Schließen"].firstMatch, in: app, presented: true)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS 'Ort wählen'"), object: weather)], timeout: 5), .completed)
+        XCTAssertFalse(weather.label.contains("18"), "Removed location must not retain an old temperature")
+        try capture("A01-weather-removed", app: app)
+    }
+
+    func testTodayAndNutritionRemainReachableAtLargeType() throws {
+        let app = launch(largeText: true)
+        XCTAssertTrue(app.staticTexts["home-greeting"].waitForExistence(timeout: 10))
+        try capture("A01-large-type-top", app: app)
+        tap(app.buttons["home-nutrition-card"], in: app)
+        XCTAssertTrue(app.buttons["nutrition-goal-summary"].waitForExistence(timeout: 5))
+        try capture("A19-large-type-top", app: app)
+        tap(app.buttons["nutrition-meal-snack"], in: app)
+        XCTAssertTrue(app.buttons["nutrition-meal-add"].waitForExistence(timeout: 5))
+        try capture("A19-large-type-meal", app: app)
     }
 
     func testR05BodyReferenceSavesOnContinueAndDoesNotForceHealth() throws {
@@ -168,9 +202,17 @@ import XCTest
         for _ in 0..<7 { tap(app.buttons["personal-setup-skip"], in: app) }
         XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 5))
         try capture("R18-setup-summary", app: app)
+        XCTAssertLessThanOrEqual(app.buttons["setup-summary-privacy"].frame.maxY, app.buttons["personal-setup-next"].frame.minY,
+                                 "Six key summary rows should fit above the fixed action at standard text size")
         tap(app.buttons["setup-summary-primaryGoal"], in: app)
         XCTAssertTrue(primary.isSelected)
         tap(app.buttons["setup-primary-stayActive"], in: app)
+        tap(app.buttons["personal-setup-next"], in: app)
+        XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 5))
+        tap(app.buttons["setup-summary-more"], in: app)
+        tap(app.buttons["setup-summary-days"], in: app)
+        XCTAssertTrue(app.buttons["setup-day-1"].isSelected)
+        XCTAssertTrue(app.buttons["setup-day-6"].isSelected)
         tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 5))
     }

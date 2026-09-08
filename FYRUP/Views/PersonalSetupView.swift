@@ -14,6 +14,7 @@ struct PersonalSetupView: View {
     @State private var restoredOwnerID: UUID?
     @State private var healthLoadedOwnerID: UUID?
     @State private var editingSummary = false
+    @State private var showsSummaryDetails = false
     @State private var isAdvancing = false
     @State private var showsNutritionGoal = false
     @State private var showsContacts = false
@@ -67,16 +68,20 @@ struct PersonalSetupView: View {
         switch page {
         case .body: BodyMeasurementsView(draft: $bodyDraft)
         case .primaryGoal:
-            ForEach(SetupPrimaryGoal.allCases, id: \.self) { goal in
-                FYSelectionCard(title: goal.title, subtitle: "", symbol: goal.symbol, selected: choices.primaryGoal == goal) {
-                    updateChoices { $0.primaryGoal = $0.primaryGoal == goal ? nil : goal }
-                }.accessibilityIdentifier("setup-primary-\(goal.rawValue)")
+            VStack(spacing: 10) {
+                ForEach(SetupPrimaryGoal.allCases, id: \.self) { goal in
+                    FYSelectionCard(title: goal.title, subtitle: goal.detail, symbol: goal.symbol, selected: choices.primaryGoal == goal) {
+                        updateChoices { $0.primaryGoal = $0.primaryGoal == goal ? nil : goal }
+                    }.accessibilityIdentifier("setup-primary-\(goal.rawValue)")
+                }
             }
         case .additionalGoals:
-            ForEach(SetupAdditionalGoal.allCases, id: \.self) { goal in
-                FYSelectionCard(title: goal.title, subtitle: "", symbol: goal.symbol, selected: choices.additionalGoals.contains(goal)) {
-                    updateChoices { $0.additionalGoals.formSymmetricDifference([goal]) }
-                }.accessibilityIdentifier("setup-additional-\(goal.rawValue)")
+            VStack(spacing: 10) {
+                ForEach(SetupAdditionalGoal.allCases, id: \.self) { goal in
+                    FYSelectionCard(title: goal.title, subtitle: goal.detail, symbol: goal.symbol, selected: choices.additionalGoals.contains(goal)) {
+                        updateChoices { $0.additionalGoals.formSymmetricDifference([goal]) }
+                    }.accessibilityIdentifier("setup-additional-\(goal.rawValue)")
+                }
             }
             hint("Eine Auswahl aktiviert keine Freigabe und keine Erinnerung.")
         case .weeklyGoal: weeklyPage
@@ -85,10 +90,12 @@ struct PersonalSetupView: View {
             Button("Unterschiedlich") { updateChoices { $0.preferredDays = [] } }.buttonStyle(OutlineButtonStyle())
             hint("Dein Wochenziel ist unabhängig von diesen Tagen. Es entstehen noch keine Termine.")
         case .time:
-            ForEach(SetupTimePreference.allCases, id: \.self) { time in
-                FYSelectionCard(title: time.title, subtitle: time.detail, symbol: time.symbol, selected: choices.preferredTime == time) {
-                    updateChoices { $0.preferredTime = time }
-                }.accessibilityIdentifier("setup-time-\(time.rawValue)")
+            VStack(spacing: 10) {
+                ForEach(SetupTimePreference.allCases, id: \.self) { time in
+                    FYSelectionCard(title: time.title, subtitle: time.detail, symbol: time.symbol, selected: choices.preferredTime == time) {
+                        updateChoices { $0.preferredTime = time }
+                    }.accessibilityIdentifier("setup-time-\(time.rawValue)")
+                }
             }
             hint("Eine Vorliebe ist keine Erlaubnis für Mitteilungen.")
         case .supplements: supplementsPage
@@ -202,24 +209,54 @@ struct PersonalSetupView: View {
         }
     }
     private var summaryPage: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 52)).foregroundStyle(FYColor.lime).frame(maxWidth: .infinity).padding(.vertical, 8)
-            summaryRow(.primaryGoal, detail: choices.primaryGoal?.title ?? "Noch nicht gewählt", symbol: "target")
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(spacing: 0) {
+                summaryRow(.weeklyGoal, detail: weeklySummary, symbol: "flame")
+                Divider()
+                summaryRow(.primaryGoal, detail: choices.primaryGoal?.title ?? "Noch nicht gewählt", symbol: "target")
+                Divider()
+                summaryRow(.health, detail: store.steps.userID == store.session?.userID ? store.steps.healthStatusText : "Noch nicht geladen", symbol: "heart")
+                Divider()
+                summaryRow(.supplements, detail: store.supplements.snapshot.map { "\($0.plans.filter { !$0.isArchived && !$0.isPaused }.count) aktive Einträge" } ?? "Noch nicht geladen", symbol: "pills")
+                Divider()
+                summaryRow(.nutrition, detail: store.nutrition.diary?.goal.map { "\($0.kcal.formatted()) kcal pro Tag" } ?? "Nicht eingerichtet", symbol: "fork.knife")
+                Divider()
+                summaryRow(.privacy, detail: store.activityPrivacy.isConfirmed ? store.activityPrivacy.value?.title ?? "Noch nicht bestätigt" : "Noch nicht bestätigt", symbol: "lock")
+            }.fyCard(padding: 12)
+            VStack(spacing: 0) {
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { showsSummaryDetails.toggle() }
+                } label: {
+                    HStack {
+                        Label("Weitere Einstellungen", systemImage: "slider.horizontal.3").font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Image(systemName: showsSummaryDetails ? "chevron.up" : "chevron.down").font(.caption)
+                    }.foregroundStyle(FYColor.ink).frame(minHeight: 44).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-more")
+                    .accessibilityValue(showsSummaryDetails ? "Ausgeklappt" : "Eingeklappt")
+                if showsSummaryDetails { summaryDetails }
+            }.fyCard(padding: 12)
+        }
+    }
+    private var summaryDetails: some View {
+        VStack(spacing: 0) {
             summaryRow(.additionalGoals, detail: choices.additionalGoals.isEmpty ? "Keine ausgewählt" : choices.additionalGoals.map(\.title).sorted().joined(separator: ", "), symbol: "sparkles")
-            summaryRow(.weeklyGoal, detail: weeklySummary, symbol: "flame")
+            Divider()
             summaryRow(.days, detail: choices.preferredDays.isEmpty ? "Unterschiedlich" : choices.preferredDays.sorted { $0.rawValue < $1.rawValue }.map(\.shortTitle).joined(separator: ", "), symbol: "calendar")
+            Divider()
             summaryRow(.time, detail: choices.preferredTime?.title ?? "Noch nicht gewählt", symbol: "clock")
+            Divider()
             summaryRow(.body, detail: store.setup.value?.heightCM != nil || store.setup.value?.weightKG != nil ? "Private Angaben hinterlegt" : "Keine Angaben", symbol: "figure.stand")
-            summaryRow(.nutrition, detail: store.nutrition.diary?.goal.map { "\($0.kcal.formatted()) kcal pro Tag" } ?? "Nicht eingerichtet", symbol: "fork.knife")
-            summaryRow(.supplements, detail: store.supplements.snapshot.map { "\($0.plans.filter { !$0.isArchived && !$0.isPaused }.count) aktive Einträge" } ?? "Noch nicht geladen", symbol: "pills")
-            summaryRow(.health, detail: store.steps.userID == store.session?.userID ? store.steps.healthStatusText : "Noch nicht geladen", symbol: "heart")
+            Divider()
             summaryRow(.permissions, detail: store.setup.value?.weatherPlace?.name ?? "Noch kein Wetterort", symbol: "mappin")
-            summaryRow(.privacy, detail: store.activityPrivacy.isConfirmed ? store.activityPrivacy.value?.title ?? "Noch nicht bestätigt" : "Noch nicht bestätigt", symbol: "lock")
+            Divider()
             summaryRow(.friends, detail: "Suchen oder einladen", symbol: "person.2")
+            Divider()
             summaryRow(.firstActivity, detail: store.setup.value?.setupJourney?.firstAction?.title ?? "Später", symbol: "play")
+            Divider()
             NavigationLink { SportsSetupView(isEditing: true) } label: {
                 let sports = store.profile?.sports.map(\.title).joined(separator: ", ") ?? ""
-                setupLink("Sportarten", detail: sports.isEmpty ? "Noch nicht gewählt" : sports, symbol: "figure.run")
+                summaryLabel("Sportarten", detail: sports.isEmpty ? "Noch nicht gewählt" : sports, symbol: "figure.run")
             }.buttonStyle(.plain)
         }
     }
@@ -235,7 +272,17 @@ struct PersonalSetupView: View {
             guard store.setup.moveJourney(to: target) else { return }
             editingSummary = true; page = target
             if target == .body { bodyDraft = .init(store.setup.value) }
-        } label: { setupLink(target.title, detail: detail, symbol: symbol) }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-\(target.rawValue)")
+        } label: { summaryLabel(target.title, detail: detail, symbol: symbol) }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-\(target.rawValue)")
+    }
+    private func summaryLabel(_ title: String, detail: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol).font(.body).frame(width: 24).foregroundStyle(FYColor.lime)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline.weight(.semibold))
+                Text(detail).font(.footnote).foregroundStyle(FYColor.muted)
+            }.fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(FYColor.muted)
+        }.foregroundStyle(FYColor.ink).frame(minHeight: 44).padding(.vertical, 6).contentShape(Rectangle())
     }
     private func setupLink(_ title: String, detail: String, symbol: String) -> some View {
         HStack(spacing: 12) {

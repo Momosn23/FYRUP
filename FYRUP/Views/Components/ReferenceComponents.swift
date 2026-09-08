@@ -34,15 +34,15 @@ struct FYSelectionCard: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 Image(systemName: symbol).font(.title2).frame(width: 30).foregroundStyle(FYColor.lime)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.body.weight(.semibold)).foregroundStyle(FYColor.ink)
-                    if !subtitle.isEmpty { Text(subtitle).font(.footnote).foregroundStyle(FYColor.muted) }
+                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(FYColor.ink).fixedSize(horizontal: false, vertical: true)
+                    if !subtitle.isEmpty { Text(subtitle).font(.footnote).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true) }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                     .font(.title3).foregroundStyle(selected ? FYColor.lime : FYColor.line)
-            }.padding(16).frame(maxWidth: .infinity, minHeight: 72)
+            }.padding(12).frame(maxWidth: .infinity, minHeight: 64)
                 .background(selected ? FYColor.limeSoft : .white, in: RoundedRectangle(cornerRadius: FYLayout.radius))
                 .overlay(RoundedRectangle(cornerRadius: FYLayout.radius).stroke(selected ? FYColor.lime : FYColor.line))
         }.buttonStyle(FYPressStyle()).accessibilityAddTraits(selected ? [.isSelected] : [])
@@ -76,7 +76,7 @@ struct FYSetupHeading: View {
     var showsProgress = true
     let back: () -> Void
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 if showsBack {
                     Button(action: back) { Image(systemName: "arrow.left").font(.system(size: 20, weight: .medium)).frame(width: 44, height: 44) }

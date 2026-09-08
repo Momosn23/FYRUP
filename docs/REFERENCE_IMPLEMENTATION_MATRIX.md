@@ -6,6 +6,8 @@ Folgeblöcke nach `e39caf6`: [Einrichtung und kompaktere Übersichten](REFERENCE
 
 ## Bestand
 
+Folgeblock nach `f66069d`: [Layout/Wetter](REFERENCE_LAYOUT_WEATHER_2026_09_08.md) bearbeitet die Dichteabweichungen A01/A19/R18, runde Ziele/Tage R08/R09 sowie Untertexte R06/R07/R10. W01 erhält die Aktualisierung bei offen bleibender Startseite. Diese Codeänderungen und neun Referenz-Bedienfälle sind noch nicht nativ abgenommen; die unten genannten #68-Bilder zeigen ausdrücklich den vorherigen Stand.
+
 Native SwiftUI-App, iOS 17+, Swift 6, XcodeGen; Bundle `app.fyrup.ios`, Widget `app.fyrup.ios.live`. Supabase mit REST/Auth und Migrationen 001–016, bestehende Accounts/Daten bleiben bestehen. Separater SecureSessionStore, private Keychain-Einstellungen, serverseitige RPC-/RLS-Tests. HealthKit liest Schritte und bisher optional aktive Energie; APNs, ActivityKit/App Group, gezielte Kontaktauswahl und Kartenort existieren. WeatherKit, Google OAuth und Ernährung sind im Bestand nicht vorhanden.
 
 Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit strukturierten Muskelzuordnungen. Asset-/Lizenznachweis und neue Originalmotive offen. 26 ausgeschnittene Referenzen sind getrennt von sieben Simulatorbildern aus #67 und 17 aus #68 abgelegt. Kein lokales Xcode/Swift. Alle 21 lokalen Preflight-Gruppen bestanden. Neue Bildkontrolle **TEILWEISE**, konkrete Restabweichungen in [QA #68](REFERENCE_QA_68.md). Letzter vollständig grüner älterer Stand #67 (`e39caf6`), aktueller Stand #68 FAIL. Codemagic verwendet manuelle Meilensteine und getrennte QA/Release-Wege. Fünf Läufe beendet, keiner aktiv; konservativ **4,08 USD** verbraucht, **5,92 USD** übrig. Keine Wiederholung einzelner kosmetischer Änderungen. [Laufbuch](CI_BUDGET_2026_09.md).

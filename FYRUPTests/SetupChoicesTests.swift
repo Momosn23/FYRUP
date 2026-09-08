@@ -2,6 +2,11 @@ import XCTest
 @testable import FYRUP
 
 final class SetupChoicesTests: XCTestCase {
+    func testChoiceDescriptionsAreAvailableWithoutChangingPersistentKeys() throws {
+        XCTAssertTrue(SetupPrimaryGoal.allCases.allSatisfy { !$0.detail.isEmpty })
+        XCTAssertTrue(SetupAdditionalGoal.allCases.allSatisfy { !$0.detail.isEmpty })
+        XCTAssertEqual(String(data: try JSONEncoder().encode(SetupPrimaryGoal.feelFitter), encoding: .utf8), "\"feelFitter\"")
+    }
     func testNoChoicesOrConsentAreAssumed() {
         let choices = SetupChoices()
         XCTAssertNil(choices.primaryGoal)

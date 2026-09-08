@@ -1,5 +1,7 @@
 # FYRUP – zentrale Produkt- und Abnahmecheckliste
 
+Neuer gebündelter Quellblock: [kompaktere Referenzlayouts und Wetter-Aktualisierung](REFERENCE_LAYOUT_WEATHER_2026_09_08.md). A01/A19, R06–R10/R18 und W01 überarbeitet; neun ausgewählte Referenz-Bedienfälle vorgesehen. Native Prüfung und neue Bildkontrolle dieses Blocks noch ausstehend. Bestehende Nachweise im folgenden Absatz bleiben an ihre genaue Revision gebunden.
+
 Aktueller Nachtrag vom 08.09.2026: [QA #68 auf `4679d89`](REFERENCE_QA_68.md) belegt **510/511 Unit-Tests und 5/7 Referenz-Bedientests PASS**, Gesamtstatus FAIL. Alle sieben E-Mail-Auth-Tests bestanden; drei eingegrenzte Testfehler lokal korrigiert, noch ohne Folgelauf. 17 echte Simulatorbilder einzeln geprüft; Gestaltungsabweichungen bleiben offen. [Migrationen 017–019 produktiv angewendet und nachgeprüft](REFERENCE_BACKEND_2026_09_08.md), fehlenden Beleg 016 nach exaktem Vergleich ergänzt. Supabase-Rückkehradresse exakt `fyrup://auth-callback`. SMTP nur vorbereitet: freigegebener Kundenservice-Absender, aber noch keine verifizierten Ausgangsserver-Zugangsdaten. Separater FYRUP-Datenschutzentwurf nicht veröffentlicht. Letzter lokaler Gesamt-Preflight **21/21 PASS**; echtes iPhone/TestFlight NICHT AUSGEFÜHRT. Kein Lauf aktiv, kein Upload, Rest des begrenzten QA-Budgets konservativ **5,92 USD**.
 
 ## Verbindlicher Folgeauftrag vom 08.09.2026

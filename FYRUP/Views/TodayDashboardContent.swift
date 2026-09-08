@@ -4,8 +4,8 @@ struct TodayDashboardContent: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
             HStack {
                 FYRUPWordmark(size: 23)
                 Spacer()
@@ -18,7 +18,8 @@ struct TodayDashboardContent: View {
             }
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 let date = store.referenceDate ?? context.date
-                HStack(alignment: .top, spacing: 12) {
+                let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+                layout {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(HomePresentation.greeting(at: date)).font(.subheadline).foregroundStyle(FYColor.muted).accessibilityIdentifier("home-greeting")
                         Text(store.profile?.displayName ?? "Heute").font(.title.bold()).fixedSize(horizontal: false, vertical: true)
@@ -27,7 +28,7 @@ struct TodayDashboardContent: View {
                 }
             }
             }
-            VStack(spacing: 12) {
+            VStack(spacing: 6) {
                 let metricLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 20)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
                 metricLayout {
                     NavigationLink { StepSettingsView() } label: {
@@ -50,15 +51,15 @@ struct TodayDashboardContent: View {
                         Spacer()
                         Text(store.weekly.currentWeek.map { "\($0.progressText) Einheiten" } ?? "Wochenziel öffnen").font(.footnote).foregroundStyle(FYColor.muted)
                         Image(systemName: "chevron.right").font(.caption)
-                    }.foregroundStyle(FYColor.ink)
+                    }.frame(minHeight: 44).foregroundStyle(FYColor.ink)
                 }.accessibilityIdentifier("own-weekly-card")
-            }.fyCard()
+            }.fyCard(padding: 12)
             TodaySupplementsSection()
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     FYSectionHeader(title: "Deine Crew")
                     Spacer()
-                    NavigationLink("Alle anzeigen") { FriendsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).accessibilityIdentifier("open-crew")
+                    NavigationLink("Alle anzeigen") { FriendsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).frame(minHeight: 44).accessibilityIdentifier("open-crew")
                 }
                 if store.crew.isEmpty {
                     NavigationLink { FriendsView() } label: {
@@ -69,7 +70,7 @@ struct TodayDashboardContent: View {
                     }.buttonStyle(.plain).accessibilityIdentifier("invite-first-friend")
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(alignment: .top, spacing: 12) { ForEach(store.crew) { TodayCrewCard(member: $0) } }
+                        HStack(alignment: .top, spacing: 10) { ForEach(store.crew) { TodayCrewCard(member: $0) } }
                     }
                 }
             }
@@ -103,10 +104,10 @@ struct TodayDashboardContent: View {
         return count >= goal ? "Ziel erreicht" : "Noch \(StepCountFormat.string(goal - count)) Schritte"
     }
     private func metric(value: String?, goal: String?, title: String, detail: String, symbol: String, progress: Double?, accent: Color) -> some View {
-        VStack(spacing: 6) {
-            FYProgressRing(progress: progress, symbol: symbol, accent: accent, diameter: 64)
-            Text(value ?? "–").font(.title3.bold()) + Text(goal.map { " / \($0)" } ?? "").font(.subheadline).foregroundColor(FYColor.muted)
-            Text(title).font(.footnote).foregroundStyle(FYColor.muted)
+        VStack(spacing: 4) {
+            FYProgressRing(progress: progress, symbol: symbol, accent: accent, diameter: typeSize.isAccessibilitySize ? 64 : 52)
+            Text(value ?? "–").font(.headline) + Text(goal.map { " / \($0)" } ?? "").font(.subheadline).foregroundColor(FYColor.muted)
+            Text(title).font(.caption).foregroundStyle(FYColor.muted)
             Text(detail).font(.caption).fixedSize(horizontal: false, vertical: true)
         }.foregroundStyle(FYColor.ink).frame(maxWidth: .infinity).multilineTextAlignment(.center)
     }
@@ -127,12 +128,12 @@ struct TodayWeekStrip: View {
                     let planned = store.personal.week?.sessions.contains { Calendar.current.isDate($0.startsAt, inSameDayAs: day) } == true
                     let today = Calendar.current.isDate(day, inSameDayAs: date)
                     Button { store.selectedWeekDate = day; store.selectedTab = 1 } label: {
-                        VStack(spacing: 6) {
+                        VStack(spacing: 4) {
                             Text(day.formatted(.dateTime.weekday(.abbreviated))).font(.caption)
                             Image(systemName: done ? "checkmark.circle.fill" : planned ? "clock" : "circle")
-                                .font(.title3).foregroundStyle(done ? FYColor.lime : FYColor.line)
+                                .font(.body).foregroundStyle(done ? FYColor.lime : FYColor.line)
                                 .padding(3).overlay(Circle().stroke(today ? FYColor.lime : .clear, lineWidth: 1.5))
-                        }.frame(maxWidth: .infinity, minHeight: 52).foregroundStyle(FYColor.muted)
+                        }.frame(maxWidth: .infinity, minHeight: 44).foregroundStyle(FYColor.muted)
                     }.buttonStyle(.plain).accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))): \(done ? "Abgeschlossen" : planned ? "Geplant" : "Offen")")
                         .accessibilityIdentifier("training-week-day-\(TrainingWeekLogic.weekday(day))")
                 }
@@ -145,11 +146,11 @@ private struct TodaySupplementsSection: View {
     @Environment(AppStore.self) private var store
     @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 70
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 FYSectionHeader(title: "Supplements heute")
                 Spacer()
-                NavigationLink("Alle ansehen") { SupplementsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).accessibilityIdentifier("open-supplements")
+                NavigationLink("Alle ansehen") { SupplementsView() }.font(.footnote.weight(.semibold)).foregroundStyle(FYColor.lime).frame(minHeight: 44).accessibilityIdentifier("open-supplements")
             }
             if let snapshot = store.supplements.snapshot, store.supplements.isCurrentDay, !snapshot.doses.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -158,12 +159,12 @@ private struct TodaySupplementsSection: View {
                             let plan = snapshot.plans.first { $0.id == dose.planID }
                             let name = plan?.name ?? "Supplement"
                             Button { Task { await store.supplements.mark(dose.id, as: dose.status == .taken ? .open : .taken) } } label: {
-                                VStack(spacing: 9) {
-                                    Image(systemName: supplementSymbol(name)).font(.title2).foregroundStyle(FYColor.muted)
-                                    Text(name).font(.footnote.weight(.medium)).lineLimit(2).frame(minHeight: 34)
-                                    if let amount = plan?.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted).lineLimit(2) }
-                                    Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.line)
-                                }.frame(width: contentWidth).padding(.horizontal, 5).padding(.vertical, 10).background(.white, in: RoundedRectangle(cornerRadius: 12))
+                                VStack(spacing: 5) {
+                                    Image(systemName: supplementSymbol(name)).font(.title3).foregroundStyle(FYColor.muted)
+                                    Text(name).font(.caption.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                                    if let amount = plan?.amount { Text(amount.title).font(.caption).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true) }
+                                    Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : "circle").font(.body).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.line)
+                                }.frame(width: contentWidth).padding(.horizontal, 5).padding(.vertical, 8).background(.white, in: RoundedRectangle(cornerRadius: 12))
                             }.buttonStyle(FYPressStyle()).foregroundStyle(FYColor.ink)
                                 .disabled(store.supplements.changesDisabled || store.supplements.pending.contains { $0.doseID == dose.id })
                                 .accessibilityLabel("\(name), \(dose.status.title)").accessibilityHint(dose.status == .taken ? "Einnahme rückgängig machen" : "Als genommen markieren")
@@ -196,9 +197,9 @@ private struct TodayCrewCard: View {
     @Environment(AppStore.self) private var store
     let member: CrewMember
     @State private var joining = false
-    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 92
+    @ScaledMetric(relativeTo: .body) private var contentWidth: CGFloat = 90
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             NavigationLink { FriendProfileView(member: member) } label: {
                 HStack(spacing: 6) {
                     AvatarView(profile: member.profile, size: 32)
@@ -209,7 +210,7 @@ private struct TodayCrewCard: View {
                 }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }.buttonStyle(.plain)
             Text(member.activity.map { [$0.sport.title, $0.displaySubtype].compactMap { $0 }.joined(separator: " · ") } ?? "Noch nichts geteilt")
-                .font(.caption).foregroundStyle(FYColor.muted).lineLimit(2).frame(minHeight: 32)
+                .font(.caption).foregroundStyle(FYColor.muted).lineLimit(2).frame(minHeight: 28)
             if let activity = member.activity {
                 if activity.status == .live {
                     Button("MITZIEHEN 🔥") { joining = true }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("join-live-activity")
@@ -219,7 +220,7 @@ private struct TodayCrewCard: View {
                     Button("MITMACHEN") { Task { await store.joinPlannedSession(id) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
                 }
             } else { Button("FYR UP 🔥") { Task { await store.fyrup(member) } }.font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44) }
-        }.frame(width: contentWidth).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 16))
+        }.frame(width: contentWidth).padding(8).background(.white, in: RoundedRectangle(cornerRadius: 16))
             .fullScreenCover(isPresented: $joining) {
                 if let activity = member.activity, let planID = activity.workoutPlanID {
                     NavigationStack { WorkoutPlanDetailView(planID: planID, linkedActivityID: activity.id)

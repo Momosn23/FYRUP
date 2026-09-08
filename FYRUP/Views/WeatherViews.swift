@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WeatherDateCard: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     let date: Date
     @State private var showsPlace = false
     var body: some View {
@@ -25,9 +26,20 @@ struct WeatherDateCard: View {
                         .frame(width: 86, height: 16)
                 }.accessibilityLabel("Apple Weather · Datenquellen").accessibilityIdentifier("weather-attribution")
             }
-        }.padding(10).frame(maxWidth: 142).background(.white, in: RoundedRectangle(cornerRadius: 12))
+        }.padding(10).frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : 142).background(.white, in: RoundedRectangle(cornerRadius: 12))
             .sheet(isPresented: $showsPlace) { NavigationStack { WeatherPlaceView() } }
-            .task(id: store.setup.value?.weatherPlace) { await store.weather.select(store.setup.value?.weatherPlace) }
+            .task(id: store.setup.value?.weatherPlace) {
+                let place = store.setup.value?.weatherPlace
+                await store.weather.select(place)
+                guard place != nil else { return }
+                // Re-check freshness while Today stays open. The store's cache,
+                // coalescing and retry window prevent a request on every tick.
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    await store.weather.refresh()
+                }
+            }
     }
 }
 

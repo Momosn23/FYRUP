@@ -28,9 +28,10 @@ enum FYLayout {
 }
 
 struct FYCardModifier: ViewModifier {
+    var padding: CGFloat = FYLayout.card
     func body(content: Content) -> some View {
         content
-            .padding(FYLayout.card)
+            .padding(padding)
             .background(FYColor.surface, in: RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous).stroke(FYColor.line, lineWidth: 0.6))
             .shadow(color: FYColor.ink.opacity(0.025), radius: 8, y: 3)
@@ -38,7 +39,7 @@ struct FYCardModifier: ViewModifier {
 }
 
 extension View {
-    func fyCard() -> some View { modifier(FYCardModifier()) }
+    func fyCard(padding: CGFloat = FYLayout.card) -> some View { modifier(FYCardModifier(padding: padding)) }
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
