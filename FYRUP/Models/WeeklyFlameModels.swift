@@ -1,7 +1,7 @@
 import Foundation
 
 enum WeeklyGoal {
-    static let allowed = 3...7
+    static let allowed = 2...7
     static let options = Array(allowed)
     static func isValid(_ value: Int) -> Bool { allowed.contains(value) }
 }

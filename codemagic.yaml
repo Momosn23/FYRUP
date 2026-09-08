@@ -1,23 +1,18 @@
 workflows:
-  ios-cloud-validation:
-    name: FYRUP iOS Cloud Build & Tests
+  ios-cloud-validation: &ios_qa
+    name: FYRUP iOS QA (manual milestone)
     triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
+      events: []
       cancel_previous_builds: true
     instance_type: mac_mini_m2
-    max_build_duration: 60
-    environment:
+    max_build_duration: 30
+    environment: &ios_qa_environment
       groups:
         - fyrup_backend
-      xcode: latest
-    cache:
-      cache_paths:
-        - $HOME/Library/Caches/org.swift.swiftpm
-        - $HOME/Library/Developer/Xcode/DerivedData
+      xcode: "26.6"
+      vars:
+        FYRUP_QA_FULL_REGRESSION: "false"
+    # No external SPM packages. Do not cache the entire DerivedData tree.
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
@@ -37,6 +32,7 @@ workflows:
           node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
+          node supabase/tests/run_reference_revision_tests.mjs
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
@@ -51,20 +47,25 @@ workflows:
         script: xcodebuild -project FYRUP.xcodeproj -scheme FYRUP -showBuildSettings > /tmp/fyrup-build-settings.txt
       - name: Build and run tests
         script: |
-          set -o pipefail
-          xcodebuild clean test \
-            -project FYRUP.xcodeproj \
-            -scheme FYRUP \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
-            -resultBundlePath build/FYRUP.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+          python3 scripts/run-ios-reference-qa.py
       - name: Create visual QA contact sheet
         script: swift scripts/make_contact_sheet.swift /tmp/fyrup-screenshots /tmp/fyrup-contact-sheet.png
     artifacts:
       - /tmp/fyrup-contact-sheet.png
       - /tmp/fyrup-screenshots/*.png
+      - /tmp/fyrup-screenshots/*.json
       - build/FYRUP.xcresult
+      - build/reference-qa/**
       - /Users/builder/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/FYRUP.app
+
+  ios-full-regression:
+    <<: *ios_qa
+    name: FYRUP iOS full regression (manual, 60 minute cap)
+    max_build_duration: 60
+    environment:
+      <<: *ios_qa_environment
+      vars:
+        FYRUP_QA_FULL_REGRESSION: "true"
 
   ios-testflight:
     name: FYRUP Signed TestFlight Build
@@ -82,7 +83,7 @@ workflows:
         - fyrup_backend
       ios_signing:
         provisioning_profiles:
-          - profile: fyrup_app_store_appgroup
+          - profile: fyrup_app_store_weatherkit
             environment_variable: FYRUP_SIGNING_PROFILE
           - profile: fyrup_live_app_store_appgroup
             environment_variable: FYRUP_LIVE_SIGNING_PROFILE
@@ -92,11 +93,7 @@ workflows:
         BUNDLE_ID: app.fyrup.ios
         XCODE_PROJECT: FYRUP.xcodeproj
         XCODE_SCHEME: FYRUP
-      xcode: latest
-    cache:
-      cache_paths:
-        - $HOME/Library/Caches/org.swift.swiftpm
-        - $HOME/Library/Developer/Xcode/DerivedData
+      xcode: "26.6"
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
@@ -116,6 +113,7 @@ workflows:
           node supabase/tests/run_supplement_tests.mjs
           node supabase/tests/run_deployment_bundle_tests.mjs
           node supabase/tests/run_onboarding_tests.mjs
+          node supabase/tests/run_reference_revision_tests.mjs
           node --test supabase/functions/dispatch-notifications/dispatch-queue.test.mjs supabase/functions/dispatch-notifications/terminology.test.mjs
       - name: Inject Supabase configuration
         script: |
@@ -126,7 +124,7 @@ workflows:
           plutil -replace APP_ENVIRONMENT -string "production" FYRUP/Resources/BackendConfig.plist
       - name: Generate Xcode project
         script: xcodegen generate
-      - name: Verify renewed App Group signing profiles
+      - name: Verify renewed WeatherKit and App Group signing profiles
         script: |
           set -o pipefail
           python3 scripts/test_signing_profile.py

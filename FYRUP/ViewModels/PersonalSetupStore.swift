@@ -38,7 +38,7 @@ final class PersonalSetupStore {
     }
     @discardableResult
     func deleteMeasurements() -> Bool {
-        update { $0.heightCM = nil; $0.weightKG = nil; $0.measurementsUpdatedAt = nil }
+        update { $0.heightCM = nil; $0.weightKG = nil; $0.targetWeightKG = nil; $0.measurementsUpdatedAt = nil }
     }
     func clearDeletedAccount() throws {
         if let userID { try persistence.delete(userID: userID) }

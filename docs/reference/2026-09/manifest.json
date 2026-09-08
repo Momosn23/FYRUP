@@ -1,0 +1,392 @@
+[
+  {
+    "screen": "R01",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      28,
+      20,
+      215,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R02",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      269,
+      20,
+      456,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R03",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      510,
+      20,
+      697,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R04",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      749,
+      20,
+      936,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R05",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      990,
+      20,
+      1177,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R06",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      1230,
+      20,
+      1417,
+      354
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R07",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      28,
+      400,
+      215,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R08",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      269,
+      400,
+      456,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R09",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      510,
+      400,
+      697,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R10",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      749,
+      400,
+      936,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R11",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      990,
+      400,
+      1177,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R12",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      1230,
+      400,
+      1417,
+      734
+    ],
+    "size": [
+      187,
+      334
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R13",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      28,
+      772,
+      215,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R14",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      269,
+      772,
+      456,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R15",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      510,
+      772,
+      697,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R16",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      749,
+      772,
+      936,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R17",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      990,
+      772,
+      1177,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "R18",
+    "source": "af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png",
+    "crop": [
+      1230,
+      772,
+      1417,
+      1050
+    ],
+    "size": [
+      187,
+      278
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A01",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      14,
+      17,
+      284,
+      657
+    ],
+    "size": [
+      270,
+      640
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A02",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      314,
+      17,
+      584,
+      657
+    ],
+    "size": [
+      270,
+      640
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A06",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      609,
+      17,
+      879,
+      657
+    ],
+    "size": [
+      270,
+      640
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A19",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      900,
+      17,
+      1168,
+      657
+    ],
+    "size": [
+      268,
+      640
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A22",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      14,
+      726,
+      284,
+      1310
+    ],
+    "size": [
+      270,
+      584
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A08",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      314,
+      726,
+      584,
+      1310
+    ],
+    "size": [
+      270,
+      584
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A24",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      609,
+      726,
+      879,
+      1310
+    ],
+    "size": [
+      270,
+      584
+    ],
+    "kind": "reference_not_implementation"
+  },
+  {
+    "screen": "A25",
+    "source": "ad52d2c6-c191-46c4-89ab-93c85c626c2c.png",
+    "crop": [
+      900,
+      726,
+      1168,
+      1310
+    ],
+    "size": [
+      268,
+      584
+    ],
+    "kind": "reference_not_implementation"
+  }
+]

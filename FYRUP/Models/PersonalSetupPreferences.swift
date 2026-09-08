@@ -6,6 +6,7 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var completed = false
     var heightCM: Double?
     var weightKG: Double?
+    var targetWeightKG: Double?
     var measurementsUpdatedAt: Date?
     var activeCalorieGoal: Int?
     var energyRequested = false
@@ -13,13 +14,16 @@ struct PersonalSetupPreferences: Codable, Equatable, Sendable {
     var favoriteGymName: String?
     var favoriteGymPlace: SessionPlace?
     var setupPage: Int?
+    var weatherPlace: WeatherPlace?
 
     var validationMessage: String? {
         if version != 1 { return "Diese Einstellungen benötigen eine neuere App-Version." }
+        if let weatherPlace, !weatherPlace.isValid { return "Wähle den Wetterort erneut aus." }
         if let setupPage, !(0...3).contains(setupPage) { return "Der gespeicherte Einrichtungsschritt ist ungültig." }
         if let measurementsUpdatedAt, !measurementsUpdatedAt.timeIntervalSince1970.isFinite { return "Der Zeitpunkt deiner Körperdaten ist ungültig. Speichere sie erneut." }
         if let heightCM, !heightCM.isFinite || !(50...260).contains(heightCM) { return "Prüfe deine Körpergröße in cm (50–260)." }
         if let weightKG, !weightKG.isFinite || !(20...450).contains(weightKG) { return "Prüfe dein Gewicht in kg (20–450)." }
+        if let targetWeightKG, !targetWeightKG.isFinite || !(20...450).contains(targetWeightKG) { return "Prüfe dein Zielgewicht in kg (20–450)." }
         if let activeCalorieGoal, !(50...5000).contains(activeCalorieGoal) { return "Prüfe dein frei gewähltes Bewegungsziel (50–5.000 kcal)." }
         if let name = favoriteGymName, name.isEmpty || name.count > 120 || name != name.trimmingCharacters(in: .whitespacesAndNewlines) || name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) {
             return "Gib einen Gym-Namen mit höchstens 120 Zeichen ohne Zeilenumbrüche ein."

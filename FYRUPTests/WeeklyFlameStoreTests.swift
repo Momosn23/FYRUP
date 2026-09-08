@@ -31,14 +31,14 @@ final class WeeklyFlameStoreTests: XCTestCase {
     func testOutOfRangeGoalsNeverReachTheRepository() async {
         let rig = WeeklyRig(); defer { rig.cleanUp() }
         await rig.store.activate(userID: WeeklyFixture.momo)
-        for goal in [Int.min, -1, 0, 1, 2, 8, Int.max] {
+        for goal in [Int.min, -1, 0, 1, 8, Int.max] {
             let confirmed = await rig.store.confirmGoal(goal)
             let scheduled = await rig.store.scheduleGoal(goal)
             XCTAssertFalse(confirmed); XCTAssertFalse(scheduled)
         }
         let writes = await rig.repository.writes
         XCTAssertTrue(writes.isEmpty)
-        XCTAssertEqual(WeeklyGoal.options, [3, 4, 5, 6, 7])
+        XCTAssertEqual(WeeklyGoal.options, [2, 3, 4, 5, 6, 7])
     }
 
     func testServerProgressOneThroughThreeHasNoFlameOrPresentationClaim() async {

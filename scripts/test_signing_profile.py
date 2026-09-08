@@ -19,6 +19,7 @@ def valid_profile(target="main"):
         "application-identifier": validator.TARGET_IDENTIFIERS[target],
         "com.apple.security.application-groups": [validator.APP_GROUP],
         "com.apple.developer.healthkit": True,
+        "com.apple.developer.weatherkit": True,
         "aps-environment": "production",
         "com.apple.developer.applesignin": ["Default"],
     }}
@@ -67,6 +68,7 @@ class SigningProfileTests(unittest.TestCase):
         invalid_values = {
             "application-identifier": ["OTHER.app.fyrup.ios", "6379AH75GK.other.app"],
             "com.apple.developer.healthkit": [False, "true", 1],
+            "com.apple.developer.weatherkit": [False, "true", 1],
             "aps-environment": ["development", ""],
             "com.apple.developer.applesignin": [[], ["Other"], "Default"],
             "com.apple.security.application-groups": [[], ["group.other"], validator.APP_GROUP],

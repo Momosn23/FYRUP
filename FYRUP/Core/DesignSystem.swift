@@ -1,12 +1,12 @@
 import SwiftUI
 
 enum FYColor {
-    static let background = Color(red: 0.975, green: 0.982, blue: 0.982)
+    static let background = Color(red: 0.969, green: 0.984, blue: 0.976)
     static let surface = Color.white
     static let elevated = Color(red: 0.940, green: 0.952, blue: 0.956)
-    static let line = Color(red: 0.855, green: 0.878, blue: 0.886)
+    static let line = Color(red: 0.894, green: 0.914, blue: 0.910)
     static let ink = Color(red: 0.035, green: 0.050, blue: 0.065)
-    static let lime = Color(red: 0.055, green: 0.790, blue: 0.355)
+    static let lime = Color(red: 0.024, green: 0.780, blue: 0.333)
     static let limeSoft = Color(red: 0.895, green: 0.990, blue: 0.930)
     static let cyan = Color(red: 0.08, green: 0.58, blue: 0.92)
     static let coral = Color(red: 1.0, green: 0.31, blue: 0.20)
@@ -14,16 +14,26 @@ enum FYColor {
     static let muted = Color(red: 0.39, green: 0.43, blue: 0.47)
     static let planned = Color(red: 1.0, green: 0.65, blue: 0.06)
     static let live = lime
+    static let nutrition = Color(red: 1, green: 0.533, blue: 0.220)
+}
+
+enum FYLayout {
+    static let page: CGFloat = 20
+    static let card: CGFloat = 16
+    static let gap: CGFloat = 12
+    static let section: CGFloat = 24
+    static let radius: CGFloat = 16
+    static let controlRadius: CGFloat = 12
+    static let primaryHeight: CGFloat = 52
 }
 
 struct FYCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(14)
-            .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(FYColor.line, lineWidth: 0.8))
-            .shadow(color: FYColor.ink.opacity(0.045), radius: 10, y: 4)
-            .fyEntrance()
+            .padding(FYLayout.card)
+            .background(FYColor.surface, in: RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous).stroke(FYColor.line, lineWidth: 0.6))
+            .shadow(color: FYColor.ink.opacity(0.025), radius: 8, y: 3)
     }
 }
 
@@ -35,9 +45,9 @@ struct PrimaryButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.subheadline.weight(.bold))
+            .font(.body.weight(.semibold))
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 50)
+            .frame(maxWidth: .infinity, minHeight: FYLayout.primaryHeight)
             .background(FYColor.lime.opacity(configuration.isPressed ? 0.76 : 1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .shadow(color: FYColor.lime.opacity(0.20), radius: 8, y: 4)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
@@ -76,9 +86,9 @@ struct FYRUPWordmark: View {
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "flame.fill").foregroundStyle(FYColor.lime)
-            Text("FYRUP").italic().foregroundStyle(color)
+            Text("FYRUP").tracking(1.2).foregroundStyle(color)
         }
-        .font(.system(size: size, weight: .black, design: .rounded))
+        .font(.system(size: size, weight: .bold))
         .accessibilityElement(children: .combine)
     }
 }

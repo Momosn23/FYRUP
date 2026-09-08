@@ -69,7 +69,7 @@ final class WorkoutFlowsUITests: XCTestCase {
     }
 
     private func openPlans(_ app: XCUIApplication) {
-        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["profile-workout-plans"], in: app)
         XCTAssertTrue(container("workout-plans-screen", in: app).waitForExistence(timeout: 8))
     }
@@ -222,7 +222,7 @@ final class WorkoutFlowsUITests: XCTestCase {
 
     func testWeeklyRoutineSavesDaysAndSurvivesRelaunch() {
         let app = launch()
-        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["profile-weekly-routine"], in: app)
         XCTAssertTrue(app.navigationBars["Mein Wochenplan"].waitForExistence(timeout: 5))
         tap(app.buttons["routine-add-sport"], in: app)
@@ -235,7 +235,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         waitUntilDismissed(app.navigationBars["Mein Wochenplan"])
         app.terminate(); app.launch()
         XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 8))
-        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["profile-weekly-routine"], in: app)
         XCTAssertTrue(monday.waitForExistence(timeout: 5))
         XCTAssertTrue(monday.isSelected); XCTAssertTrue(friday.isSelected)

@@ -103,7 +103,6 @@ struct WorkoutTrackingView: View {
                     WorkoutRecordedExercises(log: confirmed)
                 } else if let log = displayed, let activity = currentActivity {
                     liveHeader(activity: activity, log: log)
-                    WorkoutRestView(activityID: activity.id)
                     if pending != nil { pendingBanner }
                     if hasLocalInputs || draftConflict { localDraftBanner }
                     if let error = store.trackingDrafts.errorMessage { errorBanner(error) }
@@ -115,6 +114,9 @@ struct WorkoutTrackingView: View {
                         .font(.footnote).foregroundStyle(FYColor.muted)
                     ForEach(Array(log.exercises.enumerated()), id: \.element.id) { index, exercise in
                         exerciseCard(exercise, index: index)
+                        if exercise.id == log.exercises.first(where: { !$0.completed })?.id {
+                            WorkoutRestView(activityID: activity.id, compact: true)
+                        }
                     }
                     if let activity = currentActivity, activity.status == .live {
                         Button(activity.pausedAt == nil ? "Workout pausieren" : "Workout fortsetzen") {

@@ -182,7 +182,7 @@ struct TrainingWeekCard: View {
     }
 }
 
-private struct TrainingDayView: View {
+struct TrainingDayView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let day: Date

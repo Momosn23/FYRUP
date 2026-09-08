@@ -90,7 +90,7 @@ final class CallMyShotFlowsUITests: XCTestCase {
     }
 
     private func openMomosWeekAsFriend(_ app: XCUIApplication) {
-        tap(app.tabBars.buttons["Freunde"], in: app)
+        app.openFYRUPCrew()
         tap(app.buttons["friend-momo"], in: app)
         expectExists(app.staticTexts["@momo"], in: app)
         expectExists(element("friend-shot-status", in: app), in: app)

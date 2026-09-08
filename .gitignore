@@ -3,6 +3,7 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .build/
+build/
 .swiftpm/
 FYRUP.xcodeproj/
 Config/Secrets.xcconfig

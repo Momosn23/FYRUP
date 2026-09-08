@@ -33,7 +33,7 @@ struct WorkoutRestView: View {
                             .accessibilityLabel("Satzpause: \(remaining) Sekunden verbleibend").accessibilityIdentifier("rest-countdown")
                     }
                 }
-                if !compact || clock == nil {
+                if !compact {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 48))], spacing: 6) { durationButtons }
                 }
                 Button { showsOptions = true } label: {
@@ -43,7 +43,7 @@ struct WorkoutRestView: View {
                 HStack(spacing: 10) {
                     Button(clock == nil ? "Satzpause starten" : "Neue Satzpause") {
                         store.rest.start(activityID: activityID); Haptics.impact(.light)
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(!store.isActivityCurrent).accessibilityIdentifier("start-rest-timer")
+                    }.buttonStyle(OutlineButtonStyle()).disabled(!store.isActivityCurrent).accessibilityIdentifier("start-rest-timer")
                     if clock != nil {
                         Button("Beenden") { store.rest.stop(activityID: activityID) }
                             .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("stop-rest-timer")

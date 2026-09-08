@@ -86,7 +86,7 @@ final class StepFlowsUITests: XCTestCase {
     }
 
     private func openSteps(_ app: XCUIApplication) {
-        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["Privatsphäre"], in: app)
         tap(app.buttons["privacy-steps"], in: app)
         XCTAssertTrue(app.navigationBars["Schritte"].waitForExistence(timeout: 5))
@@ -112,7 +112,7 @@ final class StepFlowsUITests: XCTestCase {
         waitUntilDismissed(app.buttons["Schließen"].firstMatch)
         waitUntilDismissed(app.buttons["confirm-connect-health"].firstMatch)
         XCTAssertTrue(app.navigationBars["Schritte"].waitForExistence(timeout: 4))
-        tap(app.tabBars.buttons["Heute"], in: app)
+        tap(app.buttons["tab-today"], in: app)
         XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 4))
         XCTAssertFalse(app.buttons["own-steps-card"].exists)
     }
@@ -128,7 +128,7 @@ final class StepFlowsUITests: XCTestCase {
         waitUntilDismissed(app.buttons["confirm-connect-health"].firstMatch)
         XCTAssertTrue(app.navigationBars["Schritte"].waitForExistence(timeout: 5))
         waitForSharing(sharing, enabled: false)
-        tap(app.tabBars.buttons["Heute"], in: app)
+        tap(app.buttons["tab-today"], in: app)
         XCTAssertTrue(app.buttons["own-steps-card"].waitForExistence(timeout: 5))
         let count = NSPredicate(format: "label CONTAINS '8.421'")
         XCTAssertTrue(app.descendants(matching: .any).matching(count).firstMatch.waitForExistence(timeout: 3))

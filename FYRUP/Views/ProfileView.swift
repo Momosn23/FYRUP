@@ -47,6 +47,10 @@ struct ProfileView: View {
                 }
                 VStack(spacing: 0) {
                     PersonalSetupHomeCard()
+                    NavigationLink { LiveAndRestSettingsView() } label: { SettingsRow(title: "LIVE & Satzpausen", symbol: "timer") }
+                    NavigationLink { BodyMeasurementsEditor() } label: { SettingsRow(title: "Körperdaten", symbol: "figure.stand") }.accessibilityIdentifier("profile-body-data")
+                    NavigationLink { NutritionView() } label: { SettingsRow(title: "Ernährung", symbol: "fork.knife") }.accessibilityIdentifier("profile-nutrition")
+                    NavigationLink { ScrollView { BodyAndEnergySettings().padding(FYLayout.page) }.background(FYColor.background).navigationTitle("Aktive Energie") } label: { SettingsRow(title: "Aktive Energie", symbol: "flame") }.accessibilityIdentifier("active-energy-card")
                     NavigationLink { FavoriteGymView() } label: { SettingsRow(title: "Stammgym", symbol: "mappin.and.ellipse") }
                         .accessibilityIdentifier("profile-favorite-gym")
                     SystemNotificationSettingsRow()
@@ -245,7 +249,7 @@ private struct SettingsView: View {
                 VStack(spacing: 0) {
                     NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell") }
                     Divider(); NavigationLink { PrivacyView() } label: { SettingsRow(title: "Privatsphäre", symbol: "lock") }
-                    Divider(); Button { store.selectedTab = 1 } label: { SettingsRow(title: "Freunde", symbol: "person.2") }
+                    Divider(); NavigationLink { FriendsView() } label: { SettingsRow(title: "Freunde", symbol: "person.2") }
                         .accessibilityIdentifier("settings-friends")
                     Divider(); NavigationLink { SupportView() } label: { SettingsRow(title: "Hilfe & Support", symbol: "questionmark.circle") }
                         .accessibilityIdentifier("settings-support")

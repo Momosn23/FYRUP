@@ -8,48 +8,38 @@ struct PersonalSetupView: View {
     @State private var page = 0
     @State private var stepGoal = ""
     @State private var fieldError: String?
-    @State private var hasUnsavedBodyChanges = false
+    @State private var bodyDraft = BodyMeasurementsDraft()
     @State private var restoredPage = false
     @State private var restoredOwnerID: UUID?
     @FocusState private var stepGoalFocused: Bool
-    private let titles = ["Jeder Schritt zählt.", "Dein Körper.\nDeine Daten.", "Bleib im Moment.", "Alles an einem Ort."]
+    private let titles = ["Apple Health verbinden", "Körperdaten", "Berechtigungen", "Dein FYRUP"]
     private var ready: Bool { store.setup.value != nil && store.steps.userID == store.session?.userID }
-    private var requiredBodyDataMissing: Bool {
-        isOnboarding && page == 1 && (store.setup.value?.heightCM == nil || store.setup.value?.weightKG == nil)
-    }
-    private var requiredStepSetupMissing: Bool {
-        isOnboarding && page == 0 && (!store.steps.healthDecisionMade || stepGoal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-    }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack {
-                        if page > 0 { Button { changePage(page - 1, proxy: proxy) } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }.accessibilityLabel("Zurück").disabled(hasUnsavedBodyChanges || store.energy.isBusy) }
-                        Text("DEIN FYRUP").font(.caption.weight(.heavy)).tracking(2)
-                        Spacer()
-                        Text("\(page + 1) / 4").font(.caption.bold()).foregroundStyle(FYColor.muted)
+                    FYSetupHeading(title: titles[page], subtitle: "", step: page + 1, total: 4, showsBack: page > 0 || !isOnboarding) {
+                        if page > 0 { changePage(page - 1, proxy: proxy) } else { dismiss() }
                     }.id("setup-top")
-                    HStack(spacing: 6) {
-                        ForEach(0..<4, id: \.self) { index in Capsule().fill(index <= page ? FYColor.lime : FYColor.line).frame(height: 4) }
-                    }.accessibilityLabel("Einrichtung, Schritt \(page + 1) von 4")
-                    Text(titles[page]).font(.system(size: 31, weight: .bold, design: .rounded)).fixedSize(horizontal: false, vertical: true)
                     Group {
                         switch page {
                         case 0: stepsPage
-                        case 1: BodyAndEnergySettings(requiresMeasurements: isOnboarding, onEditingChanged: { hasUnsavedBodyChanges = $0 })
+                        case 1:
+                            Text("Diese Angaben sind freiwillig. Du kannst FYRUP auch ohne sie für Sport und Freunde nutzen.").foregroundStyle(FYColor.muted)
+                            BodyMeasurementsView(draft: $bodyDraft)
                         case 2: permissionsPage
                         default: overviewPage
                         }
                     }.id(page).transition(.opacity.combined(with: .move(edge: .trailing)))
                     if let error = fieldError ?? store.setup.errorMessage { Text(error).font(.footnote).foregroundStyle(FYColor.coral) }
-                    if page == 1 && hasUnsavedBodyChanges { Text("Speichere deine Eingaben mit „Körperdaten & Ziel speichern“, bevor du weitergehst.").font(.caption).foregroundStyle(FYColor.muted) }
-                    if requiredBodyDataMissing { Text("Für deine persönliche Verbrauchsschätzung fehlen noch Körpergröße und Gewicht. Beide Angaben bleiben privat auf diesem iPhone.").font(.caption).foregroundStyle(FYColor.coral) }
-                    if requiredStepSetupMissing { Text("Wähle dein tägliches Schrittziel und entscheide, ob FYRUP Apple Health verbinden darf.").font(.caption).foregroundStyle(FYColor.coral) }
                     if store.setup.value == nil {
                         Button("Einstellungen erneut laden") { store.setup.activate(userID: store.session?.userID) }.buttonStyle(OutlineButtonStyle())
                     }
+                }.padding(FYLayout.page)
+            }.scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
                     Button(page == 3 ? "Einrichtung abschließen" : "Weiter") {
                         fieldError = nil
                         if page == 0 {
@@ -58,6 +48,11 @@ struct PersonalSetupView: View {
                                 fieldError = "Wähle 1.000–100.000 Schritte oder lass das Ziel leer."; return
                             }
                             store.steps.setGoal(Int(raw))
+                            if !store.steps.healthDecisionMade { store.steps.continueWithoutHealth() }
+                        }
+                        if page == 1 {
+                            fieldError = bodyDraft.validationMessage
+                            guard fieldError == nil, store.setup.update({ bodyDraft.apply(to: &$0) }) else { return }
                         }
                         if page < 3 { changePage(page + 1, proxy: proxy) }
                         else if store.setup.finishSetup() {
@@ -65,15 +60,13 @@ struct PersonalSetupView: View {
                             if isOnboarding { store.route = .onboardingComplete }
                             else { dismiss() }
                         }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy || store.energy.isBusy || (page == 1 && hasUnsavedBodyChanges) || requiredBodyDataMissing || requiredStepSetupMissing)
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(!ready || store.steps.isBusy)
                         .accessibilityIdentifier("personal-setup-next")
                     Text("Du entscheidest. Optionale Freigaben dürfen aus bleiben und lassen sich später ändern.")
                         .font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity)
-                }.padding(22).padding(.bottom, 80)
-            }.scrollDismissesKeyboard(.interactively)
-        }.background(FYColor.background).navigationTitle("FYRUP einrichten").navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(hasUnsavedBodyChanges || store.energy.isBusy)
-            .interactiveDismissDisabled(hasUnsavedBodyChanges || store.energy.isBusy)
+                }.padding(FYLayout.page).background(FYColor.background)
+            }
+        }.background(FYColor.background).toolbar(.hidden, for: .navigationBar)
             .task(id: store.session?.userID) {
                 guard let owner = store.session?.userID else { return }
                 restorePageIfNeeded()
@@ -99,11 +92,10 @@ struct PersonalSetupView: View {
     private func restorePageIfNeeded() {
         guard (!restoredPage || restoredOwnerID != store.setup.userID), store.setup.value != nil else { return }
         page = store.setup.resumePage; restoredPage = true; restoredOwnerID = store.setup.userID
-        fieldError = nil; hasUnsavedBodyChanges = false
+        fieldError = nil; bodyDraft = .init(store.setup.value)
     }
     private var stepsPage: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SportPhoto(sport: .running).frame(height: 140).clipShape(RoundedRectangle(cornerRadius: 22)).fyEntrance()
             Text("Verbinde Apple Health und sieh deine Schritte direkt auf Heute. FYRUP fragt hier nur nach dem Lesen deiner Schritte – nichts wird in Health geschrieben.")
                 .font(.subheadline).foregroundStyle(FYColor.muted)
             Button(store.steps.healthRequested ? "Apple Health prüfen" : "Ja, Apple Health verbinden") {
@@ -117,7 +109,7 @@ struct PersonalSetupView: View {
             Label(store.steps.healthStatusText, systemImage: "heart.text.clipboard").font(.caption).foregroundStyle(FYColor.muted)
             VStack(alignment: .leading, spacing: 12) {
                 Text("Dein Schrittziel pro Tag").font(.headline)
-                TextField(isOnboarding ? "Erforderlich, z. B. 8.000" : "Optional, z. B. 8.000", text: $stepGoal).keyboardType(.numberPad)
+                TextField("Optional, z. B. 8.000", text: $stepGoal).keyboardType(.numberPad)
                     .focused($stepGoalFocused)
                     .padding(13).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityIdentifier("setup-step-goal")
@@ -147,16 +139,14 @@ struct PersonalSetupView: View {
     }
     private var permissionsPage: some View {
         VStack(alignment: .leading, spacing: 18) {
+            NavigationLink { WeatherPlaceView() } label: { setupLink("Ort für Wetter", subtitle: "Stadt auswählen oder Standort einmal verwenden", symbol: "mappin") }.buttonStyle(.plain)
+            NavigationLink { LiveAndRestSettingsView() } label: { setupLink("LIVE auf dem Sperrbildschirm", subtitle: "Optionale Anzeige und eigene Satzpausen", symbol: "iphone") }.buttonStyle(.plain)
             Text("Entscheide jetzt, was dich begleiten darf. Jede Systemfreigabe erklärst und bestätigst du separat.").foregroundStyle(FYColor.muted)
             VStack(alignment: .leading, spacing: 8) {
                 Label("Einladungen & Erinnerungen", systemImage: "bell.badge.fill").font(.headline)
                 Text("Für Session-Einladungen und die von dir gewählten Erinnerungen. Ohne Erlaubnis bleiben Hinweise in FYRUP sichtbar, erscheinen aber nicht als Push.").font(.subheadline).foregroundStyle(FYColor.muted)
                 SystemNotificationSettingsRow()
             }.fyCard()
-            LiveActivitySetupCard()
-            NavigationLink { WorkoutRestSettingsView() } label: {
-                setupLink("Deine Satzpause", subtitle: "Eigene Dauer und freiwillige Ablauf-Erinnerung", symbol: "timer")
-            }.buttonStyle(FYPressStyle())
             VStack(alignment: .leading, spacing: 10) {
                 Label("Nur, was du wirklich nutzt", systemImage: "hand.raised.fill").font(.headline)
                 Text("Beim Profilbild wählst du einzelne Fotos aus. FYRUP braucht keinen Zugriff auf deine gesamte Fotomediathek. Kontakte und Standort werden hier nicht vorsorglich freigegeben.")
@@ -170,6 +160,7 @@ struct PersonalSetupView: View {
             NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { setupLink("Mein Wochenplan", subtitle: "Sportarten, Dauer und freie Wochentage", symbol: "calendar") }.buttonStyle(FYPressStyle())
             NavigationLink { FavoriteGymView() } label: { setupLink("Dein Stammgym", subtitle: "Privat speichern, beim Planen vorausfüllen", symbol: "mappin.and.ellipse") }.buttonStyle(FYPressStyle()).accessibilityIdentifier("open-favorite-gym")
             NavigationLink { SupplementsView() } label: { setupLink("Deine Supplements", subtitle: "Eigene Liste und freiwillige Erinnerungen", symbol: "pills.fill") }.buttonStyle(FYPressStyle())
+            NavigationLink { NutritionView() } label: { setupLink("Ernährung", subtitle: "Eigene Ziele und Mahlzeiten · optional", symbol: "fork.knife") }.buttonStyle(FYPressStyle())
             NavigationLink { PrivacyView() } label: { setupLink("Deine Privatsphäre", subtitle: "Wer sieht deine Aktivitäten?", symbol: "lock.shield.fill") }.buttonStyle(FYPressStyle())
             Label("Health-Freigaben kannst du zusätzlich jederzeit in Apple Health ändern.", systemImage: "heart.fill").font(.caption).foregroundStyle(FYColor.muted)
         }

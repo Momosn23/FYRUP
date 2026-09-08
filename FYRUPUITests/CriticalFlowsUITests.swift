@@ -64,11 +64,11 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("08-workout-complete")
         let finish = app.buttons["finish-free-activity"]
         for _ in 0..<5 {
-            if finish.isHittable && finish.frame.maxY < app.tabBars.firstMatch.frame.minY { break }
+            if finish.isHittable && finish.frame.maxY < app.buttons["tab-today"].frame.minY { break }
             app.swipeUp()
         }
         XCTAssertTrue(finish.isHittable)
-        XCTAssertLessThan(finish.frame.maxY, app.tabBars.firstMatch.frame.minY, "The complete action must be fully above the tab bar")
+        XCTAssertLessThan(finish.frame.maxY, app.buttons["tab-today"].frame.minY, "The complete action must be fully above the tab bar")
         capture("68-workout-complete-actions")
         app.buttons["Im Feed ansehen"].tap()
         XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
@@ -76,7 +76,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testDiscoverPreservesTheChosenSport() {
         let app = launchDemo()
-        app.tabBars.buttons["Entdecken"].tap()
+        app.buttons["tab-discover"].tap()
         waitUntilReady(app.buttons["Laufen"])
         app.buttons["Laufen"].tap()
         waitUntilReady(app.buttons["confirm-activity"])
@@ -174,7 +174,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testCreateTrainingGroup() {
         let app = launchDemo()
-        app.tabBars.buttons["Freunde"].tap()
+        app.openFYRUPCrew()
         app.buttons["Crew erstellen"].tap()
         XCTAssertTrue(app.navigationBars["Neue Crew"].waitForExistence(timeout: 3))
         let name = app.textFields["group-name"]
@@ -202,7 +202,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testFriendsAndActivityDetailsNavigation() {
         let app = launchDemo()
-        app.tabBars.buttons["Freunde"].tap()
+        app.openFYRUPCrew()
         XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["friends-crew-hero"].firstMatch.exists)
         XCTAssertTrue(app.staticTexts["Max"].exists)
@@ -221,7 +221,7 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["friend-sarah"].tap()
         XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
         capture("19-friend-profile")
-        app.tabBars.buttons["Heute"].tap()
+        app.buttons["tab-today"].tap()
         revealAndTap(app.buttons["Details"].firstMatch, in: app)
         XCTAssertTrue(app.navigationBars["Aktivitätsdetails"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Kategorie"].exists)
@@ -230,7 +230,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testProfilePrivacyAndLogoutFlow() {
         let app = launchDemo()
-        app.tabBars.buttons["Profil"].tap()
+        app.buttons["tab-profile"].tap()
         XCTAssertTrue(app.staticTexts["Profil"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Momo"].exists)
         capture("09-profile")
@@ -298,7 +298,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testSettingsDestinationsWork() {
         let app = launchDemo()
-        app.tabBars.buttons["Profil"].tap()
+        app.buttons["tab-profile"].tap()
         revealAndTap(app.buttons["Einstellungen"], in: app)
         XCTAssertTrue(app.navigationBars["Einstellungen"].waitForExistence(timeout: 3))
 
@@ -324,7 +324,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
         revealAndTap(app.buttons["settings-friends"], in: app)
         XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.tabBars.buttons["Freunde"].isSelected)
+        XCTAssertTrue(app.navigationBars["Deine Crew"].exists || app.staticTexts["Deine Crew"].exists)
         capture("75-settings-friends")
     }
 
@@ -363,7 +363,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testProfileSportsRemainEditable() {
         let app = launchDemo()
-        app.tabBars.buttons["Profil"].tap()
+        app.buttons["tab-profile"].tap()
         app.buttons["Profil bearbeiten"].tap()
         XCTAssertTrue(app.navigationBars["Profil bearbeiten"].waitForExistence(timeout: 3))
         let yoga = app.buttons["Yoga"]
@@ -429,10 +429,10 @@ final class CriticalFlowsUITests: XCTestCase {
         capture("onboarding-04-friends")
         app.buttons["Später"].tap()
 
-        XCTAssertTrue(app.staticTexts["Jeder Schritt zählt."].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Apple Health verbinden"].waitForExistence(timeout: 4))
         capture("73-setup-health")
-        // The choice is required, but an iOS permission is never silently accepted.
-        XCTAssertFalse(app.buttons["personal-setup-next"].isEnabled)
+        // Health and a goal are optional; no OS permission is silently accepted.
+        XCTAssertTrue(app.buttons["personal-setup-next"].isEnabled)
         revealAndTap(app.buttons["setup-skip-health"], in: app)
         let stepGoal = app.textFields["setup-step-goal"]
         revealAndTap(stepGoal, in: app)
@@ -443,8 +443,6 @@ final class CriticalFlowsUITests: XCTestCase {
 
         let height = app.textFields["setup-height"]
         XCTAssertTrue(height.waitForExistence(timeout: 3))
-        revealAndTap(app.buttons["save-body-and-goal"], in: app)
-        XCTAssertTrue(app.staticTexts["Gib Körpergröße und Gewicht ein. Beide Angaben bleiben privat auf diesem iPhone."].waitForExistence(timeout: 3))
         height.tap()
         height.typeText("182")
         revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
@@ -452,8 +450,6 @@ final class CriticalFlowsUITests: XCTestCase {
         revealAndTap(weight, in: app)
         weight.typeText("84")
         revealAndTap(app.toolbars.buttons["Fertig"].firstMatch, in: app)
-        revealAndTap(app.buttons["save-body-and-goal"], in: app)
-        XCTAssertTrue(app.descendants(matching: .any)["body-data-saved"].firstMatch.waitForExistence(timeout: 3))
 
         revealAndTap(app.buttons["personal-setup-next"], in: app)
         capture("74-setup-page-3")

@@ -31,7 +31,7 @@ Nicht überall dasselbe Wort einsetzen. Ein persönlicher Wochenrhythmus bleibt 
 
 - „Wie oft willst du pro Woche aktiv sein?“
 - „Setze dein Wochenziel und hol dir deine Flamme 🔥“.
-- 3–7 Einheiten; vorhandene Zielgrenzen und Gültigkeitsregeln nicht durch Sprachänderungen verändern.
+- 2–7 Einheiten gemäß ausdrücklichem Folgeauftrag vom 08.09.2026; die neue Grenze muss in App, Backend und Tests übereinstimmen. Keine weitere Änderung durch bloße Sprachersetzung.
 - „Noch 1 Einheit bis zur Flamme 🔥“ oder im eindeutigen Kontext „Noch 1 bis zur Flamme 🔥“.
 - „FLAMME GEHOLT 🔥“, „Wochenziel geschafft“, „4 / 4 Einheiten“.
 - Bereich **Deine Streak** bleibt der frühere ausdrückliche Nutzerwunsch. Keine neue Überschrift „Deine Flames“.

@@ -33,6 +33,7 @@ def validate_profile(data: bytes, target: str = "main") -> None:
     if target == "main":
         checks.extend((
             (entitlements.get("com.apple.developer.healthkit") is True, "HealthKit missing from profile"),
+            (entitlements.get("com.apple.developer.weatherkit") is True, "WeatherKit missing from profile"),
             (entitlements.get("aps-environment") == "production", "Production push missing"),
             (
                 isinstance(entitlements.get("com.apple.developer.applesignin"), list)

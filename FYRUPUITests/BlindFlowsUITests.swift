@@ -83,7 +83,7 @@ final class BlindFlowsUITests: XCTestCase {
     }
 
     private func openInbox(_ app: XCUIApplication) {
-        tap(app.tabBars.buttons["Freunde"], in: app)
+        app.openFYRUPCrew()
         tap(app.buttons["open-blind-workouts"], in: app)
         expectExists(app.buttons["create-blind-workout"], in: app)
     }
@@ -168,7 +168,7 @@ final class BlindFlowsUITests: XCTestCase {
         expectExists(app.staticTexts[firstExercise], in: app)
         expectExists(app.staticTexts[secondExercise], in: app)
 
-        tap(app.tabBars.buttons["Profil"], in: app)
+        tap(app.buttons["tab-profile"], in: app)
         tap(app.buttons["profile-workout-plans"], in: app)
         expectExists(app.navigationBars["Meine Workout-Pläne"], in: app)
         tap(app.buttons["Surprise Push"], in: app)

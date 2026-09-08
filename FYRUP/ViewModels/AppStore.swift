@@ -39,6 +39,10 @@ final class AppStore {
     var showsActivityComposer = false
     var activityComposerMode = 0
     var selectedTab = 0
+    var selectedWeekDate: Date?
+    var referenceSnapshot = false
+    var referenceDate: Date?
+    var presentationDate: Date { referenceDate ?? .now }
     var opensNotifications = false
     var showsLiveSession = false
     var opensLiveSetEntry = false
@@ -62,6 +66,8 @@ final class AppStore {
             intervals.activate(userID: session?.userID)
             arrival.activate(userID: session?.userID)
             setup.activate(userID: session?.userID)
+            nutrition.activate(owner: session?.userID)
+            weather.reset()
             energy.accountChanged(to: session?.userID)
             personal.activate(userID: session?.userID)
             supplements.activate(userID: session?.userID)
@@ -78,6 +84,8 @@ final class AppStore {
     let intervals: SessionIntervalStore
     let arrival: ArrivalReminderStore
     let setup: PersonalSetupStore
+    let nutrition: NutritionStore
+    let weather = CurrentWeatherStore()
     let energy: ActiveEnergyStore
     let liveSurface: SessionLiveActivityStore
     let personal: PersonalTrainingStore
@@ -105,6 +113,7 @@ final class AppStore {
                                             notifications: repository is DemoRepository ? SilentArrivalNotifications() : SystemArrivalNotifications())
         let setup = PersonalSetupStore(persistence: repository is DemoRepository ? MemoryPersonalSetupPersistence() : SecurePersonalSetupPersistence())
         self.setup = setup
+        self.nutrition = NutritionStore(persistence: repository is DemoRepository ? MemoryNutritionPersistence() : ProtectedNutritionPersistence())
         self.energy = ActiveEnergyStore(setup: setup)
         self.liveSurface = SessionLiveActivityStore(defaults: repository is DemoRepository ? UserDefaults(suiteName: "app.fyrup.demo.live") ?? .standard : FYRUPWidgetState.defaults)
         self.personal = PersonalTrainingStore(repository: repository)
@@ -127,6 +136,9 @@ final class AppStore {
     }
 
     static func make() -> AppStore {
+        #if DEBUG || targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--reference-checkpoint") { return ReferenceCheckpointFixtures.make() }
+        #endif
         if ProcessInfo.processInfo.arguments.contains("--onboarding-demo") { return AppStore(repository: DemoRepository(startsWithoutProfile: true)) }
         if ProcessInfo.processInfo.arguments.contains("--demo") {
             let arguments = ProcessInfo.processInfo.arguments
@@ -153,7 +165,13 @@ final class AppStore {
         do {
             guard let restored = try await repository.restoreSession() else { route = .signedOut; return }
             session = restored
+            #if DEBUG || targetEnvironment(simulator)
+            if referenceSnapshot, let demo = repository as? DemoRepository { try await ReferenceCheckpointFixtures.seed(self, repository: demo) }
+            #endif
             try await loadProfileAndRoute()
+            #if DEBUG || targetEnvironment(simulator)
+            if referenceSnapshot && ProcessInfo.processInfo.arguments.contains("--reference-body") { route = .personalSetup }
+            #endif
         } catch { present(error); route = .signedOut }
     }
 
@@ -689,6 +707,8 @@ final class AppStore {
             self.intervals.clearDeletedAccount()
             do { try self.setup.clearDeletedAccount() }
             catch { self.errorMessage = "Dein Konto ist gelöscht. Private Körperdaten konnten auf diesem gesperrten iPhone noch nicht entfernt werden." }
+            do { try self.nutrition.deleteAccount() }
+            catch { self.errorMessage = "Dein Konto ist gelöscht. Das private Ernährungstagebuch konnte noch nicht von diesem iPhone entfernt werden." }
             self.supplements.clearDeletedAccount()
             self.steps.reset(clearLocalPreferences: true)
             self.weekly.reset(clearLocalPreferences: true)
