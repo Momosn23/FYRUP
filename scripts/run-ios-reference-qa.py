@@ -12,6 +12,30 @@ def run(args, **kwargs):
     return subprocess.run(args, check=True, text=True, **kwargs)
 
 
+def select_simulator(available):
+    """Use an installed iOS runtime; an Xcode version is not an iOS version.
+
+    Both preferred phones have the 393 x 852 pt reference size. Never substitute
+    a wider Pro Max, download a new runtime, or silently resize the resulting PNG.
+    The pinned Xcode image and the actual chosen runtime are recorded separately.
+    """
+    devices = available.get("devicetypes", [])
+    device = next((item for name in ("iPhone 16", "iPhone 15")
+                   for item in devices if item.get("name") == name), None)
+    if device is None:
+        raise RuntimeError("No reference-size iPhone 16/15 device type installed; see simulator-inventory.json")
+    def version(item):
+        try:
+            return tuple(int(part) for part in item.get("version", "0").split("."))
+        except ValueError:
+            return (0,)
+    runtimes = [item for item in available.get("runtimes", [])
+                if item.get("isAvailable") is True and item.get("name", "").startswith("iOS ") and version(item) >= (17,)]
+    if not runtimes:
+        raise RuntimeError("No installed available iOS 17+ runtime; see simulator-inventory.json")
+    return device, max(runtimes, key=version)
+
+
 def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: iOS Simulator requires macOS.")
@@ -27,11 +51,11 @@ def main():
     device = None
     try:
         available = json.loads(run(["xcrun", "simctl", "list", "--json"], capture_output=True).stdout)
-        # Device type is explicitly selected, never stretch a Pro Max screenshot.
-        device_type = next(t for t in available["devicetypes"] if t["name"] == "iPhone 16")
-        runtime = next(r for r in available["runtimes"] if r.get("isAvailable") and r["name"].startswith("iOS 26.6"))
+        (output / "simulator-inventory.json").write_text(json.dumps(available, indent=2), encoding="utf-8")
+        device_type, runtime = select_simulator(available)
         device = run(["xcrun", "simctl", "create", "FYRUP Reference QA", device_type["identifier"], runtime["identifier"]], capture_output=True).stdout.strip()
-        summary.update(deviceName="iPhone 16", runtime=runtime["name"], simulator=device)
+        summary.update(deviceName=device_type["name"], runtime=runtime["name"], runtimeVersion=runtime["version"], simulator=device)
+        print(json.dumps({"selectedDevice": device_type["name"], "selectedRuntime": runtime["name"]}), flush=True)
         run(["xcrun", "simctl", "boot", device])
         run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180)
         run(["xcrun", "simctl", "status_bar", device, "override", "--time", "9:41", "--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3", "--batteryState", "charged", "--batteryLevel", "100"])

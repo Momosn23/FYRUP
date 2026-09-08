@@ -18,6 +18,7 @@ const checks = [
   ['release-validator-fixtures', python, ['scripts/test_release_ipa.py']],
   ['reference-comparison-tool-fixtures', python, ['scripts/test_reference_comparison.py']],
   ['reference-config', python, ['scripts/validate-reference-config.py']],
+  ['ios-runtime-selection-fixtures', python, ['scripts/test_ios_qa_selection.py']],
   ['whitespace', 'git', ['-c', 'core.safecrlf=false', 'diff', '--check']],
 ];
 const results = [];
