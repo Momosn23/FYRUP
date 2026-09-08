@@ -90,10 +90,17 @@ struct GymExercise: Codable, Identifiable, Hashable, Sendable {
         return value
     }
 
-    /// Each word may match a name, alias, muscle or equipment; accents and punctuation are irrelevant.
+    /// Each query word may prefix a name, alias, muscle or equipment word.
+    /// Word starts prevent "Rücken" from accidentally matching "Bankdrücken".
     func matches(query: String) -> Bool {
-        let haystack = Self.normalizedSearch(searchText)
-        return Self.normalizedSearch(query).split(separator: " ").allSatisfy { haystack.contains($0) }
+        Self.matchesSearch(query: query, in: searchText)
+    }
+
+    static func matchesSearch(query: String, in text: String) -> Bool {
+        let words = normalizedSearch(text).split(separator: " ")
+        return normalizedSearch(query).split(separator: " ").allSatisfy { queryWord in
+            words.contains { $0.hasPrefix(queryWord) }
+        }
     }
 
     /// A suggestion only: distinct variants remain allowed when the user chooses “Trotzdem erstellen”.

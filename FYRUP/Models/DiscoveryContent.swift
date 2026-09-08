@@ -39,7 +39,6 @@ enum DiscoveryContent {
     }
 
     private static func matches(_ query: String, in values: [String]) -> Bool {
-        let text = GymExercise.normalizedSearch(values.joined(separator: " "))
-        return GymExercise.normalizedSearch(query).split(separator: " ").allSatisfy { text.contains($0) }
+        GymExercise.matchesSearch(query: query, in: values.joined(separator: " "))
     }
 }

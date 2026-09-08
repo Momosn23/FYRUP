@@ -45,6 +45,15 @@ final class DiscoveryContentTests: XCTestCase {
         XCTAssertEqual(DiscoveryContent.plans([z, a, z], owner: owner, query: "").map(\.id), [a.id, z.id])
     }
 
+    func testPlanAndLibrarySearchShareWordBoundaryRules() {
+        let exercise = bench
+        let plan = WorkoutPlan(ownerID: owner, name: "Push-Day", exercises: [WorkoutPlanExercise(exercise: exercise)])
+        XCTAssertTrue(DiscoveryContent.exercises([exercise], owner: owner, query: "Rücken").isEmpty)
+        XCTAssertTrue(DiscoveryContent.plans([plan], owner: owner, query: "Rücken").isEmpty)
+        XCTAssertEqual(DiscoveryContent.plans([plan], owner: owner, query: "PUSH bankdrü lang").map(\.id), [plan.id])
+        XCTAssertEqual(DiscoveryContent.plans([plan], owner: owner, query: "day bench-pre").map(\.id), [plan.id])
+    }
+
     func testSportSearchUsesActualSportChoices() {
         XCTAssertEqual(DiscoveryContent.sports(query: "LAUFEN"), [.running])
         XCTAssertEqual(DiscoveryContent.sports(query: ""), SportKind.allCases)

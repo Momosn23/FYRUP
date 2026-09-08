@@ -51,6 +51,18 @@ final class WorkoutModelTests: XCTestCase {
         XCTAssertTrue(ExerciseLibrary.parse("\(id)\tBankdrücken\tchest\ttriceps\tbarbell\tunknown").isEmpty)
     }
 
+    func testSearchRequiresWordStartsButKeepsPrefixesAndPunctuation() {
+        let bench = GymExercise(name: "Bankdrücken Langhantel", primaryMuscle: .chest, secondaryMuscles: [.triceps], equipment: .barbell)
+        let row = GymExercise(name: "Rudern sitzend", primaryMuscle: .back, equipment: .cable)
+        XCTAssertFalse(bench.matches(query: "Rücken"))
+        XCTAssertFalse(bench.matches(query: "rüc"))
+        XCTAssertTrue(row.matches(query: "RÜCKEN"))
+        XCTAssertTrue(row.matches(query: "rüc kabel"))
+        XCTAssertTrue(bench.matches(query: "bankdrü lang"))
+        XCTAssertTrue(bench.matches(query: "BENCH-PRE BRUST"))
+        XCTAssertTrue(bench.matches(query: "   "))
+    }
+
     func testSearchIncludesAliasesAccentsSecondaryMusclesAndEquipment() {
         XCTAssertTrue(bench.matches(query: "BANKDRUCKEN brust"))
         XCTAssertTrue(bench.matches(query: "trizeps langhantel"))
