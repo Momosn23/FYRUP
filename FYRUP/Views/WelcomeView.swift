@@ -51,7 +51,7 @@ struct WelcomeView: View {
                 .disabled(store.isBusy)
             Button { authMode = .registration } label: { Label("Mit E-Mail fortfahren", systemImage: "envelope") }
                 .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
-            // Google is disabled in the production project. No nonfunctional sign-in option.
+            // Product scope is Apple and email only; Google sign-in was explicitly removed.
             Button("Ich habe bereits ein Konto") { authMode = .signIn }
                 .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("welcome-email-login")
             if let message = store.authMessage { Text(message).font(.footnote).accessibilityIdentifier("auth-feedback") }

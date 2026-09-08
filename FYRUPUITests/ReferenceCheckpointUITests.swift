@@ -259,7 +259,8 @@ import XCTest
         try capture("R01-welcome", app: app)
         tap(app.buttons["welcome-intro-next"], in: app)
         XCTAssertTrue(app.staticTexts["account-choice-title"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["Mit Google fortfahren"].exists, "No disabled production provider presented as functional")
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Google")).firstMatch.exists,
+                       "Google sign-in was explicitly removed from product scope, not merely disabled until configuration")
         try capture("R02-account-choice", app: app)
         tap(app.buttons["welcome-create-account"], in: app)
         XCTAssertTrue(app.staticTexts["auth-title"].waitForExistence(timeout: 5))

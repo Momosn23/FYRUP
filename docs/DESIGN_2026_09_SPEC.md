@@ -2,6 +2,8 @@
 
 Quelle: Nutzerauftrag `839a13d5-5cbe-483f-9c2c-66198bc0df65`, ausgewählte Collagen `af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png` und `ad52d2c6-c191-46c4-89ab-93c85c626c2c.png`. Der Text hat Vorrang vor Bildfehlern. Die erwähnte zusätzliche Einzelreferenz für Heute liegt diesem Auftrag nicht separat bei; vorerst gilt A01 aus der Collage. Ältere Storyboards sind keine aktuelle Designfreigabe.
 
+Spätere Nutzerentscheidung am 08.09.2026: [Umfangsänderung](RELEASE_SCOPE_2026_09_08.md). Google-Anmeldung ist gestrichen, auch wenn sie in R02 der Collage erscheint. Lebensmittelanbieter/-suche, Barcode, Rezepte und Ernährungssynchronisierung sind auf eine spätere Version verschoben. Für den aktuellen Release keine funktionslosen Aktionen oder Rezeptversprechen aus diesen Bildteilen übernehmen. Manuelles lokales Tagebuch und Kalorienanzeigen bleiben erhalten.
+
 ## Bildzuordnung und Maßstab
 
 `scripts/prepare-design-references.py` schneidet R01–R18 sowie A01/A02/A06/A19/A22/A08/A24/A25 nach `docs/reference/2026-09/`. Das Manifest dokumentiert Ausschnitte. Dies sind Referenzen, keine Screenshots einer Implementierung. Die Collagen besitzen niedrigere Auflösung und leicht unterschiedliche Geräteproportionen; Vergrößerung stellt verlorene Bilddetails nicht wieder her. Schrift-/Abstandswerte werden daher nicht als pixelgenau vermessen ausgegeben.
@@ -40,7 +42,7 @@ Navigation: Heute | Wochenplan | + | Entdecken | Profil. Plus öffnet eine Aktio
 
 ## Einrichtungsregeln
 
-Körperdaten und Health sind optional. Wochenziel 2–7, unabhängig von bevorzugten Tagen. Vorlieben erzeugen keine Termine oder Einwilligungen. Schritte, Ernährung und Stadt getrennt freigeben, standardmäßig aus. Alte Persistenz darf nicht ungeprüft umnummeriert oder gelöscht werden. Google benötigt echte Provider-Konfiguration; kein funktionsloser Loginbutton. Zusammenfassung zeigt nur tatsächlich gespeicherte Entscheidungen.
+Körperdaten und Health sind optional. Wochenziel 2–7, unabhängig von bevorzugten Tagen. Vorlieben erzeugen keine Termine oder Einwilligungen. Schritte, Ernährung und Stadt getrennt freigeben, standardmäßig aus. Alte Persistenz darf nicht ungeprüft umnummeriert oder gelöscht werden. Anmeldung ausschließlich mit Apple oder E-Mail; Google ist ausdrücklich gestrichen. Zusammenfassung zeigt nur tatsächlich gespeicherte Entscheidungen.
 
 ## Assets und Nachweise
 

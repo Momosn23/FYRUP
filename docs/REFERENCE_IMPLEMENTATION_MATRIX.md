@@ -2,13 +2,15 @@
 
 Stand: 08.09.2026, erster Referenz-Prüfpunkt in Arbeit. FEHLT / TEILWEISE / IMPLEMENTIERT / GETESTET / BLOCKIERT beziehen sich auf den neuen Auftrag. Bestehende historische CI-Nachweise sind keine Prüfung dieser neuen Gestaltung. Einzelne gerätegebundene Teile bleiben auch bei funktionierendem Quellstand NICHT GETESTET. Details, Kosten und Fortsetzung: [Arbeitsnachweis](REFERENCE_CHECKPOINT_2026_09_08.md).
 
+**Spätere verbindliche Umfangsentscheidung:** [Release-Abgrenzung](RELEASE_SCOPE_2026_09_08.md). **VERSCHOBEN** bedeutet ausdrücklich spätere Version, nicht erledigt und kein aktueller Release-Blocker. Google-Anmeldung ist vollständig **GESTRICHEN**; Apple/E-Mail und der echte Mailversand bleiben. Ältere Prüfberichte dokumentieren ihren damaligen Umfang.
+
 Folgeblöcke nach `e39caf6`: [Einrichtung und kompaktere Übersichten](REFERENCE_LOCAL_SETUP_2026_09_08.md), [E-Mail-Anmeldung/Recovery und Supplement-Mengen](REFERENCE_AUTH_SUPPLEMENTS_2026_09_08.md). [QA #68](REFERENCE_QA_68.md) prüfte `4679d89`: **510/511 Unit-Tests und 5/7 Referenz-UI-Tests PASS**, Gesamtstatus FAIL. Die drei damaligen Testfehler sind im abgeschlossenen Prüfpunkt #69 behoben; dessen verbleibender Fehler und zusätzliche Bildbefunde sind unten getrennt dokumentiert. [017–019 produktiv nachgeprüft](REFERENCE_BACKEND_2026_09_08.md). „Im Code“ ist nicht „auf dem iPhone abgenommen“.
 
 ## Bestand
 
 Folgeblock nach `f66069d`: [Layout/Wetter](REFERENCE_LAYOUT_WEATHER_2026_09_08.md) bearbeitet A01/A19/R06–R10/R18 sowie W01. [QA #69](REFERENCE_QA_69.md) für exakt `e6eee6c`: **515/515 Unit-Tests, 8/9 Referenz-UI-Tests PASS**, insgesamt FAIL wegen der Wetter-AX-Link-Abfrage. Alle 22 PNGs geprüft. A01-Großschrift-Überbreite und R08-Kreistextüberlauf zusätzlich aus Bildern/Hierarchien belegt und im lokalen Folgeblock korrigiert. Der separate lokale Block `953a0fd` (A02/Release-Berechtigungen) und diese Folgefixes sind nicht in #69 enthalten. Die unten ausdrücklich genannten #68-Bilder gehören weiterhin zum vorherigen Stand.
 
-Ausgangsbestand des Referenzauftrags: Native SwiftUI-App, iOS 17+, Swift 6, XcodeGen; Bundle `app.fyrup.ios`, Widget `app.fyrup.ios.live`. Supabase mit REST/Auth, separater SecureSessionStore, private Keychain-Einstellungen, serverseitige RPC-/RLS-Tests. HealthKit liest Schritte und optional aktive Energie; APNs, ActivityKit/App Group, gezielte Kontaktauswahl und Kartenort existieren. Inzwischen sind auch Migrationen 017–019 produktiv, WeatherKit im Code und ein privates lokales manuelles Ernährungstagebuch implementiert. Google OAuth und eine externe Ernährungsdatenquelle bleiben offen. Bestehende Accounts/Daten bleiben bestehen.
+Ausgangsbestand des Referenzauftrags: Native SwiftUI-App, iOS 17+, Swift 6, XcodeGen; Bundle `app.fyrup.ios`, Widget `app.fyrup.ios.live`. Supabase mit REST/Auth, separater SecureSessionStore, private Keychain-Einstellungen, serverseitige RPC-/RLS-Tests. HealthKit liest Schritte und optional aktive Energie; APNs, ActivityKit/App Group, gezielte Kontaktauswahl und Kartenort existieren. Inzwischen sind auch Migrationen 017–019 produktiv, WeatherKit im Code und ein privates lokales manuelles Ernährungstagebuch implementiert. Google OAuth ist gestrichen, externe Ernährungsdatenquelle und Ernährungssynchronisierung sind verschoben. Bestehende Accounts/Daten bleiben bestehen.
 
 Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit strukturierten Muskelzuordnungen. Asset-/Lizenznachweis und neue Originalmotive offen. 26 ausgeschnittene Referenzen sind getrennt von sieben Simulatorbildern aus #67, 17 aus #68 und 22 aus #69 abgelegt. Kein lokales Xcode/Swift. Alle 21 lokalen Preflight-Gruppen bestanden, zuletzt für den Folgefix am 08.09.2026 um 16:31 UTC. Neue Bildabnahme **TEILWEISE**, aktuelle Restabweichungen in [QA #69](REFERENCE_QA_69.md). Letzter vollständig grüner älterer Stand #67 (`e39caf6`), letzter abgeschlossener Stand #69 FAIL. Codemagic verwendet manuelle Meilensteine und getrennte QA/Release-Wege. Sechs Läufe beendet, keiner aktiv; konservativ **5,89 USD** verbraucht, **4,11 USD** unreserviert. Keine Wiederholung einzelner kosmetischer Änderungen. [Laufbuch](CI_BUDGET_2026_09.md).
 
@@ -17,7 +19,7 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | ID | Bereich | Status | Konkrete Lücke/Nachweis |
 | --- | --- | --- | --- |
 | R01 | Willkommen | TEILWEISE | Neuer direkter Einstieg im Code; genaue Bergvorlage und Lizenznachweis offen. Eigene FYRUP-Rechtstexte fehlen: vorhandener Website-Link ist ausdrücklich nicht die FYRUP-Erklärung |
-| R02 | Anmeldeart | TEILWEISE | Apple/E-Mail vorhanden; Supabase-Dashboard am 08.09. live gelesen: Apple/E-Mail Enabled, Google Disabled. Keine Anbietereinstellung geändert. Google-OAuth-Konfiguration fehlt weiterhin |
+| R02 | Anmeldeart | TEILWEISE | Apple/E-Mail vorhanden, Layout im Simulator geprüft; vollständiger Anmelde-/Gerätenachweis offen. Google vollständig GESTRICHEN: kein Button und keine Integration im App-Code, kein Release-Blocker. Keine produktiven Konten/Anbietereinstellungen geändert |
 | R03 | E-Mail/Passwort | TEILWEISE | #68: Sichtbarkeit/Formularwechsel und getrennte Passwörter PASS; echter Versand/Fehlermeldungen und Referenzlayout offen |
 | R03a | Bestätigung | TEILWEISE | Eigene maskierte Bestätigungsseite, 60s-Abstand, Adresswechsel und gerätegebundener PKCE-Callback im Code; exakte Supabase-Rückkehradresse produktiv geprüft. SMTP und echte Zustellung offen |
 | R03b | Login | TEILWEISE | Bestehende Auth-/Wiederherstellung prüfen; neues Layout |
@@ -53,12 +55,12 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A16 | Flamme/Streak | TEILWEISE | Serverlogik vorhanden; Mindestziel 2 und nachträgliche Korrekturen |
 | A17 | Call My Shot | TEILWEISE | Kernpfad vorhanden; neues Mindestziel/Sichtbarkeit |
 | A18 | Blind Workout | TEILWEISE | Reveal vorhanden; freiwillig vollständig ansehen/ersetzen ergänzen |
-| A19 | Ernährungstagebuch | TEILWEISE | #69: alle vier Mahlzeiten initial sichtbar; 500→250 g und 1.850→925 kcal, Rest/Makros sowie Heute-Abgleich PASS. Große Schrift scrollbar/bedienbar. Cloud-Sync, Kopieren/Export und echte Bilder offen |
-| A20 | Lebensmittel/Barcode | TEILWEISE | Manueller pro-100-g-Eintrag mit Grammrechnung vorhanden; Anbieter/Lizenz, Suche, Favoriten und Barcode fehlen |
-| A21 | Lebensmittel/Rezepte | FEHLT | Nährwertbasis, Zutaten, Portionen, Kopien/Sharing |
+| A19 | Ernährungstagebuch | TEILWEISE | Lokales manuelles Tagebuch bleibt: #69 bestätigt vier Mahlzeiten, 500→250 g und 1.850→925 kcal, Rest/Makros sowie Heute-Abgleich; große Schrift bedienbar. Weitere Gestaltung/Export und Geräteabnahme offen. Cloud-Sync ausdrücklich VERSCHOBEN |
+| A20 | Lebensmittel/Barcode | VERSCHOBEN | Anbieter/Lizenz, Lebensmittelsuche/Katalog/Favoriten und Barcode für spätere Version; kein aktueller Release-Blocker. Vorhandener manueller pro-100-g-Eintrag mit Grammrechnung bleibt in A19 |
+| A21 | Lebensmittel/Rezepte | VERSCHOBEN | Nährwertbasis, Zutaten, Portionen, Rezeptkopien/Sharing für spätere Version; keine derzeit nutzbaren Rezepte versprechen |
 | A22 | Supplements | TEILWEISE | Speicherung/Rückgängig sowie private Menge/Einheit im Code; 019 produktiv, neue native Abnahme und Tagesnavigation noch offen |
 | A23 | Schritte | TEILWEISE | Aggregate/Opt-in/Widerruf vorhanden; neuer Tageszugang |
-| A24 | Entdecken | TEILWEISE | Bisher Sportkacheln, echte Inhalte und neue Anordnung fehlen |
+| A24 | Entdecken | TEILWEISE | Bisher Sportkacheln, echte Aktivitäts-/Workout-Inhalte und neue Anordnung fehlen; der Rezept-/Lebensmittelbereich der Vorlage ist ausdrücklich auf spätere Version verschoben |
 | A25 | Profil | TEILWEISE | Körperdaten, Ernährung, Crew sowie LIVE/Satzpausen von dort erreichbar; vollständiges Referenzlayout und Kennzahlenabnahme offen |
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
@@ -72,7 +74,7 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 1. Referenzzuordnung/Design-Tokens; Heute und repräsentative Registrierung.
 2. Ernährungsdaten strikt von aktiver Energie trennen, sichere Speicherung/Tests; Wochenzielmigration.
 3. Erster nativer A01/R05-Prüfpunkt #67 bestanden, sieben echte Bilder geprüft. Verbleibende gemeinsame Layoutkorrekturen lokal bündeln, keinen einzelnen kosmetischen Änderungsstand erneut kostenpflichtig bauen.
-4. Danach vollständiger 18-Seiten-Einrichtungsfluss und verbleibende Seiten; Google/Datenanbieter, Ernährungssynchronisierung und Freigaben ergänzen. Vorhandene UI-Regressionspfade weiter an neue Navigation anpassen, nicht einfach löschen.
+4. Danach vollständiger Einrichtungsfluss und verbleibende Seiten im reduzierten Release-Umfang: Apple/E-Mail samt echtem Versand, verbleibende Freigaben und Export. Google ist gestrichen; Lebensmittelanbieter/-suche, Barcode, Rezepte und Ernährungssynchronisierung sind verschoben. Vorhandene UI-Regressionspfade weiter an neue Navigation anpassen, nicht einfach löschen.
 5. Vollständige native Regression, Mehrkonten-/RLS- und Geräteabnahme; erst danach signiertes Archiv.
 
 Apple-Video und erneute Einreichung sind auf Nutzeranweisung bis zur Korrektur zurückgestellt. Keine unkontrollierten kostenpflichtigen Wiederholungen.

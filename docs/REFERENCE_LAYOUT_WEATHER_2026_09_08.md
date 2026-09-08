@@ -23,7 +23,9 @@
 
 ## Weiter offen
 
-Tatsächliche Bildschirmdichte und sämtliche weiteren Referenzseiten; rechtlich freigegebene FYRUP-Texte; Zugangsdaten des ausdrücklich freigegebenen SMTP-Absenders; Google-Konfiguration; Ernährungsdatenquelle/Cloud-Abgleich; echte Geräte-/Mehrkonten-Abnahme. Nicht aus grünen lokalen Tests als erledigt ableiten.
+Erneute Prüfung auf Nachfrage zur Apple-Wetter-Anbindung am 08.09.2026: Der vorhandene `AppleCurrentWeatherReader` ruft direkt `WeatherService.shared.weather(for:including: .current)` und die vorgeschriebene Apple-Attribution ab. Es handelt sich um Apples WeatherKit-Dienst, nicht um das Auslesen der installierten Wetter-App oder ihrer gespeicherten Städte. Stadtwahl funktioniert ohne GPS, optionaler aktueller Ort mit eigener bewusster Standortfreigabe. Code, Entitlement und Profilverweis sind vorhanden; echter signierter Geräteabruf bleibt unbewiesen. [Apple WeatherKit](https://developer.apple.com/weatherkit/) ist im Developer-Programm mit bis zu 500.000 Abfragen pro Monat enthalten; es wurde kein zusätzliches Kontingent gekauft. Apples [Konfigurationsvorgaben](https://developer.apple.com/help/account/services/weatherkit) nennen App Service und Capability; die frühere Einrichtung beider ist oben dokumentiert. Kein neuer Build oder Live-Wetterabruf bei dieser Nachprüfung.
+
+Tatsächliche Bildschirmdichte und weitere Referenzseiten im aktuellen Umfang; rechtlich freigegebene FYRUP-Texte; Zugangsdaten des ausdrücklich freigegebenen SMTP-Absenders; echte Geräte-/Mehrkonten-Abnahme. Nach späterer [Nutzerentscheidung](RELEASE_SCOPE_2026_09_08.md) ist Google vollständig gestrichen; Ernährungsdatenquelle, Suche, Barcode, Rezepte und Cloud-Abgleich sind verschoben und blockieren diesen Release nicht mehr. Nicht aus grünen lokalen Tests als erledigt ableiten.
 
 ## Separater lokaler Folgeblock während #69 wartet
 
