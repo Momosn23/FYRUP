@@ -2,7 +2,19 @@
 
 Die abgehakten Build-/Backend-Punkte unten sind historische Bestandsnachweise. Für den nächsten Release gelten zusätzlich alle Schranken der [zentralen Produkt-Checkliste](PRODUCT_CHECKLIST.md), insbesondere neue Features, Design, Animationen, Datenschutz und getrennte Simulator-/Gerätenachweise. Keine alte Buildnummer als aktuell installierte Version ausgeben. Gültige bisherige Gerätetests bleiben Pflicht.
 
-## Aktueller Release-Kandidat am 06.09.2026
+## Aktueller interner TestFlight-Prüfpunkt am 09.09.2026
+
+- [x] [QA #71](REFERENCE_QA_71.md): 544/544 Unit- und 12/12 ausgewählte Referenz-UI-Tests PASS. Nutzer-ZIP und alle 33 Einzelbilder geprüft; keine vollständige Referenz-/Geräteabnahme.
+- [x] Lokaler Preflight für die Paketvorbereitung 21/21 PASS; App-/Widget-Code unverändert gegenüber dem geprüften `b538d05`.
+- [x] Ein [signiertes Paket](TESTFLIGHT_16_2026_09_09.md) aus `6d97776` nach 4m35s erfolgreich beendet, festes Neun-Minuten-Limit, `runTests: false`, keine parallelen oder automatischen Folgeläufe. Kosten 0,57 USD brutto, Reserve aufgelöst, siehe [Laufbuch](CI_BUDGET_2026_09.md).
+- [x] Neun Signierungs-Prüffälle sowie tatsächliche App-/Live-Profile bestanden.
+- [x] 15 IPA-Prüffälle und fertige IPA: eingebettete Produktionskonfiguration, Profile und tatsächliche signierte Berechtigungen bestanden.
+- [x] Apple-Upload von **1.0.0 (16)** am 09.09.2026 03:11 CEST ohne Fehler, Verarbeitung abgeschlossen und Zuordnung zur vorhandenen Gruppe **FYRUP Intern** bestätigt.
+- [ ] Echte Gerätefälle unten sowie HealthKit, WeatherKit, LIVE-Systemanzeige und Mailzustellung geprüft.
+
+Neuester bei Apple verfügbarer interner Build **1.0.0 (16)**; eine Einladung, noch keine Installation von Build 16 angezeigt. Vorheriger installierter Stand war Build 15. Das interne Prüfpaket ist keine öffentliche Store-Einreichung oder vollständige Produktfreigabe. Eigene veröffentlichte FYRUP-Rechtslinks und verbleibende Designabweichungen sind weiterhin offen.
+
+## Historischer Release-Kandidat am 06.09.2026
 
 - [x] [Signierter TestFlight-Build 46](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6a9cdff81f365de10aeeec57) für den geprüften Commit `e317917` vollständig ausgeführt.
 - [x] 459 von 459 Einzeltests und 33 von 33 Bedienabläufen im signierten Lauf bestanden; `TEST SUCCEEDED`.
@@ -50,7 +62,7 @@ Simulator- und TestFlight-Buildnummern gehören zu getrennten Abläufen. Kandida
 - [ ] Momo FYR UPt Leon; zweiter Versuch am selben lokalen Tag wird abgewiesen
 - [ ] Momo reagiert auf Sarahs DONE und ändert/entfernt die Reaktion
 - [ ] Block entfernt Sichtbarkeit und verhindert neue Anfrage
-- [ ] Offline-/Reconnect-Zustand zeigt verständliche Meldung
+- [ ] Kurzer Offline-/Serverausfall bleibt bei automatischen Lesevorgängen ohne Hinweis; bestätigte Daten bleiben sichtbar und werden nach Reconnect aktualisiert. Nicht bestätigte Schreibaktionen und echte Auth-/Zugriffsfehler werden nicht als Erfolg verschwiegen.
 - [ ] Activity-Timer bleibt nach Hintergrund/App-Neustart korrekt
 - [ ] Dynamische Schrift, VoiceOver, kleine und große aktuelle iPhones
 - [ ] Account-Löschung entfernt Auth- und App-Daten

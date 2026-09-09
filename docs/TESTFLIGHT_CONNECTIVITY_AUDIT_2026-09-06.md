@@ -1,6 +1,10 @@
 # TestFlight-Verbindungsprüfung – 06.09.2026
 
-## Folgekorrekturen vom 08.09.2026 – noch nicht ausgeliefert
+## Nachprüfung am 09.09.2026
+
+[QA #71](REFERENCE_QA_71.md) bestätigt die Netzwerk-Regressionsklassen erneut: `AppStoreConnectivityTests` 5/5, `SupabaseRESTClientTests` 7/7 und `WorkoutStoreTests` 35/35 PASS; insgesamt 544/544 Unit- und 12/12 Referenz-UI-Tests erfolgreich. Die vorherige unabhängige Suchregression ist behoben. Einmaliges signiertes Paket aus `6d97776` (unveränderter App-Code `b538d05`) als [TestFlight 1.0.0 (16)](TESTFLIGHT_16_2026_09_09.md) hochgeladen, von Apple verarbeitet und FYRUP Intern zugeordnet. Auch die tatsächlich eingebettete Produktionskonfiguration und Signierung der fertigen IPA sind geprüft. Sämtliche echten iPhone-Fälle unten bleiben **NICHT AUSGEFÜHRT**. Keine neue vollständige Release-Testsuite in diesem Paketlauf.
+
+## Folgekorrekturen vom 08.09.2026 – inzwischen in internem Build 16 enthalten
 
 Erneuter ausdrücklicher Nutzerhinweis: keine wiederkehrenden „Kein Netzwerk“-/„Kein Internet“-Anzeigen in TestFlight. Der aktuelle Quellstand enthielt noch einen direkten Darstellungsweg außerhalb des bereits stillen Heute-Feeds: `WorkoutStore` gab vorübergehende Transportfehler aus Bibliotheks-/Plan-/Protokollabfragen direkt an die Oberfläche weiter. Dies ist ein belegter verbleibender Codepfad, nicht die abschließend bewiesene Ursache auf dem nicht steuerbaren iPhone.
 

@@ -1,5 +1,7 @@
 # Native QA #71 – gebündelte Nachprüfung
 
+**Nachgelagerte Auslieferung, 09.09.2026:** Nach dieser vollständigen Auswertung wurde der unveränderte App-Code als [internes TestFlight-Paket 1.0.0 (16)](TESTFLIGHT_16_2026_09_09.md) in 4m35s gebaut und bei Apple verarbeitet; Gruppe FYRUP Intern bestätigt. Kein öffentlicher Release und keine echte Geräteabnahme. Die nachfolgenden Angaben „noch kein Upload“ beschreiben diesen ursprünglichen QA-Lauf, nicht den getrennten Paketabschluss.
+
 08.09.2026, [Codemagic #71](https://codemagic.io/app/6a9aff9f64377f6028cc8d18/build/6aa0623fa9ff08be9e9dba7f), exakt `b538d05adcdeea2fd1186c9d2f4a7dd5e0949f15`. GitHub-main und Checkout im Dashboard unabhängig bestätigt. Start **21:30 CEST**, Mac mini M2. **Gesamtlauf erfolgreich beendet nach 13m11s**; Testschritt 11m36s, Bildübersicht 8s, Artefaktveröffentlichung 11s. Am 09.09.2026 Nutzer-ZIP vollständig ausgewertet: **544/544 Unit-Tests und 12/12 ausgewählte UI-Tests PASS, TEST SUCCEEDED**. Alle 33 einzelnen Bildschirmaufnahmen angesehen. Keine Produkt-Gesamtabnahme oder Auslieferung durch diesen QA-Lauf.
 
 ## Inhalt und Schutzgrenzen

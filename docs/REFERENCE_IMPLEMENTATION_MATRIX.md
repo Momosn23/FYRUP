@@ -8,7 +8,7 @@ Folgeblöcke nach `e39caf6`: [Einrichtung und kompaktere Übersichten](REFERENCE
 
 ## Bestand
 
-**Neuester Nachweis:** [QA #71](REFERENCE_QA_71.md) auf `b538d05`, **544/544 Unit-Tests und 12/12 Referenz-UI-Tests PASS**. Vollständiges Nutzer-ZIP und alle 33 neuen PNGs am 09.09.2026 geprüft. Such-/Filter-/Kartenkorrekturen und lokale Montag-Profilwoche bestätigt. Netzwerk-Regressionsfälle bestanden; echte iPhone-/TestFlight-Fälle bleiben NICHT AUSGEFÜHRT. Aktuelle Kosten/Reserve ausschließlich im [Budgetlaufbuch](CI_BUDGET_2026_09.md); ältere #68–#70-Angaben darunter sind historische Belege und keine aktuelle Gesamtaussage. Gesamte Gestaltungs-/Geräteabnahme weiterhin TEILWEISE.
+**Neuester Nachweis:** [QA #71](REFERENCE_QA_71.md) auf `b538d05`, **544/544 Unit-Tests und 12/12 Referenz-UI-Tests PASS**. Vollständiges Nutzer-ZIP und alle 33 neuen PNGs am 09.09.2026 geprüft. Such-/Filter-/Kartenkorrekturen und lokale Montag-Profilwoche bestätigt. Unveränderter App-Code inzwischen als [internes TestFlight 1.0.0 (16)](TESTFLIGHT_16_2026_09_09.md) bei Apple verarbeitet und FYRUP Intern zugeordnet; tatsächliche IPA einschließlich Produktionskonfiguration und Signierung geprüft. Netzwerk-Regressionsfälle bestanden; echte iPhone-/TestFlight-Fälle bleiben NICHT AUSGEFÜHRT. Aktuelle Kosten/Reserve ausschließlich im [Budgetlaufbuch](CI_BUDGET_2026_09.md); ältere #68–#70-Angaben darunter sind historische Belege und keine aktuelle Gesamtaussage. Gesamte Gestaltungs-/Geräteabnahme weiterhin TEILWEISE.
 
 Folgeblock nach `f66069d`: [Layout/Wetter](REFERENCE_LAYOUT_WEATHER_2026_09_08.md) bearbeitet A01/A19/R06–R10/R18 sowie W01. [QA #69](REFERENCE_QA_69.md) für exakt `e6eee6c`: **515/515 Unit-Tests, 8/9 Referenz-UI-Tests PASS**, insgesamt FAIL wegen der Wetter-AX-Link-Abfrage. Alle 22 PNGs geprüft. A01-Großschrift-Überbreite und R08-Kreistextüberlauf zusätzlich aus Bildern/Hierarchien belegt und im lokalen Folgeblock korrigiert. Der separate lokale Block `953a0fd` (A02/Release-Berechtigungen) und diese Folgefixes sind nicht in #69 enthalten. Die unten ausdrücklich genannten #68-Bilder gehören weiterhin zum vorherigen Stand.
 
@@ -66,10 +66,10 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A25 | Profil | TEILWEISE | #71: Profil-/Statistik-/Bearbeitungs-/Supportnavigation und alle sechs Profilmodelltests PASS; drei Bilder geprüft. Montag–Sonntag und nur aktuelle lokale Woche bestätigt. Gesamtes Referenz-/Gerätedesign offen |
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
-| W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #70: Wetter-Fixture, sichtbare/bedienbare Apple-Quelle und Entfernen ohne alte Temperatur PASS; Bilder einzeln geprüft. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |
+| W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #71: Wetter-Fixture, Apple-Quelle und Entfernen ohne alte Temperatur PASS; Bilder geprüft. Build 16: tatsächliche Profile/Signierungsbytes in fertiger IPA geprüft und interner TestFlight-Upload verfügbar. Echte Antwort und Standortdialog am iPhone NICHT GETESTET |
 | QA01 | Render-Vergleich | TEILWEISE | Alle 33 echten PNGs aus #71 einzeln geprüft; A01/R08 sowie Filter-/Profilwochenkorrekturen bestätigt. Übungs-/Wanderermotive fehlen, nicht alle Referenzseiten erfasst. Keine Pixelgleichheit, keine Gesamtfreigabe |
 | QA02 | Geräte-/Mehrkontenprüfung | BLOCKIERT | Kein steuerbares physisches iPhone; NICHT GETESTET |
-| CI01 | Kostenkontrollierte QA | TEILWEISE | Acht manuelle QA-Läufe abgeschlossen, #71 PASS. 8,95 USD konservativ verbraucht, 1,05 USD Rest vor Paketreserve. Release-Limit auf neun Minuten reduziert, keine automatische Wiederholung; aktueller Start/Reserve ausschließlich im Budgetlaufbuch |
+| CI01 | Kostenkontrollierte QA | TEILWEISE | Acht QA-Läufe plus ein signiertes Paket abgeschlossen; #71 und Paket 16 PASS. 9,52 USD konservativ verbraucht, 0,48 USD Rest, keine aktive Reserve. Release-Limit neun Minuten, keine automatische Wiederholung; aktueller Stand ausschließlich im Budgetlaufbuch |
 
 ## Arbeitsreihenfolge
 
