@@ -8,7 +8,7 @@ Folgeblöcke nach `e39caf6`: [Einrichtung und kompaktere Übersichten](REFERENCE
 
 ## Bestand
 
-**Neuester Nachweis:** [QA #70](REFERENCE_QA_70.md) auf `704674e`, **539/540 Unit-Tests und 12/12 Referenz-UI-Tests PASS**, Gesamtstatus FAIL wegen des im Folgecode behobenen Suchfehlers. Alle 33 PNGs einzeln geprüft. Netzwerk-Regressionsfälle bestanden; echte iPhone-/TestFlight-Fälle bleiben NICHT AUSGEFÜHRT. Zusätzliche Filter-/Karten- und Profil-Wochenkorrekturen werden gebündelt nachgeprüft. Aktuelle Kosten/Reserve ausschließlich im [Budgetlaufbuch](CI_BUDGET_2026_09.md); die folgenden #68/#69-Angaben sind historische Belege.
+**Neuester Nachweis:** [QA #71](REFERENCE_QA_71.md) auf `b538d05`, **544/544 Unit-Tests und 12/12 Referenz-UI-Tests PASS**. Vollständiges Nutzer-ZIP und alle 33 neuen PNGs am 09.09.2026 geprüft. Such-/Filter-/Kartenkorrekturen und lokale Montag-Profilwoche bestätigt. Netzwerk-Regressionsfälle bestanden; echte iPhone-/TestFlight-Fälle bleiben NICHT AUSGEFÜHRT. Aktuelle Kosten/Reserve ausschließlich im [Budgetlaufbuch](CI_BUDGET_2026_09.md); ältere #68–#70-Angaben darunter sind historische Belege und keine aktuelle Gesamtaussage. Gesamte Gestaltungs-/Geräteabnahme weiterhin TEILWEISE.
 
 Folgeblock nach `f66069d`: [Layout/Wetter](REFERENCE_LAYOUT_WEATHER_2026_09_08.md) bearbeitet A01/A19/R06–R10/R18 sowie W01. [QA #69](REFERENCE_QA_69.md) für exakt `e6eee6c`: **515/515 Unit-Tests, 8/9 Referenz-UI-Tests PASS**, insgesamt FAIL wegen der Wetter-AX-Link-Abfrage. Alle 22 PNGs geprüft. A01-Großschrift-Überbreite und R08-Kreistextüberlauf zusätzlich aus Bildern/Hierarchien belegt und im lokalen Folgeblock korrigiert. Der separate lokale Block `953a0fd` (A02/Release-Berechtigungen) und diese Folgefixes sind nicht in #69 enthalten. Die unten ausdrücklich genannten #68-Bilder gehören weiterhin zum vorherigen Stand.
 
@@ -62,14 +62,14 @@ Assets: 11 benannte Bildgruppen plus App-Icon, 122 katalogisierte Übungen mit s
 | A21 | Lebensmittel/Rezepte | VERSCHOBEN | Nährwertbasis, Zutaten, Portionen, Rezeptkopien/Sharing für spätere Version; keine derzeit nutzbaren Rezepte versprechen |
 | A22 | Supplements | TEILWEISE | Speicherung/Rückgängig sowie private Menge/Einheit im Code; 019 produktiv, neue native Abnahme und Tagesnavigation noch offen |
 | A23 | Schritte | TEILWEISE | Aggregate/Opt-in/Widerruf vorhanden; neuer Tageszugang |
-| A24 | Entdecken | TEILWEISE | #70: Such-/Favorit-/Wochenweg und Großschrift-Bedienung PASS; vier Bilder geprüft. Rücken-Suchtest fehlgeschlagen, Wortanfangsfix plus Filter-/Kartenlayout im Folgecode, erneute native/Bildkontrolle offen. Rezept-/Lebensmittelbereich verschoben |
-| A25 | Profil | TEILWEISE | #70: Profil-/Statistik-/Bearbeitungs-/Supportnavigation und vier Profilmodelltests PASS; drei Bilder geprüft. Falscher Sonntag-Wochenbeginn zusätzlich visuell gefunden; gemeinsame Wochenlogik/Zeitraumgrenze samt zwei neuen Tests im Folgecode, erneute native Kontrolle offen |
+| A24 | Entdecken | TEILWEISE | #71: Suchfehler samt neuen Wortanfangstests behoben, Such-/Favorit-/Wochenweg und Großschrift-Bedienung PASS; vier neue Bilder geprüft, Filter/Karten oben ausgerichtet. Übungsillustrationen/Geräteabnahme offen; Rezept-/Lebensmittelbereich verschoben |
+| A25 | Profil | TEILWEISE | #71: Profil-/Statistik-/Bearbeitungs-/Supportnavigation und alle sechs Profilmodelltests PASS; drei Bilder geprüft. Montag–Sonntag und nur aktuelle lokale Woche bestätigt. Gesamtes Referenz-/Gerätedesign offen |
 | A26 | Mitteilungen | TEILWEISE | Routing/Lesestatus vorhanden; Regression nötig |
 | A27 | Konto/Hilfe | TEILWEISE | Logout/Löschung/Support vorhanden; Export und Recovery prüfen |
 | W01 | WeatherKit | TEILWEISE | Capability/App Service/Profil eingerichtet. #70: Wetter-Fixture, sichtbare/bedienbare Apple-Quelle und Entfernen ohne alte Temperatur PASS; Bilder einzeln geprüft. Echte Antwort, Signierungsbytes, TestFlight und Standortdialog NICHT GETESTET |
-| QA01 | Render-Vergleich | TEILWEISE | Alle 33 echten PNGs aus #70 einzeln geprüft; vorherige A01/R08-Fehler behoben, Filter-/Profilwochenbefunde für Folgekorrektur dokumentiert. Keine Pixelgleichheit, keine Gesamtfreigabe |
+| QA01 | Render-Vergleich | TEILWEISE | Alle 33 echten PNGs aus #71 einzeln geprüft; A01/R08 sowie Filter-/Profilwochenkorrekturen bestätigt. Übungs-/Wanderermotive fehlen, nicht alle Referenzseiten erfasst. Keine Pixelgleichheit, keine Gesamtfreigabe |
 | QA02 | Geräte-/Mehrkontenprüfung | BLOCKIERT | Kein steuerbares physisches iPhone; NICHT GETESTET |
-| CI01 | Kostenkontrollierte QA | TEILWEISE | Sieben manuelle Läufe abgeschlossen, letzter #70 FAIL. 7,36 USD konservativ verbraucht, 2,64 USD Rest vor weiterer Reserve. Nächster QA-Job auf maximal 20 Minuten begrenzt; Start/Reserve im Budgetlaufbuch, keine automatische Wiederholung |
+| CI01 | Kostenkontrollierte QA | TEILWEISE | Acht manuelle QA-Läufe abgeschlossen, #71 PASS. 8,95 USD konservativ verbraucht, 1,05 USD Rest vor Paketreserve. Release-Limit auf neun Minuten reduziert, keine automatische Wiederholung; aktueller Start/Reserve ausschließlich im Budgetlaufbuch |
 
 ## Arbeitsreihenfolge
 
