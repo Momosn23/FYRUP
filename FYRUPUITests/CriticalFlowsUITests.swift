@@ -142,8 +142,9 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(joinToggle.exists)
         let confirm = app.buttons.matching(identifier: "confirm-activity").element
         revealAndTap(confirm, in: app)
-        if app.staticTexts["PLANNED"].waitForExistence(timeout: 3) {
-            app.buttons["SESSION ÖFFNEN"].firstMatch.tap()
+        let sessionOpen = app.buttons["SESSION ÖFFNEN"].firstMatch
+        if sessionOpen.waitForExistence(timeout: 5) {
+            sessionOpen.tap()
         } else {
             // Around midnight, the default one-hour lead time legitimately puts
             // the session on tomorrow. Open it through the weekly overview.
@@ -227,8 +228,7 @@ final class CriticalFlowsUITests: XCTestCase {
         app.buttons["friend-sarah"].tap()
         XCTAssertTrue(app.staticTexts["@sarah"].waitForExistence(timeout: 3))
         capture("19-friend-profile")
-        app.buttons["tab-today"].tap()
-        revealAndTap(app.buttons["Details"].firstMatch, in: app)
+        revealAndTap(app.buttons["friend-current-activity"], in: app)
         XCTAssertTrue(app.navigationBars["Aktivitätsdetails"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Kategorie"].exists)
         capture("03-activity-details")

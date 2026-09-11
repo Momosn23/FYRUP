@@ -267,13 +267,12 @@ struct PersonalSetupView: View {
                 Image(systemName: "slider.horizontal.3").foregroundStyle(FYColor.lime)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Weitere Einstellungen").font(.title3.weight(.black))
+                        .accessibilityIdentifier("setup-summary-details")
                     Text("Tippe eine Zeile, um sie zu bearbeiten.").font(.footnote).foregroundStyle(FYColor.muted)
                 }
             }
             summaryDetails.fyCard(padding: 12)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("setup-summary-details")
         .transition(.opacity.combined(with: .move(edge: .trailing)))
     }
     private var summaryDetails: some View {

@@ -138,6 +138,15 @@ private struct TodayWorkoutFeature: View {
                     }
                 }
                 .buttonStyle(FYPressStyle()).accessibilityIdentifier("open-live-activity")
+            } else if let session = nextSession, let hosted = store.hostedSessions.first(where: { $0.id == session.id }) {
+                NavigationLink { HostedSessionView(hosted: hosted) } label: {
+                    photoCard(sport: session.sport,
+                              eyebrow: "PLANNED · \(session.startsAt.formatted(date: .abbreviated, time: .shortened))",
+                              title: session.displaySubtype ?? session.sport.title,
+                              detail: session.placeName,
+                              action: "SESSION ÖFFNEN") { AnyView(EmptyView()) }
+                }
+                .buttonStyle(FYPressStyle()).accessibilityLabel("SESSION ÖFFNEN")
             } else if let session = nextSession {
                 Button {
                     store.selectedWeekDate = session.startsAt

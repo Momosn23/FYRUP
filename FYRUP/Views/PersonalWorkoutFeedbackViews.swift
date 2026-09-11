@@ -103,6 +103,7 @@ private struct WorkoutFeedbackEditor: View {
                 }
         }.tint(FYColor.lime).preferredColorScheme(.light)
             .task { await store.personal.loadFeedback(activityID: activityID); applyLoaded() }
+            .onChange(of: store.personal.feedback[activityID]?.revision) { _, _ in applyLoaded() }
             .onChange(of: store.profile?.id) { _, _ in feeling = nil; note = ""; dismiss() }
     }
     private func applyLoaded() {

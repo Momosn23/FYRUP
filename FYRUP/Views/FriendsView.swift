@@ -139,7 +139,11 @@ struct FriendProfileView: View {
                 Button { createsBlindWorkout = true } label: { Label("Blind Workout erstellen", systemImage: "eye") }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("create-blind-for-friend")
                 VStack(alignment: .leading, spacing: 8) { Text("Sportarten").font(.headline); Text(member.profile.sports.map(\.title).joined(separator: " · ")).foregroundStyle(FYColor.muted) }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
                 WeekActivityStrip(activities: recentActivities + [member.activity].compactMap { $0 })
-                if let activity = member.activity { NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }.buttonStyle(.plain) }
+                if let activity = member.activity {
+                    NavigationLink { ActivityDetailView(activity: activity, owner: member.profile) } label: { ActivityLabel(activity: activity).fyCard() }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("friend-current-activity")
+                }
                 if !sharedPlans.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Freigegebene Workout-Pläne").font(.headline)
