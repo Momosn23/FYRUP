@@ -47,7 +47,7 @@ struct WorkoutFeedbackButton: View {
         Button { showsReview = true } label: {
             Label(store.personal.feedback[activityID]?.feeling.map { "\($0.emoji) \($0.title) · Bewertung ändern" } ?? "Wie war deine Aktivität?", systemImage: "bubble.left")
         }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("review-completed-workout")
-            .sheet(isPresented: $showsReview) { WorkoutFeedbackEditor(activityID: activityID) }
+            .fullScreenCover(isPresented: $showsReview) { WorkoutFeedbackEditor(activityID: activityID) }
             .task(id: activityID) { await store.personal.loadFeedback(activityID: activityID) }
     }
 }

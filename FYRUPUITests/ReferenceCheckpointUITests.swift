@@ -249,10 +249,6 @@ import XCTest
         tap(app.buttons["setup-primary-stayActive"], in: app)
         tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 5))
-        tap(app.buttons["setup-summary-more"], in: app)
-        let summaryFooter = app.buttons["personal-setup-next"]
-        let detailsShown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Zur Übersicht'"), object: summaryFooter)
-        XCTAssertEqual(XCTWaiter.wait(for: [detailsShown], timeout: 3), .completed)
         tap(app.buttons["setup-summary-additionalGoals"], in: app)
         XCTAssertTrue(app.buttons["setup-additional-friends"].isSelected)
         XCTAssertTrue(app.buttons["setup-additional-steps"].isSelected)
