@@ -149,9 +149,17 @@ final class WorkoutFlowsUITests: XCTestCase {
         XCTAssertTrue(waitUntilReady(app.buttons["confirm-workout-share"]))
         capture("53-workout-share-preview")
         // Inspect and cancel the preview; no recipient is selected and nothing is sent.
-        tap(app.buttons["cancel-workout-share"], in: app)
-        waitUntilDismissed(export)
-        tap(app.buttons["review-completed-workout"], in: app)
+        let cancelShare = app.buttons["cancel-workout-share"]
+        tap(cancelShare, in: app)
+        waitUntilDismissed(cancelShare)
+        let review = app.buttons["review-completed-workout"]
+        XCTAssertTrue(waitUntilReady(review, timeout: 5))
+        // A sheet can expose the underlying view as hittable just before its
+        // dismissal animation stops intercepting taps. Require one stable beat.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        XCTAssertTrue(waitUntilReady(review))
+        review.tap()
+        XCTAssertTrue(app.staticTexts["Dein Rückblick"].waitForExistence(timeout: 4))
         // Assert the actual VoiceOver-facing button, not an implementation-only
         // identifier whose propagation varies across SwiftUI container updates.
         let feeling = app.buttons["Richtig gut"]
@@ -160,7 +168,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["save-workout-review"], in: app)
         waitUntilDismissed(feeling)
         XCTAssertTrue(app.buttons["review-completed-workout"].label.contains("Richtig gut"))
-        tap(app.buttons["review-completed-workout"], in: app)
+        tap(review, in: app)
         XCTAssertTrue(feeling.waitForExistence(timeout: 4))
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: feeling)], timeout: 4), .completed)
         tap(app.buttons["Ohne Änderung schließen"], in: app)
