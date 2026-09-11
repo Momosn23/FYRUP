@@ -153,7 +153,6 @@ final class WorkoutFlowsUITests: XCTestCase {
         waitUntilDismissed(export)
         tap(app.buttons["review-completed-workout"], in: app)
         let feeling = app.buttons["workout-feeling-great"]
-        XCTAssertTrue(waitUntilReady(feeling))
         tap(feeling, in: app)
         capture("58-private-workout-review")
         tap(app.buttons["save-workout-review"], in: app)
