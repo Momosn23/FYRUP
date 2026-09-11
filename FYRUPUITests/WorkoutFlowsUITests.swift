@@ -153,7 +153,15 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(cancelShare, in: app)
         waitUntilDismissed(cancelShare)
         let review = app.buttons["review-completed-workout"]
+        let pinnedShare = app.buttons["preview-workout-share"]
+        for _ in 0..<6 {
+            if review.exists, review.isHittable,
+               review.frame.maxY < pinnedShare.frame.minY - 8 { break }
+            app.swipeUp()
+        }
         XCTAssertTrue(waitUntilReady(review, timeout: 5))
+        XCTAssertLessThan(review.frame.maxY, pinnedShare.frame.minY - 8,
+                          "The review action must be fully above the pinned completion footer.")
         // A sheet can expose the underlying view as hittable just before its
         // dismissal animation stops intercepting taps. Require one stable beat.
         RunLoop.current.run(until: Date().addingTimeInterval(0.6))
