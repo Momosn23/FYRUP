@@ -178,12 +178,15 @@ final class WorkoutFlowsUITests: XCTestCase {
         waitUntilDismissed(feeling)
         let savedReview = app.buttons["review-completed-workout"]
         // Collapsing the inline card shortens the scroll content, so the action
-        // can move above the current viewport. Return to it before reopening.
+        // can move above the viewport; reset, then park it above the pinned footer.
+        for _ in 0..<6 { app.swipeDown() }
         for _ in 0..<6 {
-            if savedReview.exists && savedReview.isHittable { break }
-            app.swipeDown()
+            if savedReview.exists, savedReview.isHittable,
+               savedReview.frame.maxY < pinnedShare.frame.minY - 8 { break }
+            app.swipeUp()
         }
         XCTAssertTrue(waitUntilReady(savedReview, timeout: 5))
+        XCTAssertLessThan(savedReview.frame.maxY, pinnedShare.frame.minY - 8)
         XCTAssertTrue(savedReview.label.contains("Richtig gut"))
         savedReview.tap()
         XCTAssertTrue(feeling.waitForExistence(timeout: 4))
