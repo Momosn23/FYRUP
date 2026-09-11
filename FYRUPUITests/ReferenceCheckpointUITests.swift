@@ -13,9 +13,11 @@ import XCTest
     }
     private func tap(_ element: XCUIElement, in app: XCUIApplication, presented: Bool = false,
                      file: StaticString = #filePath, line: UInt = #line) {
-        guard element.waitForExistence(timeout: 8) else {
-            XCTFail("Element fehlt: \(element.identifier)", file: file, line: line); return
-        }
+        // SwiftUI may create offscreen scroll content lazily. Give ordinary
+        // presentation a short chance, then scroll before deciding that a row
+        // is missing. This mirrors real touch navigation instead of requiring
+        // an element to be in the accessibility tree before it can be revealed.
+        _ = element.waitForExistence(timeout: 2)
         for _ in 0..<10 {
             // XCTest may call an element below the floating bar hittable, then
             // tap a navigation button instead. Require its full visible bounds.
@@ -31,13 +33,17 @@ import XCTest
                 if !isSetupFooter && app.buttons["personal-setup-next"].exists { lowerBound = min(lowerBound, app.buttons["personal-setup-next"].frame.minY) }
                 if element.identifier != "nutrition-add-entry" && app.buttons["nutrition-add-entry"].exists { lowerBound = min(lowerBound, app.buttons["nutrition-add-entry"].frame.minY) }
             }
-            if element.isHittable && element.frame.minY >= app.frame.minY && element.frame.maxY <= lowerBound {
+            if element.exists && element.isHittable && element.frame.minY >= app.frame.minY && element.frame.maxY <= lowerBound {
                 element.tap(); return
             }
             let scroll = app.scrollViews.allElementsBoundByIndex.last {
                 $0.isHittable && $0.frame.height > app.frame.height * 0.3
             } ?? app.scrollViews.firstMatch
-            if element.frame.midY < app.frame.midY { scroll.swipeDown() } else { scroll.swipeUp() }
+            if element.exists && !element.frame.isEmpty && element.frame.midY < app.frame.midY {
+                scroll.swipeDown()
+            } else {
+                scroll.swipeUp()
+            }
         }
         try? capture("failure-\(name.filter { $0.isLetter || $0.isNumber })-\(line)", app: app)
         XCTFail("Element nicht erreichbar: \(element.identifier) / \(element.label), frame=\(element.frame)", file: file, line: line)
