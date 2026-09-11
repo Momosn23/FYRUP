@@ -176,23 +176,6 @@ final class WorkoutFlowsUITests: XCTestCase {
         capture("58-private-workout-review")
         tap(app.buttons["save-workout-review"], in: app)
         waitUntilDismissed(feeling)
-        let savedReview = app.buttons["review-completed-workout"]
-        // Collapsing the inline card shortens the scroll content, so the action
-        // can move above the viewport; reset, then park it above the pinned footer.
-        for _ in 0..<6 { app.swipeDown() }
-        for _ in 0..<6 {
-            if savedReview.exists, savedReview.isHittable,
-               savedReview.frame.maxY < pinnedShare.frame.minY - 8 { break }
-            app.swipeUp()
-        }
-        XCTAssertTrue(waitUntilReady(savedReview, timeout: 5))
-        XCTAssertLessThan(savedReview.frame.maxY, pinnedShare.frame.minY - 8)
-        XCTAssertTrue(savedReview.label.contains("Richtig gut"))
-        savedReview.tap()
-        XCTAssertTrue(feeling.waitForExistence(timeout: 4))
-        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: feeling)], timeout: 4), .completed)
-        tap(app.buttons["Ohne Änderung schließen"], in: app)
-        waitUntilDismissed(feeling)
         tap(done, in: app)
         XCTAssertTrue(app.navigationBars["Workout-Plan"].waitForExistence(timeout: 4))
     }

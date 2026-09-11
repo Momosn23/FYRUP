@@ -101,6 +101,7 @@ def main():
             ]
         elif followup == "redesign-final-workout":
             command += [
+                "-only-testing:FYRUPTests/PersonalTrainingTests/testFeedbackActualLogPersistsPrivatelyAfterRelaunch",
                 "-only-testing:FYRUPUITests/WorkoutFlowsUITests/testCreatePlanSurvivesRelaunchAndEasyTraining",
             ]
         elif not full:
