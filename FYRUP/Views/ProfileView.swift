@@ -28,12 +28,26 @@ struct ProfileView: View {
                         Text("@\(profile.username)").font(.subheadline).foregroundStyle(FYColor.muted)
                         if let bio = profile.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(FYColor.muted) }
                     }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
-                    let metricsLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 8))
-                    metricsLayout {
-                        Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat")
-                        Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak")
-                        Metric(value: "\(store.crew.count)", label: "Freunde")
-                    }.padding(.vertical, 14).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
+                    if typeSize.isAccessibilitySize {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat").frame(width: 170)
+                                Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak").frame(width: 170)
+                                Metric(value: "\(store.crew.count)", label: "Freunde").frame(width: 170)
+                            }
+                        }
+                        .accessibilityLabel("Profilübersicht")
+                        .padding(.vertical, 14)
+                        .overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
+                    } else {
+                        HStack(spacing: 8) {
+                            Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat")
+                            Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak")
+                            Metric(value: "\(store.crew.count)", label: "Freunde")
+                        }
+                        .padding(.vertical, 14)
+                        .overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
+                    }
                 }
                 VStack(spacing: 0) {
                     NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { SettingsRow(title: "Ziele & Wochenwünsche", symbol: "scope") }.accessibilityIdentifier("profile-weekly-routine")

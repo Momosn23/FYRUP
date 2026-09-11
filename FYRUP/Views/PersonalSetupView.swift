@@ -55,6 +55,12 @@ struct PersonalSetupView: View {
                         .padding(.horizontal, FYLayout.page).padding(.vertical, 12).background(FYColor.background)
                 }
                 .onChange(of: page) { _, _ in proxy.scrollTo("setup-top", anchor: .top) }
+                .onChange(of: showsSummaryDetails) { _, isExpanded in
+                    guard isExpanded else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
+                        proxy.scrollTo("setup-summary-more-anchor", anchor: .top)
+                    }
+                }
         }.background(FYColor.background).toolbar(.hidden, for: .navigationBar)
             .task(id: store.session?.userID) { restore() }
             .onChange(of: store.setup.value == nil) { _, missing in if !missing { restore() } }
@@ -242,7 +248,7 @@ struct PersonalSetupView: View {
                 }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-more")
                     .accessibilityValue(showsSummaryDetails ? "Ausgeklappt" : "Eingeklappt")
                 if showsSummaryDetails { summaryDetails }
-            }.fyCard(padding: 12)
+            }.fyCard(padding: 12).id("setup-summary-more-anchor")
             Image("OnboardingCrewCollage").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 170).clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
         }

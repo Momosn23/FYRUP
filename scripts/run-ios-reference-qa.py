@@ -45,7 +45,7 @@ def main():
     full = os.environ.get("FYRUP_QA_FULL_REGRESSION", "false").lower() == "true"
     summary = {"startedUTC": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                "commit": run(["git", "rev-parse", "HEAD"], capture_output=True).stdout.strip(),
-               "purpose": "full-regression" if full else "unit-suite and reference checkpoints",
+               "purpose": "full-regression" if full else "unit-suite, reference checkpoints and targeted live workout",
                "xcode": run(["xcodebuild", "-version"], capture_output=True).stdout.strip(),
                "deviceTests": "NOT RUN", "status": "RUNNING", "automaticRetries": 0}
     device = None
@@ -64,7 +64,11 @@ def main():
                    "-parallel-testing-enabled", "NO", "-maximum-test-execution-time-allowance", "180",
                    "-test-timeouts-enabled", "YES", "CODE_SIGNING_ALLOWED=NO"]
         if not full:
-            command += ["-only-testing:FYRUPTests", "-only-testing:FYRUPUITests/ReferenceCheckpointUITests"]
+            command += [
+                "-only-testing:FYRUPTests",
+                "-only-testing:FYRUPUITests/ReferenceCheckpointUITests",
+                "-only-testing:FYRUPUITests/WorkoutFlowsUITests/testTrackOptionalSetValuesAndPause",
+            ]
         # A single attempt. The external 20-minute checkpoint cap includes setup/cleanup.
         with (output / "xcodebuild.log").open("w", encoding="utf-8") as log:
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
