@@ -16,4 +16,11 @@
 
 ## Kostenregel
 
-Der gezielte QA-Modus ist zurückgesetzt; es gibt keinen automatischen Folgelauf. Nach dem grünen Simulator-Nachweis wird genau ein signierter TestFlight-Build ohne erneute Vollsuite gestartet.
+Der gezielte QA-Modus ist zurückgesetzt; es gibt keinen automatischen Folgelauf. Nach dem grünen Simulator-Nachweis wurde genau ein signierter TestFlight-Build ohne erneute Vollsuite gestartet.
+
+## TestFlight-Übergabe
+
+- Codemagic `FYRUP Signed TestFlight Build` Lauf 17 verwendete `main` auf Commit `86490b8`.
+- Die signierte IPA enthält FYRUP 1.0.0 mit Buildnummer 17, Mindestversion iOS 17.0 und Bundle-ID `app.fyrup.ios`.
+- App Store Connect bestätigte den Upload ohne Fehler (`UPLOAD SUCCEEDED`), Delivery UUID `fc34d1ee-3bc2-4198-8b23-1bca4b1be68d`.
+- Apples anschließende Verarbeitung und eine echte Installation auf dem iPhone sind hiervon getrennt und weiterhin nicht als ausgeführt dokumentiert.
