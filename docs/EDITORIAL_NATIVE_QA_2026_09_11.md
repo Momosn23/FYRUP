@@ -1,20 +1,19 @@
-# Editorial-UI – nativer Prüfstand vom 11.09.2026
+# Editorial-UI – nativer Prüfstand vom 11./12.09.2026
 
 ## Geprüfter Umfang
 
-- Der vollständige redaktionelle Quellblock ab `0fc34e3` wurde auf Codemagic mit Xcode 26.6 und einem iPhone-16-Simulator kompiliert.
-- Der breite Lauf 74 auf `42496f0` prüfte die vorhandene Unit-Suite, die Referenzansichten und den gezielten LIVE-Workout-Ablauf. Der App-Bau und alle gemeldeten Prüfungen bis auf die editierbare Einrichtungszusammenfassung bestanden.
-- Die zuvor abgeschnittene Großschrift-Darstellung im Profil bestand im Folgelauf.
-- Für die Zusammenfassung wurden die Darstellung in eine eigene, ruhige Seite und der Bedientest auf korrektes Scrollen in einer verzögert aufgebauten SwiftUI-Liste umgestellt (`283c2f7`, `0ee227a`, `309617f`).
-- Lokale Abschlussprüfungen: Terminologie 137 App-Textdateien bestanden; Übungskatalog 122 Einträge und 127 Muskelzuordnungen bestanden; Backend-Suiten bestanden; Prüfskript syntaktisch gültig; `git diff --check` ohne Befund.
+- Der vollständige Editorial-Quellblock ab `0fc34e3` wurde auf Codemagic mit Xcode 26.6 und einem iPhone-16-Simulator kompiliert.
+- Frühere fokussierte Läufe isolierten vier Navigations- und Sichtbarkeitslücken. Freunde-Details, geplante Sessions und die editierbare Einrichtungszusammenfassung wurden anschließend grün bestätigt.
+- Der private Workout-Rückblick bleibt nun direkt in der Abschlussseite, klappt animiert auf und unterscheidet die drei sicht- und vorlesbaren Bewertungen zuverlässig.
+- Der finale Lauf 91 auf `d053dad` prüfte ohne automatische Wiederholung den vollständigen Workout-Weg bis zur gespeicherten Bewertung sowie separat deren private Wiederherstellung nach einem Neustart. Ergebnis: `PASS` auf iPhone 16 mit iOS 26.5; Laufzeit des Testskripts 6,38 Minuten.
+- Lokale Abschlussprüfungen: Terminologie 137 App-Textdateien bestanden; QA-Auswahl- und Referenztests bestanden; Prüfskript syntaktisch gültig; `git diff --check` ohne Befund.
 
 ## Noch nicht behauptet
 
-- Der abschließende einzelne Simulator-Folgetest für `309617f` konnte noch nicht gestartet werden, weil Codemagic beim Laden der Branches und Builds mit „Failed to fetch builds“ abbrach. Es wurde kein alter Stand ersatzweise gestartet.
 - Eine echte visuelle iPhone-/TestFlight-Abnahme der neuen Editorial-UI ist **NICHT AUSGEFÜHRT**.
 - Wetter, HealthKit, Dynamic Island/Live Activity, Kontakte, Push und reale Netzwechsel sind auf einem echten Gerät weiterhin **NICHT AUSGEFÜHRT**.
 - Pixelidentität zu generierten Boards wird nicht behauptet. Die Boards sind die freigegebene visuelle Richtung; native iOS-Darstellung, echte Daten, Barrierefreiheit und sichere Zustände haben Vorrang.
 
 ## Kostenregel
 
-Der temporäre Push-Auslöser wurde wieder entfernt und der gezielte QA-Modus zurückgesetzt. Es gibt keinen automatischen Folgelauf. Sobald Codemagic wieder synchronisiert, wird zuerst nur der einzelne offene Simulator-Folgetest ausgeführt. Erst wenn er grün ist, wird genau ein signierter TestFlight-Paketlauf ohne erneute Vollsuite gestartet.
+Der gezielte QA-Modus ist zurückgesetzt; es gibt keinen automatischen Folgelauf. Nach dem grünen Simulator-Nachweis wird genau ein signierter TestFlight-Build ohne erneute Vollsuite gestartet.
