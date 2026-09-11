@@ -70,6 +70,7 @@ final class WorkoutFlowsUITests: XCTestCase {
 
     private func openPlans(_ app: XCUIApplication) {
         tap(app.buttons["tab-profile"], in: app)
+        XCTAssertTrue(app.buttons["profile-settings-shortcut"].waitForExistence(timeout: 8))
         tap(app.buttons["profile-workout-plans"], in: app)
         XCTAssertTrue(container("workout-plans-screen", in: app).waitForExistence(timeout: 8))
     }
