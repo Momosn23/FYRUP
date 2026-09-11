@@ -68,7 +68,7 @@ struct WeeklyDaySummary {
 enum ExerciseEffort: String, Codable, CaseIterable, Identifiable, Sendable {
     case easy, medium, hardcore
     var id: String { rawValue }
-    var title: String { switch self { case .easy: "Easy"; case .medium: "Mittel"; case .hardcore: "Hardcore" } }
+    var title: String { switch self { case .easy: "Leicht"; case .medium: "Mittel"; case .hardcore: "Hardcore" } }
     var symbol: String { switch self { case .easy: "leaf"; case .medium: "bolt"; case .hardcore: "flame" } }
 }
 

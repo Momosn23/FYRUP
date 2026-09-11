@@ -16,6 +16,7 @@ struct WorkoutPlansView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                FYRUPWordmark(size: 22)
                 SportHeroCard(sport: .gym, title: "Meine Workout-Pläne", subtitle: "Dein Workout. Deine Reihenfolge. Deine Crew.")
                 Button {
                     if let userID = store.profile?.id { newPlan = WorkoutPlan(ownerID: userID) }
@@ -62,8 +63,8 @@ struct WorkoutPlanCard: View {
     let plan: WorkoutPlan
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "dumbbell.fill").font(.title2).foregroundStyle(FYColor.lime)
-                .frame(width: 54, height: 58).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 14))
+            Image("SportGymHero").resizable().scaledToFill().frame(width: 76, height: 72).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous)).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 5) {
                 Text(plan.name).font(.headline).foregroundStyle(FYColor.ink)
                 Text(WorkoutPlanText.subtitle(plan))
@@ -73,7 +74,8 @@ struct WorkoutPlanCard: View {
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(FYColor.muted)
-        }.fyCard().accessibilityElement(children: .combine).accessibilityLabel(plan.name)
+        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
+            .accessibilityElement(children: .combine).accessibilityLabel(plan.name)
             .accessibilityHint("\(WorkoutPlanText.exerciseCount(plan.exercises.count)). \(plan.visibility == .private ? "Privater Plan" : "Für Freunde sichtbar")")
     }
 }
@@ -102,6 +104,8 @@ struct WorkoutPlanEditorView: View {
                     Section { Label("Dein ungespeicherter Entwurf wurde wiederhergestellt.", systemImage: "arrow.counterclockwise").font(.subheadline).foregroundStyle(FYColor.lime) }
                 }
                 Section {
+                    Image("SportGymHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 150).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)).accessibilityHidden(true)
                     TextField("z. B. Push Day", text: $draft.name).accessibilityLabel("Planname").accessibilityIdentifier("workout-plan-name")
                     Picker("Fokus (optional)", selection: category) {
                         Text("Ohne Fokus").tag("")
@@ -113,7 +117,8 @@ struct WorkoutPlanEditorView: View {
                     ForEach(Array(draft.exercises.enumerated()), id: \.element.id) { index, entry in
                         Button { editingEntry = entry } label: {
                             HStack(spacing: 12) {
-                                Text("\(index + 1)").font(.caption.bold()).foregroundStyle(FYColor.lime).frame(width: 25)
+                                Image(entry.exercise.editorialImage).resizable().scaledToFill().frame(width: 46, height: 42).clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 9)).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(entry.exercise.name).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
                                     Text(entry.prescription).font(.caption).foregroundStyle(FYColor.muted)
@@ -157,7 +162,7 @@ struct WorkoutPlanEditorView: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 5) {
                     if let validation = draft.validationMessage { Text(validation).font(.caption).foregroundStyle(FYColor.muted) }
-                    Button(store.workouts.isBusy ? "Wird gespeichert …" : "Plan speichern") {
+                    Button(store.workouts.isBusy ? "Wird gespeichert …" : "Workout-Plan speichern") {
                         Task {
                             if let saved = await store.workouts.savePlan(draft) { store.workoutDrafts.remove(id: draft.id); Haptics.success(); onSaved(saved); dismiss() }
                         }
@@ -271,14 +276,15 @@ struct WorkoutPlanDetailView: View {
                     if let description = plan.description, !description.isEmpty { Text(description).foregroundStyle(FYColor.muted) }
                     ForEach(Array(plan.exercises.enumerated()), id: \.element.id) { index, entry in
                         HStack(alignment: .top, spacing: 13) {
-                            Text("\(index + 1)").font(.headline).foregroundStyle(FYColor.lime).frame(width: 25)
+                            Image(entry.exercise.editorialImage).resizable().scaledToFill().frame(width: 66, height: 58).clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 10)).accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(entry.exercise.name).font(.headline)
                                 Text(entry.prescription).font(.subheadline).foregroundStyle(FYColor.muted)
                                 Text("\(entry.exercise.primaryMuscle.title) · \(entry.exercise.equipment.title)").font(.caption).foregroundStyle(FYColor.muted)
                                 if let note = entry.note, !note.isEmpty { Text(note).font(.caption).foregroundStyle(FYColor.muted) }
                             }; Spacer(minLength: 0)
-                        }.fyCard()
+                        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
                     }
                     Text("Du nutzt dein eigenes Workout-Protokoll. Tatsächliche Gewichte und Wiederholungen bleiben privat.").font(.caption).foregroundStyle(FYColor.muted)
                     if allowsStarting { Button(linkedActivityID == nil ? "Workout starten" : "MITZIEHEN 🔥") {

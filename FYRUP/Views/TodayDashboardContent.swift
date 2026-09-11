@@ -10,7 +10,7 @@ struct TodayDashboardContent: View {
                 FYRUPWordmark(size: 23)
                 Spacer()
                 NavigationLink { NotificationCenterView() } label: {
-                    Image(systemName: "bell").font(.title3).frame(width: 44, height: 44).background(.white, in: Circle())
+                    Image(systemName: "bell").font(.title3).frame(width: 44, height: 44)
                         .overlay(alignment: .topTrailing) {
                             if store.notifications.contains(where: { $0.readAt == nil }) { Circle().fill(FYColor.lime).frame(width: 7, height: 7).padding(6) }
                         }
@@ -28,7 +28,7 @@ struct TodayDashboardContent: View {
                 }
             }
             }
-            VStack(spacing: 6) {
+            VStack(spacing: 10) {
                 let metricLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 20)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
                 metricLayout {
                     NavigationLink { StepSettingsView() } label: {
@@ -42,7 +42,7 @@ struct TodayDashboardContent: View {
                                symbol: "flame.fill", progress: value.progress, accent: FYColor.nutrition)
                     }.buttonStyle(.plain).accessibilityIdentifier("home-nutrition-card")
                 }
-                Divider()
+                Divider().overlay(FYColor.line)
                 TodayWeekStrip()
                 NavigationLink { WeeklyFlameDetailView() } label: {
                     let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
@@ -54,7 +54,8 @@ struct TodayDashboardContent: View {
                         if !typeSize.isAccessibilitySize { Image(systemName: "chevron.right").font(.caption) }
                     }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).foregroundStyle(FYColor.ink)
                 }.accessibilityIdentifier("own-weekly-card")
-            }.fyCard(padding: 12)
+            }.padding(.vertical, 8)
+            TodayWorkoutFeature()
             TodaySupplementsSection()
             VStack(alignment: .leading, spacing: 8) {
                 let headerLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout())
@@ -67,10 +68,17 @@ struct TodayDashboardContent: View {
                 }
                 if store.crew.isEmpty {
                     NavigationLink { FriendsView() } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Gemeinsam loslegen", systemImage: "person.2").font(.body.weight(.semibold))
-                            Text("Finde Freunde oder teile deinen Einladungslink.").font(.footnote).foregroundStyle(FYColor.muted)
-                        }.frame(maxWidth: .infinity, alignment: .leading).fyCard()
+                        ZStack(alignment: .bottomLeading) {
+                            Image("FriendsCrewHero")
+                                .resizable().scaledToFill().frame(height: 142).clipped()
+                            LinearGradient(colors: [.clear, .black.opacity(0.82)], startPoint: .top, endPoint: .bottom)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Gemeinsam loslegen").font(.headline)
+                                Text("Finde Freunde oder teile deinen Einladungslink.").font(.footnote)
+                            }.foregroundStyle(.white).padding(14)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 142)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }.buttonStyle(.plain).accessibilityIdentifier("invite-first-friend")
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -79,21 +87,7 @@ struct TodayDashboardContent: View {
                 }
             }
             VStack(alignment: .leading, spacing: 12) {
-                FYSectionHeader(title: "Heute für dich")
-                if let live = store.myActivity, live.status == .live {
-                    NavigationLink { LiveActivityView() } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: live.sport.symbol).font(.title2).foregroundStyle(FYColor.lime)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("LIVE · \(live.sport.title)").font(.headline)
-                                LiveActivityTimer(activity: live).font(.subheadline).foregroundStyle(FYColor.muted)
-                            }
-                            Spacer(); Text("ÖFFNEN").font(.footnote.bold())
-                        }.foregroundStyle(FYColor.ink).fyCard()
-                    }.buttonStyle(.plain).accessibilityIdentifier("open-live-activity")
-                } else {
-                    Button("JETZT LOS") { store.activityComposerMode = 0; store.showsActivityComposer = true }.buttonStyle(PrimaryButtonStyle())
-                }
+                FYSectionHeader(title: "Mehr für dich")
                 NavigationLink { WorkoutPlansView() } label: { destination("Workout-Pläne", symbol: "dumbbell") }
                 if store.nutrition.diary?.goal != nil { NavigationLink { NutritionView() } label: { destination("Ernährung", symbol: "fork.knife") } }
                 NavigationLink { SupplementsView() } label: { destination("Supplements", symbol: "pills") }
@@ -118,6 +112,83 @@ struct TodayDashboardContent: View {
     private func destination(_ title: String, symbol: String) -> some View {
         HStack { Label(title, systemImage: symbol); Spacer(); Image(systemName: "chevron.right").font(.caption) }
             .foregroundStyle(FYColor.ink).padding(.vertical, 12)
+    }
+}
+
+private struct TodayWorkoutFeature: View {
+    @Environment(AppStore.self) private var store
+
+    private var nextSession: PlannedSession? {
+        store.personal.week?.sessions
+            .filter { ["planned", "ready"].contains($0.status) && $0.startsAt >= store.presentationDate.addingTimeInterval(-3600) }
+            .sorted { $0.startsAt < $1.startsAt }.first
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            FYSectionHeader(title: store.myActivity?.status == .live ? "Dein Workout" : "Dein nächstes Workout")
+            if let live = store.myActivity, live.status == .live {
+                NavigationLink { LiveActivityView() } label: {
+                    photoCard(sport: live.sport,
+                              eyebrow: "LIVE · \(live.sport.title)",
+                              title: live.displaySubtype ?? live.sport.title,
+                              detail: nil,
+                              action: "ÖFFNEN") {
+                        AnyView(LiveActivityTimer(activity: live).font(.subheadline.bold()).monospacedDigit())
+                    }
+                }
+                .buttonStyle(FYPressStyle()).accessibilityIdentifier("open-live-activity")
+            } else if let session = nextSession {
+                Button {
+                    store.selectedWeekDate = session.startsAt
+                    store.selectedTab = 1
+                } label: {
+                    photoCard(sport: session.sport,
+                              eyebrow: "PLANNED · \(session.startsAt.formatted(date: .abbreviated, time: .shortened))",
+                              title: session.displaySubtype ?? session.sport.title,
+                              detail: session.placeName,
+                              action: "SESSION ÖFFNEN") { AnyView(EmptyView()) }
+                }
+                .buttonStyle(FYPressStyle()).accessibilityLabel("SESSION ÖFFNEN")
+            } else {
+                Button {
+                    store.activityComposerMode = 0
+                    store.showsActivityComposer = true
+                } label: {
+                    photoCard(sport: .gym,
+                              eyebrow: "DEIN MOMENT",
+                              title: "Wähle dein nächstes Workout",
+                              detail: "Workout-Plan oder freies Workout",
+                              action: "JETZT LOS") { AnyView(EmptyView()) }
+                }
+                .buttonStyle(FYPressStyle()).accessibilityLabel("JETZT LOS")
+            }
+        }
+    }
+
+    private func photoCard<Trailing: View>(sport: SportKind, eyebrow: String, title: String, detail: String?, action: String,
+                                           @ViewBuilder trailing: () -> Trailing) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            SportPhoto(sport: sport)
+            LinearGradient(colors: [.black.opacity(0.04), .black.opacity(0.88)], startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Text(eyebrow).font(.caption.weight(.heavy)).tracking(0.5)
+                    Spacer()
+                    trailing()
+                }
+                Text(title).font(.title2.weight(.black)).fixedSize(horizontal: false, vertical: true)
+                if let detail, !detail.isEmpty { Text(detail).font(.footnote).opacity(0.86) }
+                HStack {
+                    Text(action).font(.subheadline.bold())
+                    Image(systemName: "arrow.right").font(.caption.bold())
+                }.padding(.top, 3)
+            }.foregroundStyle(.white).padding(16)
+        }
+        .frame(maxWidth: .infinity, minHeight: 218)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(FYColor.line, lineWidth: 0.6))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -169,7 +240,8 @@ private struct TodaySupplementsSection: View {
                             let name = plan?.name ?? "Supplement"
                             Button { Task { await store.supplements.mark(dose.id, as: dose.status == .taken ? .open : .taken) } } label: {
                                 VStack(spacing: 5) {
-                                    Image(systemName: supplementSymbol(name)).font(.title3).foregroundStyle(FYColor.muted)
+                                    Image("SupplementsHero").resizable().scaledToFill().frame(width: 42, height: 34).clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous)).accessibilityHidden(true)
                                     Text(name).font(.caption.weight(.medium)).fixedSize(horizontal: false, vertical: true)
                                     if let amount = plan?.amount { Text(amount.title).font(.caption).foregroundStyle(FYColor.muted).fixedSize(horizontal: false, vertical: true) }
                                     Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : "circle").font(.body).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.line)
@@ -190,14 +262,6 @@ private struct TodaySupplementsSection: View {
                     }.foregroundStyle(FYColor.ink).fyCard()
                 }.buttonStyle(.plain)
             }
-        }
-    }
-    private func supplementSymbol(_ name: String) -> String {
-        // Decorative only; never infers intake time, amount or medical advice.
-        switch name.lowercased().replacingOccurrences(of: " ", with: "") {
-        case "vitamind", "vitamind3": "sun.max"
-        case "magnesium": "moon"
-        default: "pills.fill"
         }
     }
 }

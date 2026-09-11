@@ -5,23 +5,31 @@ struct FriendsView: View {
     @State private var query = ""
     @State private var showsGroupEditor = false
     @State private var showsContactInvite = false
-    @State private var segment = 0
+    @State private var filter = CrewFilter.all
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
-                Text("Freunde").font(.largeTitle.weight(.black))
-                crewHero
-                externalInviteCard
-                NavigationLink { BlindWorkoutsView() } label: { Label("Blind Workouts", systemImage: "eye").frame(maxWidth: .infinity, alignment: .leading).fyCard() }.buttonStyle(.plain).accessibilityIdentifier("open-blind-workouts")
-                Picker("Freunde", selection: $segment) { Text("Meine Freunde").tag(0); Text("Anfragen (\(store.friendRequests.count))").tag(1) }.pickerStyle(.segmented)
-                HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Freunde suchen …", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
+                FYRUPWordmark(size: 22)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Deine Crew").font(.largeTitle.weight(.black))
+                    Text("Gemeinsam aktiver sein.").font(.subheadline).foregroundStyle(FYColor.muted)
+                }
+                HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Personen suchen", text: $query).textInputAutocapitalization(.never).onSubmit { Task { await store.searchUsers(query) } } }
                     .padding(.horizontal, 14).frame(height: 46).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 13))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(CrewFilter.allCases) { item in
+                            Button(item.title) { filter = item }
+                                .buttonStyle(CrewFilterButtonStyle(selected: filter == item))
+                                .accessibilityAddTraits(filter == item ? .isSelected : [])
+                        }
+                    }
+                }
                 if !store.userSearchResults.isEmpty { Text("ERGEBNISSE").sectionTitle(); ForEach(store.userSearchResults) { profile in PersonRow(profile: profile) { Button("HINZUFÜGEN") { Task { await store.sendFriendRequest(to: profile) } }.font(.caption.bold()).foregroundStyle(FYColor.lime) } } }
-                if segment == 1 {
-                    if store.friendRequests.isEmpty { ContentUnavailableView("Keine offenen Anfragen", systemImage: "person.badge.clock") }
+                if !store.friendRequests.isEmpty {
+                    Text("ANFRAGEN · \(store.friendRequests.count)").sectionTitle()
                     ForEach(store.friendRequests) { profile in PersonRow(profile: profile) { HStack { Button("Annehmen") { Task { await store.answerRequest(from: profile, accept: true) } }.foregroundStyle(FYColor.lime); Button("Ablehnen") { Task { await store.answerRequest(from: profile, accept: false) } }.foregroundStyle(FYColor.muted) }.font(.caption.bold()) } }
                 }
-                if segment == 0 {
                 HStack { Text("DEINE CREWS").sectionTitle(); Spacer(); Button { showsGroupEditor = true } label: { Label("Crew erstellen", systemImage: "plus.circle.fill").font(.caption.bold()) }.foregroundStyle(FYColor.lime).padding(.top, 10) }
                 if store.trainingGroups.isEmpty {
                     Button { showsGroupEditor = true } label: { HStack(spacing: 12) { Image(systemName: "person.3.fill").font(.title2).foregroundStyle(FYColor.lime); VStack(alignment: .leading, spacing: 3) { Text("Deine erste Crew erstellen").bold(); Text("Freunde gemeinsam zu Sessions einladen").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "chevron.right") }.padding(15).background(FYColor.surface, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line)) }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
@@ -29,44 +37,21 @@ struct FriendsView: View {
                     ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 11) { ForEach(store.trainingGroups) { group in NavigationLink { TrainingGroupDetailView(group: group) } label: { TrainingGroupCard(group: group) }.buttonStyle(.plain).foregroundStyle(FYColor.ink) } } }
                 }
                 Text("DEINE FREUNDE").sectionTitle()
-                if store.crew.isEmpty { ContentUnavailableView("Deine Crew ist noch leer", systemImage: "person.2") }
-                ForEach(store.crew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); FriendWeeklyLine(userID: member.id) } } }.buttonStyle(.plain).accessibilityIdentifier("friend-\(member.profile.username)") }
-                }
+                if filteredCrew.isEmpty { ContentUnavailableView(filter.emptyTitle, systemImage: "person.2") }
+                ForEach(filteredCrew) { member in NavigationLink { FriendProfileView(member: member) } label: { PersonRow(profile: member.profile) { VStack(alignment: .trailing) { StatusBadge(status: member.todayStatus); FriendWeeklyLine(userID: member.id) } } }.buttonStyle(.plain).accessibilityIdentifier("friend-\(member.profile.username)") }
+                NavigationLink { BlindWorkoutsView() } label: { Label("Blind Workouts", systemImage: "eye").frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 12) }.buttonStyle(.plain).accessibilityIdentifier("open-blind-workouts")
+                externalInviteCard
             }.padding(20)
         }.background(FYColor.background).navigationBarHidden(true).fullScreenCover(isPresented: $showsGroupEditor) { TrainingGroupEditorView() }
             .sheet(isPresented: $showsContactInvite) { ContactInviteFlowView() }
             .task { await store.weekly.refreshFriends() }
     }
 
-    private var crewHero: some View {
-        Image("FriendsCrewHero")
-            .resizable()
-            .scaledToFill()
-            .frame(maxWidth: .infinity)
-            .frame(height: 184)
-            .clipped()
-            .overlay {
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.08), .black.opacity(0.72)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("DEINE CREW").font(.caption.weight(.black)).tracking(1.2)
-                    Text("Gemeinsam loslegen. Gemeinsam dranbleiben.").font(.title3.weight(.bold))
-                }
-                .foregroundStyle(.white)
-                .padding(18)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.6)))
-            .shadow(color: .black.opacity(0.1), radius: 18, y: 8)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Deine Crew. Gemeinsam loslegen. Gemeinsam dranbleiben.")
-            .accessibilityIdentifier("friends-crew-hero")
-            .fyEntrance()
+    private var filteredCrew: [CrewMember] {
+        store.crew.filter { member in
+            let matchesQuery = query.isEmpty || member.profile.displayName.localizedCaseInsensitiveContains(query) || member.profile.username.localizedCaseInsensitiveContains(query)
+            return matchesQuery && filter.includes(member.todayStatus)
+        }
     }
 
     private var externalInviteCard: some View {
@@ -95,9 +80,39 @@ struct FriendsView: View {
     }
 }
 
+private enum CrewFilter: String, CaseIterable, Identifiable {
+    case all, live, planned, done
+    var id: String { rawValue }
+    var title: String {
+        switch self { case .all: "Alle"; case .live: "LIVE"; case .planned: "Geplant"; case .done: "Abgeschlossen" }
+    }
+    var emptyTitle: String {
+        switch self { case .all: "Deine Crew ist noch leer"; case .live: "Niemand ist gerade LIVE"; case .planned: "Keine geplanten Aktivitäten"; case .done: "Noch nichts abgeschlossen" }
+    }
+    func includes(_ status: TodayStatus) -> Bool {
+        switch self { case .all: true; case .live: status == .live; case .planned: status == .planned; case .done: status == .done }
+    }
+}
+
+private struct CrewFilterButtonStyle: ButtonStyle {
+    let selected: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(selected ? .white : FYColor.ink)
+            .padding(.horizontal, 17).frame(minHeight: 40)
+            .background(selected ? FYColor.lime : FYColor.elevated, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
 private struct PersonRow<Trailing: View>: View {
     let profile: Profile; @ViewBuilder let trailing: () -> Trailing
-    var body: some View { HStack { AvatarView(profile: profile); VStack(alignment: .leading) { Text(profile.displayName).bold(); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); trailing() }.fyCard() }
+    var body: some View {
+        HStack { AvatarView(profile: profile); VStack(alignment: .leading) { Text(profile.displayName).bold(); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); trailing() }
+            .foregroundStyle(FYColor.ink).padding(.vertical, 9)
+            .overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
+    }
 }
 
 struct FriendProfileView: View {

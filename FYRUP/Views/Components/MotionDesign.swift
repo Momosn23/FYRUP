@@ -36,8 +36,14 @@ extension SportKind {
         switch self {
         case .gym: "SportGymHero"
         case .running: "SportRunningHero"
+        case .football: "SportFootballHero"
+        case .basketball: "SportBasketballHero"
+        case .cycling: "SportOutdoorHero"
+        case .swimming: "SportSwimmingHero"
         case .martialArts: "SportCombatHero"
-        default: "SportOutdoorHero"
+        case .racket: "SportRacketHero"
+        case .yoga: "SportYogaHero"
+        case .other: "SportOutdoorHero"
         }
     }
 }
@@ -49,6 +55,29 @@ struct SportPhoto: View {
     var body: some View {
         GeometryReader { geometry in
             Image(sport.editorialImage).resizable().scaledToFill()
+                .frame(width: geometry.size.width, height: geometry.size.height).clipped()
+        }.accessibilityHidden(true).allowsHitTesting(false)
+    }
+}
+
+extension GymExercise {
+    var editorialImage: String {
+        let value = name.lowercased()
+        if value.contains("schrägbank") || value.contains("incline") { return "ExerciseInclinePress" }
+        if value.contains("bankdrücken") || value.contains("bench press") { return "ExerciseBenchPress" }
+        if value.contains("schulterdrücken") || value.contains("shoulder press") || value.contains("overhead press") { return "ExerciseShoulderPress" }
+        if value.contains("kniebeuge") || value.contains("squat") { return "ExerciseSquat" }
+        if value.contains("latzug") || value.contains("pulldown") { return "ExerciseLatPulldown" }
+        if value.contains("rudern") || value.contains("row") { return "ExerciseRow" }
+        return "SportGymHero"
+    }
+}
+
+struct ExercisePhoto: View {
+    let exercise: GymExercise
+    var body: some View {
+        GeometryReader { geometry in
+            Image(exercise.editorialImage).resizable().scaledToFill()
                 .frame(width: geometry.size.width, height: geometry.size.height).clipped()
         }.accessibilityHidden(true).allowsHitTesting(false)
     }

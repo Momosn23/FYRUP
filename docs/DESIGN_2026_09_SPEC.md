@@ -1,5 +1,10 @@
 # Verbindliche Referenzumsetzung, 08.09.2026
 
+> **Neuere visuelle Freigabe vom 11.09.2026:** Die Editorial-UI in
+> [EDITORIAL_DESIGN_APPROVAL_2026_09_11.md](EDITORIAL_DESIGN_APPROVAL_2026_09_11.md)
+> ersetzt ab jetzt die frühere kartenlastige Optik als Gestaltungsziel. Fachliche Regeln,
+> Datenschutz, Release-Umfang und Terminologie dieser Spezifikation bleiben bestehen.
+
 Quelle: Nutzerauftrag `839a13d5-5cbe-483f-9c2c-66198bc0df65`, ausgewählte Collagen `af0dfbe0-a365-4cd9-94fe-5cfc3f80df98.png` und `ad52d2c6-c191-46c4-89ab-93c85c626c2c.png`. Der Text hat Vorrang vor Bildfehlern. Die erwähnte zusätzliche Einzelreferenz für Heute liegt diesem Auftrag nicht separat bei; vorerst gilt A01 aus der Collage. Ältere Storyboards sind keine aktuelle Designfreigabe.
 
 Spätere Nutzerentscheidung am 08.09.2026: [Umfangsänderung](RELEASE_SCOPE_2026_09_08.md). Google-Anmeldung ist gestrichen, auch wenn sie in R02 der Collage erscheint. Lebensmittelanbieter/-suche, Barcode, Rezepte und Ernährungssynchronisierung sind auf eine spätere Version verschoben. Für den aktuellen Release keine funktionslosen Aktionen oder Rezeptversprechen aus diesen Bildteilen übernehmen. Manuelles lokales Tagebuch und Kalorienanzeigen bleiben erhalten.

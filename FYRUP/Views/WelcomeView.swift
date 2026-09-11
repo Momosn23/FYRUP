@@ -10,29 +10,32 @@ struct WelcomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    FYRUPWordmark(size: 38).frame(maxWidth: .infinity).padding(.top, 16)
-                    Text("Deine bessere Version beginnt heute.")
-                        .font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("welcome-heading")
-                    Text("Mehr Energie. Mehr Gesundheit. Mehr von dir.")
-                        .font(.body).foregroundStyle(FYColor.muted)
-                    // Existing project artwork. Exact mountain original and license evidence remain outstanding.
+                ZStack(alignment: .bottomLeading) {
                     Image("WelcomeHeroLight").resizable().scaledToFill()
-                        .frame(height: 260).frame(maxWidth: .infinity).clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 20)).accessibilityHidden(true)
-                    if let message = store.authMessage { Text(message).font(.footnote).accessibilityIdentifier("auth-feedback") }
-                }.padding(FYLayout.page)
+                        .frame(maxWidth: .infinity, minHeight: 650).clipped().accessibilityHidden(true)
+                    LinearGradient(colors: [.white.opacity(0.10), .clear, .black.opacity(0.74)], startPoint: .top, endPoint: .bottom)
+                    VStack(alignment: .leading, spacing: 0) {
+                        FYRUPWordmark(size: 27).padding(.top, 18)
+                        Spacer()
+                        Text("Deine bessere Version\nbeginnt heute.")
+                            .font(.system(size: 39, weight: .black)).foregroundStyle(.white)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("welcome-heading")
+                        Text("Mehr Bewegung. Mehr Energie. Mehr von dir.")
+                            .font(.body.weight(.medium)).foregroundStyle(.white.opacity(0.88)).padding(.top, 10)
+                        if let message = store.authMessage {
+                            Text(message).font(.footnote).foregroundStyle(.white).padding(.top, 10).accessibilityIdentifier("auth-feedback")
+                        }
+                    }.padding(.horizontal, FYLayout.page).padding(.bottom, 94)
+                }
+                .frame(minHeight: 650)
             }.background(FYColor.background)
                 .safeAreaInset(edge: .bottom) {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 0) {
                         Button { withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { showsAccountChoice = true } } label: {
                             Label("Los geht’s", systemImage: "arrow.right")
                         }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("welcome-intro-next")
-                        Button("Ich habe bereits ein Konto") { authMode = .signIn }
-                            .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("welcome-email-login")
-                        WelcomeLegalLinks()
-                    }.padding(.horizontal, FYLayout.page).padding(.vertical, 8).background(FYColor.background)
+                    }.padding(.horizontal, FYLayout.page).padding(.vertical, 12).background(.ultraThinMaterial)
                 }
                 .navigationDestination(isPresented: $showsAccountChoice) { accountChoice }
         }.fullScreenCover(item: $authMode) { mode in AuthView(mode: mode).id(mode.id) }
@@ -41,8 +44,11 @@ struct WelcomeView: View {
     private var accountChoice: some View {
         ScrollView {
           VStack(alignment: .leading, spacing: 24) {
-            Text("Konto erstellen").font(.largeTitle.bold()).accessibilityIdentifier("account-choice-title")
-            Text("Wähle eine Option, um fortzufahren.").foregroundStyle(FYColor.muted)
+            FYRUPWordmark(size: 25)
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Konto erstellen").font(.largeTitle.weight(.black)).accessibilityIdentifier("account-choice-title")
+                Text("Wähle eine Option, um fortzufahren.").foregroundStyle(FYColor.muted)
+            }
             SignInWithAppleButton(.continue) { store.configureAppleRequest($0) } onCompletion: { result in
                 Task { await store.handleAppleResult(result) }
             }.signInWithAppleButtonStyle(.white).frame(height: 52)
@@ -51,6 +57,11 @@ struct WelcomeView: View {
                 .disabled(store.isBusy)
             Button { authMode = .registration } label: { Label("Mit E-Mail fortfahren", systemImage: "envelope") }
                 .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("welcome-create-account").disabled(store.isBusy)
+            VStack(alignment: .leading, spacing: 18) {
+                Label("Deine Daten bleiben unter deiner Kontrolle.", systemImage: "checkmark.shield")
+                Label("Deine Ziele und Fortschritte gehören dir.", systemImage: "chart.bar")
+                Label("Gemeinsam aktiv – nur wenn du es möchtest.", systemImage: "person.2")
+            }.font(.subheadline.weight(.medium)).padding(.vertical, 8)
             // Product scope is Apple and email only; Google sign-in was explicitly removed.
             Button("Ich habe bereits ein Konto") { authMode = .signIn }
                 .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("welcome-email-login")

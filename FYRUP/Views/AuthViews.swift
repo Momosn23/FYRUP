@@ -195,22 +195,27 @@ struct SportsSetupView: View {
 struct SportGrid: View {
     @Binding var selected: Set<SportKind>
     @Environment(\.dynamicTypeSize) private var typeSize
-    private var columns: [GridItem] { Array(repeating: GridItem(.flexible()), count: typeSize.isAccessibilitySize ? 2 : 3) }
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: 10), count: typeSize.isAccessibilitySize ? 1 : 2) }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 8) {
+        LazyVGrid(columns: columns, spacing: 10) {
             ForEach(SportKind.allCases) { sport in
                 Button { selected.formSymmetricDifference([sport]) } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor)
-                        Text(sport.title).font(.footnote.weight(.medium)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    ZStack(alignment: .bottomLeading) {
+                        SportPhoto(sport: sport)
+                        LinearGradient(colors: [.clear, .black.opacity(0.82)], startPoint: .top, endPoint: .bottom)
+                        HStack(alignment: .bottom) {
+                            Text(sport.title).font(.headline.weight(.black)).lineLimit(2)
+                            Spacer(minLength: 4)
+                            Image(systemName: selected.contains(sport) ? "checkmark.circle.fill" : "circle")
+                                .font(.title3).symbolRenderingMode(.palette)
+                                .foregroundStyle(selected.contains(sport) ? FYColor.lime : .white, .white)
+                        }.padding(12)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 92).padding(.vertical, 8).foregroundStyle(FYColor.ink)
-                    .background(selected.contains(sport) ? FYColor.limeSoft : FYColor.surface, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 1.5 : 0.8))
-                    .overlay(alignment: .topTrailing) {
-                        if selected.contains(sport) { Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime).background(.white, in: Circle()).padding(6) }
-                    }
+                    .frame(maxWidth: .infinity, minHeight: typeSize.isAccessibilitySize ? 168 : 138)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(selected.contains(sport) ? FYColor.lime : FYColor.line, lineWidth: selected.contains(sport) ? 2.5 : 0.7))
                 }.buttonStyle(FYPressStyle()).accessibilityLabel(sport.title).accessibilityAddTraits(selected.contains(sport) ? .isSelected : [])
             }
         }
@@ -366,9 +371,6 @@ private extension Text {
 
 private struct OnboardingBackground: View {
     var body: some View {
-        ZStack {
-            Color.white
-            RadialGradient(colors: [FYColor.lime.opacity(0.08), .clear], center: .topTrailing, startRadius: 0, endRadius: 380)
-        }.ignoresSafeArea()
+        Color.white.ignoresSafeArea()
     }
 }

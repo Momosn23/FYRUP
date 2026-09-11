@@ -46,7 +46,7 @@ struct TrainingGroupEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
-                Button("GRUPPE ERSTELLEN") {
+                Button("CREW ERSTELLEN") {
                     Task {
                         await store.createTrainingGroup(name: name, memberIDs: Array(memberIDs))
                         if store.errorMessage == nil { dismiss() }
@@ -74,7 +74,7 @@ struct TrainingGroupCard: View {
                 Spacer()
                 Text("\(group.members.count)").font(.caption.bold()).foregroundStyle(FYColor.muted)
             }
-        }.padding(14).frame(width: 180, height: 128).background(LinearGradient(colors: [FYColor.surface, FYColor.limeSoft], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(FYColor.line))
+        }.padding(14).frame(width: 180, height: 128).background(.white, in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(FYColor.line))
     }
 }
 
@@ -98,10 +98,18 @@ struct TrainingGroupDetailView: View {
         ScrollView {
             if let group = currentGroup {
             VStack(alignment: .leading, spacing: 16) {
-                SportHeroCard(sport: .gym, title: group.name, subtitle: "\(group.members.count) Mitglieder")
+                ZStack(alignment: .bottomLeading) {
+                    Image("FriendsCrewHero").resizable().scaledToFill().frame(height: 205).clipped()
+                    LinearGradient(colors: [.clear, .black.opacity(0.82)], startPoint: .top, endPoint: .bottom)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(group.name).font(.title.weight(.black))
+                        Text("\(group.members.count) Mitglieder").font(.subheadline)
+                    }.foregroundStyle(.white).padding(16)
+                }.frame(height: 205).clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 Text("MITGLIEDER").groupSectionTitle()
                 ForEach(group.members) { profile in
-                    HStack(spacing: 12) { AvatarView(profile: profile); VStack(alignment: .leading) { Text(profile.displayName).bold(); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime) }.fyCard()
+                    HStack(spacing: 12) { AvatarView(profile: profile); VStack(alignment: .leading) { Text(profile.displayName).bold(); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }; Spacer(); Image(systemName: "checkmark.circle.fill").foregroundStyle(FYColor.lime) }
+                        .padding(.vertical, 9).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
                 }
                 if group.ownerID == store.profile?.id {
                     Button("Gruppe löschen", role: .destructive) { confirmsDelete = true }.frame(maxWidth: .infinity).padding(.top, 12)

@@ -16,6 +16,9 @@ struct ExerciseLibraryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 13) {
+                    FYRUPWordmark(size: 22)
+                    Text("Übungsbibliothek")
+                        .font(.largeTitle.weight(.black))
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted)
                         TextField("Übung oder Muskel suchen", text: $query).autocorrectionDisabled().accessibilityIdentifier("exercise-search")
@@ -52,7 +55,7 @@ struct ExerciseLibraryView: View {
                     }
                     ForEach(filteredExercises) { exercise in exerciseRow(exercise) }
                 }.padding(20)
-            }.background(FYColor.background).navigationTitle("Übung auswählen").navigationBarTitleDisplayMode(.inline)
+            }.background(FYColor.background).navigationTitle("").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
                 .task { await store.workouts.loadLibrary() }
                 .sheet(isPresented: $showsNewExercise) {
@@ -102,7 +105,8 @@ struct ExerciseLibraryView: View {
         HStack(spacing: 11) {
             Button { onSelect(exercise) } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: "dumbbell").foregroundStyle(FYColor.lime).frame(width: 34, height: 42)
+                    Image(exercise.editorialImage).resizable().scaledToFill().frame(width: 66, height: 56).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous)).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(exercise.name).font(.subheadline.bold()).foregroundStyle(FYColor.ink)
                         Text("\(exercise.primaryMuscle.title) · \(exercise.equipment.title)").font(.caption).foregroundStyle(FYColor.muted)
@@ -127,7 +131,7 @@ struct ExerciseLibraryView: View {
                 } label: { Image(systemName: "ellipsis").foregroundStyle(FYColor.muted).frame(width: 35, height: 44) }
                     .accessibilityLabel("\(exercise.name) verwalten")
             }
-        }.fyCard()
+        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
     }
 }
 

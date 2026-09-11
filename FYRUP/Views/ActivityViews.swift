@@ -37,8 +37,8 @@ struct ActivityComposerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(sport == nil ? "Was hast du vor?" : mode == 0 ? "Loslegen" : "Session planen").font(.title2.weight(.black)).accessibilityIdentifier("activity-composer-title")
-                        Text(sport == nil ? "Starte direkt oder plane mit deiner Crew." : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
+                        Text(sport == nil ? "Womit legst du los?" : mode == 0 ? "Loslegen" : "Session planen").font(.largeTitle.weight(.black)).accessibilityIdentifier("activity-composer-title")
+                        Text(sport == nil ? "Wähle deine Aktivität. Details kommen im nächsten Schritt." : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
                             .font(.subheadline).foregroundStyle(FYColor.muted)
                     }
                     if sport == nil { sportChooser }
@@ -48,7 +48,7 @@ struct ActivityComposerView: View {
             .background(FYColor.background)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: { Image(systemName: "xmark").font(.subheadline.bold()).frame(width: 34, height: 34).background(FYColor.elevated, in: Circle()) }
+                    Button { dismiss() } label: { Image(systemName: "xmark").font(.body.bold()).frame(width: 44, height: 44) }
                         .accessibilityLabel("Schließen")
                 }
             }
@@ -92,35 +92,42 @@ struct ActivityComposerView: View {
         .onChange(of: store.setup.value?.favoriteGymName) { _, _ in synchronizeFavoritePlace() }
     }
     private var sportChooser: some View {
-        VStack(spacing: 14) {
-            Button { mode = 0 } label: {
-                HStack(spacing: 14) {
-                    Image(systemName: "figure.run.circle.fill").font(.title).foregroundStyle(FYColor.lime)
-                    VStack(alignment: .leading) { Text("JETZT LOS").font(.headline); Text("Direkt loslegen").font(.caption).foregroundStyle(FYColor.muted) }
-                    Spacer(); Image(systemName: mode == 0 ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(FYColor.lime)
-                }.padding(14).background(FYColor.limeSoft, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(FYColor.lime))
-            }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
-            Button { mode = 1 } label: {
-                HStack(spacing: 14) {
-                    Image(systemName: "calendar.badge.plus").font(.title).foregroundStyle(FYColor.lime)
-                    VStack(alignment: .leading) { Text("Planen").font(.headline); Text("Für später verabreden").font(.caption).foregroundStyle(FYColor.muted) }
-                    Spacer(); Image(systemName: mode == 1 ? "checkmark.circle.fill" : "chevron.right").foregroundStyle(FYColor.lime)
-                }.padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(mode == 1 ? FYColor.lime : FYColor.line))
-            }.buttonStyle(.plain).foregroundStyle(FYColor.ink)
-            HStack { Text("BELIEBTE SPORTARTEN").composerSectionTitle(); Spacer() }
-            HStack { Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted); TextField("Suchen …", text: $sportSearch) }
-                .padding(12).background(FYColor.elevated, in: RoundedRectangle(cornerRadius: 12))
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+        VStack(spacing: 16) {
+            Picker("Startart", selection: $mode) {
+                Text("JETZT LOS").tag(0)
+                Text("SESSION PLANEN").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("activity-start-mode")
+
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(FYColor.muted)
+                TextField("Aktivität suchen", text: $sportSearch)
+            }
+            .padding(.horizontal, 14).frame(minHeight: 48)
+            .background(FYColor.elevated, in: RoundedRectangle(cornerRadius: FYLayout.controlRadius, style: .continuous))
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 ForEach(SportKind.allCases.filter { sportSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(sportSearch) }) { item in
                     Button { sport = item; subtype = nil; gymAreas = []; workoutPlan = nil } label: {
-                        VStack(spacing: 9) {
-                            Image(systemName: item.symbol).font(.title2).foregroundStyle(item.accentColor)
-                            Text(item.title).font(.caption2.bold()).lineLimit(1).minimumScaleFactor(0.72)
+                        ZStack(alignment: .bottomLeading) {
+                            SportPhoto(sport: item)
+                            LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
+                            HStack(alignment: .bottom) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Image(systemName: item.symbol).font(.headline)
+                                    Text(item.title).font(.headline.weight(.bold)).lineLimit(1).minimumScaleFactor(0.75)
+                                }
+                                Spacer(minLength: 4)
+                                Image(systemName: "arrow.up.right").font(.caption.bold())
+                            }
+                            .foregroundStyle(.white).padding(12)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 82)
-                        .background(FYColor.surface, in: RoundedRectangle(cornerRadius: 13))
-                        .overlay(RoundedRectangle(cornerRadius: 13).stroke(FYColor.line))
-                    }.foregroundStyle(FYColor.ink)
+                        .frame(maxWidth: .infinity, minHeight: 146)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(FYColor.line, lineWidth: 0.7))
+                    }
+                    .buttonStyle(FYPressStyle()).accessibilityLabel(item.title)
                 }
             }
         }
@@ -434,9 +441,15 @@ private extension SportKind {
     var heroAssetName: String {
         switch self {
         case .gym: "SportGymHero"
-        case .running, .swimming: "SportRunningHero"
-        case .martialArts, .football, .basketball: "SportCombatHero"
-        case .cycling, .racket, .yoga, .other: "SportOutdoorHero"
+        case .running: "SportRunningHero"
+        case .football: "SportFootballHero"
+        case .basketball: "SportBasketballHero"
+        case .cycling: "SportOutdoorHero"
+        case .swimming: "SportSwimmingHero"
+        case .martialArts: "SportCombatHero"
+        case .racket: "SportRacketHero"
+        case .yoga: "SportYogaHero"
+        case .other: "SportOutdoorHero"
         }
     }
 }

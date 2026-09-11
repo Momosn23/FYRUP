@@ -77,6 +77,15 @@ final class WorkoutRestStore {
         clock = nil; defaults.removeObject(forKey: key("clock", owner: userID))
         synchronizeReminder(force: true)
     }
+    func extend(activityID: UUID, by seconds: Int) {
+        guard let userID, let clock, clock.activityID == activityID, seconds > 0 else { return }
+        let duration = min(600, clock.duration + seconds)
+        guard duration != clock.duration else { return }
+        let updated = WorkoutRestClock(activityID: activityID, startedAt: clock.startedAt, duration: duration)
+        guard let data = try? JSONEncoder().encode(updated) else { return }
+        defaults.set(data, forKey: key("clock", owner: userID)); self.clock = updated
+        synchronizeReminder(force: true)
+    }
     func confirmActivity(_ activity: Activity?) {
         confirmedActivityID = activity?.userID == userID && activity?.status == .live ? activity?.id : nil
         synchronizeReminder()

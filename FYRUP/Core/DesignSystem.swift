@@ -1,11 +1,13 @@
 import SwiftUI
 
 enum FYColor {
-    static let background = Color(red: 0.969, green: 0.984, blue: 0.976)
+    // The approved editorial direction uses a nearly white, warm canvas. Green is
+    // reserved for meaning (selection, progress, LIVE and success), not atmosphere.
+    static let background = Color(red: 0.988, green: 0.990, blue: 0.987)
     static let surface = Color.white
-    static let elevated = Color(red: 0.940, green: 0.952, blue: 0.956)
-    static let line = Color(red: 0.894, green: 0.914, blue: 0.910)
-    static let ink = Color(red: 0.035, green: 0.050, blue: 0.065)
+    static let elevated = Color(red: 0.958, green: 0.962, blue: 0.960)
+    static let line = Color(red: 0.875, green: 0.890, blue: 0.885)
+    static let ink = Color(red: 0.025, green: 0.030, blue: 0.035)
     static let lime = Color(red: 0.024, green: 0.780, blue: 0.333)
     static let limeSoft = Color(red: 0.895, green: 0.990, blue: 0.930)
     static let cyan = Color(red: 0.08, green: 0.58, blue: 0.92)
@@ -33,8 +35,8 @@ struct FYCardModifier: ViewModifier {
         content
             .padding(padding)
             .background(FYColor.surface, in: RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous).stroke(FYColor.line, lineWidth: 0.6))
-            .shadow(color: FYColor.ink.opacity(0.025), radius: 8, y: 3)
+            .overlay(RoundedRectangle(cornerRadius: FYLayout.radius, style: .continuous).stroke(FYColor.line, lineWidth: 0.7))
+            .shadow(color: FYColor.ink.opacity(0.018), radius: 5, y: 2)
     }
 }
 
@@ -49,10 +51,9 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.body.weight(.semibold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: FYLayout.primaryHeight)
-            .background(FYColor.lime.opacity(configuration.isPressed ? 0.76 : 1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: FYColor.lime.opacity(0.20), radius: 8, y: 4)
+            .background(FYColor.ink.opacity(configuration.isPressed ? 0.78 : 1), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-            .animation(reduceMotion ? nil : .snappy, value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 
@@ -63,9 +64,9 @@ struct SecondaryButtonStyle: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: 48)
-            .background(FYColor.ink.opacity(configuration.isPressed ? 0.76 : 1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(FYColor.ink.opacity(configuration.isPressed ? 0.78 : 1), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-            .animation(reduceMotion ? nil : .snappy, value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 

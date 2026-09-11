@@ -47,8 +47,8 @@ struct NutritionView: View {
                             let mealEntries = entries.filter { $0.meal == meal }
                             Button { selectedMeal = meal } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: meal.symbol).font(.title3).foregroundStyle(FYColor.nutrition)
-                                        .frame(width: 36, height: 36).background(FYColor.elevated, in: Circle())
+                                    Image("NutritionMealHero").resizable().scaledToFill().frame(width: 62, height: 48).clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 10)).accessibilityHidden(true)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(meal.title).font(.subheadline.weight(.medium))
                                         Text(mealEntries.isEmpty ? "Noch nichts eingetragen" : "\(Int(NutritionValues.total(mealEntries.map(\.consumed)).kcal.rounded()).formatted()) kcal")

@@ -332,9 +332,9 @@ import XCTest
         XCTAssertTrue(app.navigationBars["Profil bearbeiten"].waitForExistence(timeout: 5))
         tap(app.buttons["Schließen"], in: app, presented: true)
         tap(app.buttons["profile-settings-shortcut"], in: app)
-        XCTAssertTrue(app.navigationBars["Einstellungen"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Einstellungen"].waitForExistence(timeout: 5))
         tap(app.buttons["settings-support"], in: app)
-        XCTAssertTrue(app.navigationBars["Hilfe & Support"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Hilfe & FYRUP"].waitForExistence(timeout: 5))
     }
 
     func testA24A25LargeTextKeepsSearchAndProfileInsideScreen() throws {

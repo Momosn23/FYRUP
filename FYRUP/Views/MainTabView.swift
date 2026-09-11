@@ -93,18 +93,15 @@ private struct FYMainNavigation: View {
             tab("Wochenplan", symbol: "calendar", index: 1, id: "week")
             Button { store.activityComposerMode = 0; store.showsActivityComposer = true } label: {
                 Image(systemName: "plus").font(.title.bold()).foregroundStyle(.white)
-                    .frame(width: 54, height: 54).background(FYColor.lime, in: Circle())
-                    .shadow(color: FYColor.lime.opacity(0.18), radius: 6, y: 3)
+                    .frame(width: 52, height: 52).background(FYColor.lime, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
             }.buttonStyle(FYPressStyle()).frame(maxWidth: .infinity)
                 .accessibilityLabel("Neue Aktivität").accessibilityIdentifier("activity-composer")
                 .accessibilityShowsLargeContentViewer { Label("Neue Aktivität", systemImage: "plus") }
             tab("Entdecken", symbol: "safari", index: 3, id: "discover")
             tab("Profil", symbol: "person.crop.circle", index: 4, id: "profile")
-        }.padding(.horizontal, 8).padding(.vertical, 6)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28))
-            .overlay(RoundedRectangle(cornerRadius: 28).stroke(FYColor.line, lineWidth: 0.5))
-            .padding(.horizontal, 12).padding(.bottom, 4)
-            .background(FYColor.background.opacity(0.96))
+        }.padding(.horizontal, 8).padding(.top, 5).padding(.bottom, 4)
+            .background(.white)
+            .overlay(alignment: .top) { Divider().overlay(FYColor.line) }
             // Navigation has a fixed spatial budget; only this bar is capped.
             // Apple's large-content viewer provides the full enlarged label.
             // Main content keeps the user's unrestricted Dynamic Type size.
@@ -119,7 +116,6 @@ private struct FYMainNavigation: View {
                 Text(title).font(.caption2).lineLimit(1)
             }.foregroundStyle(store.selectedTab == index ? FYColor.lime : FYColor.ink)
                 .frame(maxWidth: .infinity, minHeight: 54)
-                .background(store.selectedTab == index ? FYColor.limeSoft : .clear, in: RoundedRectangle(cornerRadius: 24))
         }.buttonStyle(.plain).accessibilityLabel(title).accessibilityIdentifier("tab-\(id)")
             .accessibilityAddTraits(store.selectedTab == index ? [.isSelected] : [])
             .accessibilityShowsLargeContentViewer { Label(title, systemImage: symbol) }

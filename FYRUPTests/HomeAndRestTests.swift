@@ -75,4 +75,24 @@ final class WorkoutRestStoreTests: XCTestCase {
         store.selectDuration(600); XCTAssertEqual(store.selectedDuration, 600)
         store.start(activityID: UUID()); store.clearDeletedAccount(); XCTAssertNil(store.clock); XCTAssertNil(store.userID)
     }
+
+    func testRestCanBeExtendedAndPersistsTheNewEndTime() {
+        let suite = "app.fyrup.tests.rest.extend.\(UUID())", owner = UUID(), session = UUID()
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = WorkoutRestStore(defaults: defaults)
+        store.activate(userID: owner); store.selectDuration(90)
+        store.start(activityID: session, now: Date(timeIntervalSince1970: 1_000))
+
+        store.extend(activityID: UUID(), by: 15)
+        XCTAssertEqual(store.clock?.duration, 90)
+        store.extend(activityID: session, by: 15)
+        XCTAssertEqual(store.clock?.duration, 105)
+        XCTAssertEqual(store.clock?.remaining(at: Date(timeIntervalSince1970: 1_050)), 55)
+
+        let restored = WorkoutRestStore(defaults: defaults)
+        restored.activate(userID: owner)
+        XCTAssertEqual(restored.clock?.duration, 105)
+        XCTAssertEqual(restored.clock?.endsAt, Date(timeIntervalSince1970: 1_105))
+    }
 }

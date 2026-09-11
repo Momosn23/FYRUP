@@ -274,9 +274,8 @@ final class WorkoutFlowsUITests: XCTestCase {
         createPlan(app, name: "Tracked Push")
         tap(app.buttons["Tracked Push"], in: app)
         tap(app.buttons["start-workout-plan"], in: app)
-        XCTAssertTrue(app.segmentedControls["tracking-mode"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.buttons["workout-set-0-1"].waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["current-workout-exercise"].label.hasPrefix("Aktuelle Übung:"))
-        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
         tap(app.buttons["workout-set-0-1"], in: app)
         let weight = app.textFields["set-weight"]
         tap(weight, in: app); weight.typeText("80")
@@ -284,6 +283,8 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["Tastatur schließen"], in: app)
         tap(app.buttons["save-workout-set"], in: app)
         waitUntilDismissed(weight)
+        XCTAssertTrue(container("rest-focus-countdown", in: app).waitForExistence(timeout: 4))
+        tap(app.buttons["rest-focus-primary"], in: app)
         XCTAssertTrue(app.buttons["workout-set-0-1"].waitForExistence(timeout: 5))
         let effort = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'effort-' AND identifier ENDSWITH '-hardcore'")).firstMatch
         tap(effort, in: app)
@@ -322,8 +323,7 @@ final class WorkoutFlowsUITests: XCTestCase {
         createPlan(app, name: "Draft Recovery Push")
         tap(app.buttons["Draft Recovery Push"], in: app)
         tap(app.buttons["start-workout-plan"], in: app)
-        XCTAssertTrue(app.segmentedControls["tracking-mode"].waitForExistence(timeout: 6))
-        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
+        XCTAssertTrue(app.buttons["workout-set-0-1"].waitForExistence(timeout: 6))
         tap(app.buttons["workout-set-0-1"], in: app)
         let weight = app.textFields["set-weight"]; tap(weight, in: app); weight.typeText("81")
         let reps = app.textFields["set-reps"]; tap(reps, in: app); reps.typeText("9")
@@ -337,7 +337,6 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["open-live-activity"], in: app)
         XCTAssertTrue(container("workout-tracking-screen", in: app).waitForExistence(timeout: 6))
         XCTAssertTrue(container("restored-tracking-draft", in: app).exists)
-        tap(app.segmentedControls["tracking-mode"].buttons["Tracken"], in: app)
         let storedRow = app.buttons["workout-set-0-1"]
         XCTAssertTrue(storedRow.waitForExistence(timeout: 4))
         XCTAssertFalse(storedRow.label.contains("81"), "Unconfirmed text must not appear as saved measurements.")
@@ -352,8 +351,8 @@ final class WorkoutFlowsUITests: XCTestCase {
         waitUntilDismissed(weight)
         tap(app.buttons["workout-set-0-1"], in: app)
         XCTAssertTrue(weight.waitForExistence(timeout: 4))
-        XCTAssertTrue(["", "Optional"].contains(weight.value as? String ?? "unexpected"))
-        XCTAssertTrue(["", "Optional"].contains(reps.value as? String ?? "unexpected"))
+        XCTAssertTrue(["", "Optional", "–"].contains(weight.value as? String ?? "unexpected"))
+        XCTAssertTrue(["", "Optional", "–"].contains(reps.value as? String ?? "unexpected"))
         XCTAssertFalse(app.staticTexts["restored-set-draft"].exists)
     }
 }

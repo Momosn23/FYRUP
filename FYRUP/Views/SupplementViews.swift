@@ -83,7 +83,8 @@ struct SupplementsView: View {
                         ForEach(snapshot.plans) { plan in
                             Button { editing = plan } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: plan.isPaused ? "pause.circle" : "pills.fill").foregroundStyle(FYColor.lime)
+                                    Image("SupplementsHero").resizable().scaledToFill().frame(width: 62, height: 54).clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 10)).accessibilityHidden(true)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(plan.name).font(.headline)
                                         if let amount = plan.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted) }
@@ -133,9 +134,13 @@ private struct SupplementDoseRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 10) {
-                Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : dose.status == .skipped ? "minus.circle" : "circle")
-                    .font(.title3).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.muted)
-                    .accessibilityHidden(true)
+                Image("SupplementsHero").resizable().scaledToFill().frame(width: 58, height: 54).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: dose.status == .taken ? "checkmark.circle.fill" : dose.status == .skipped ? "minus.circle.fill" : "circle")
+                            .symbolRenderingMode(.palette).foregroundStyle(dose.status == .taken ? FYColor.lime : FYColor.muted, .white)
+                            .background(.white, in: Circle())
+                    }.accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(plan?.name ?? "Eigener Eintrag").font(.subheadline.bold())
                     if let amount = plan?.amount { Text(amount.title).font(.footnote).foregroundStyle(FYColor.muted) }

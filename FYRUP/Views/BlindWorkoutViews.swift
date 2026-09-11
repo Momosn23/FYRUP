@@ -6,6 +6,7 @@ struct BlindWorkoutsView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
+                FYRUPWordmark(size: 22)
                 Text("Überraschung.\nVon deiner Crew.").font(.largeTitle.weight(.black))
                 Text("Stellt euch gegenseitig ein Blind Workout zusammen. Du entscheidest, ob es passt – die Übungen entdeckst du nach und nach.")
                     .font(.subheadline).foregroundStyle(FYColor.muted)
@@ -86,6 +87,8 @@ struct BlindWorkoutComposerView: View {
         NavigationStack {
             Form {
                 Section {
+                    Image("SportGymHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 170).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)).accessibilityHidden(true)
                     Text("Ein Workout, das seine Übungen erst unterwegs verrät.").font(.headline)
                     Text("Wähle vertraute Übungen und passende Vorgaben. Keine Straf- oder Schmerz-Challenges. Dein Freund kann jederzeit ablehnen oder aufhören.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
@@ -366,6 +369,8 @@ struct BlindWorkoutDetailView: View {
 
     private func revealedExercise(_ exercise: WorkoutExerciseLog, editable: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            ExercisePhoto(exercise: exercise.exercise).frame(maxWidth: .infinity).frame(height: editable ? 205 : 120)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             Text(exercise.exercise.name).font(.title3.bold())
             Text("\(exercise.targetSets) × \(exercise.targetRepsMin)–\(exercise.targetRepsMax) \(exercise.exercise.repetitionUnit)").font(.subheadline)
             if let weight = exercise.targetWeight { Text("Vorgabe: \(weight.formatted()) kg – passe sie an dein Können an.").font(.caption).foregroundStyle(FYColor.muted) }

@@ -31,7 +31,7 @@ struct MuscleBodyPicker: View {
             .padding(.horizontal, 12).padding(.vertical, 16)
             .background {
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(LinearGradient(colors: [Color.white, FYColor.limeSoft.opacity(0.65)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .fill(FYColor.elevated)
             }
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(FYColor.line))
 
@@ -118,10 +118,10 @@ private struct MuscleBodyDiagram: View {
         GeometryReader { geometry in
             let scale = geometry.size.width / 100
             ZStack(alignment: .topLeading) {
-                BodyOutline().fill(LinearGradient(colors: [Color(red: 0.8, green: 0.85, blue: 0.85), Color(red: 0.62, green: 0.7, blue: 0.71)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                BodyOutline().fill(Color(red: 0.62, green: 0.65, blue: 0.66))
                     .overlay(BodyOutline().stroke(Color.white.opacity(0.9), lineWidth: 1))
                     .allowsHitTesting(false).accessibilityHidden(true)
-                Ellipse().fill(Color(red: 0.72, green: 0.79, blue: 0.79))
+                Ellipse().fill(Color(red: 0.68, green: 0.70, blue: 0.71))
                     .frame(width: 23 * scale, height: 29 * scale).offset(x: 38.5 * scale, y: 4 * scale)
                     .allowsHitTesting(false).accessibilityHidden(true)
                 ForEach(BodyMuscleRegion.regions(side), id: \.muscle) { region in
@@ -129,9 +129,8 @@ private struct MuscleBodyDiagram: View {
                     let isSelected = selection.contains(region.muscle)
                     Button { onSelect(region.muscle) } label: {
                         BodyMuscleShape(region: region)
-                            .fill(LinearGradient(colors: isSelected ? [FYColor.lime, Color(red: 0.02, green: 0.55, blue: 0.34)] : [Color.white.opacity(0.48), Color.white.opacity(0.13)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(isSelected ? FYColor.lime : Color.white.opacity(0.24))
                             .overlay(BodyMuscleShape(region: region).stroke(isSelected ? Color.white.opacity(0.95) : Color(red: 0.52, green: 0.63, blue: 0.65).opacity(0.65), lineWidth: 0.8))
-                            .shadow(color: isSelected ? FYColor.lime.opacity(0.35) : .clear, radius: 5)
                             .contentShape(BodyMuscleShape(region: region))
                     }
                     .buttonStyle(.plain)

@@ -91,8 +91,9 @@ struct FYSetupHeading: View {
                         .lineLimit(1).fixedSize().dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(minWidth: 44)
                 }
             }
+            FYRUPWordmark(size: 19)
             VStack(alignment: .leading, spacing: 8) {
-                Text(title).font(.title.weight(.bold))
+                Text(title).font(.title.weight(.black))
                 if !subtitle.isEmpty { Text(subtitle).font(.body).foregroundStyle(FYColor.muted) }
             }
         }

@@ -8,7 +8,8 @@ struct WeeklyScheduleView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Wochenplan").font(.title.bold())
+                FYRUPWordmark(size: 22)
+                Text("Wochenplan").font(.largeTitle.weight(.black))
                 Picker("Woche", selection: $weekOffset) { Text("Diese Woche").tag(0); Text("Nächste Woche").tag(1) }.pickerStyle(.segmented)
                 HStack(spacing: 4) {
                     ForEach(TrainingWeekLogic.days(containing: anchor), id: \.self) { day in
@@ -31,7 +32,7 @@ struct WeeklyScheduleView: View {
                             .accessibilityIdentifier("week-day-row-\(weekday)")
                         if day != days.last { Divider() }
                     }
-                }.fyCard(padding: 12)
+                }.padding(.horizontal, 4)
                 if let error = store.personal.weekError { Text(error).font(.footnote).foregroundStyle(FYColor.muted) }
                 Button("Session planen") { store.activityComposerMode = 1; store.showsActivityComposer = true }.buttonStyle(PrimaryButtonStyle())
                 NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { Label("Persönliche Wochenwünsche", systemImage: "slider.horizontal.3").frame(minHeight: 44) }.font(.subheadline)

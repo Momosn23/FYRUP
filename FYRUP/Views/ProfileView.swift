@@ -12,7 +12,7 @@ struct ProfileView: View {
         ScrollView {
             VStack(spacing: 18) {
                 HStack {
-                    Text("Profil").font(.title2.weight(.bold)).accessibilityIdentifier("profile-title")
+                    FYRUPWordmark(size: 22).accessibilityIdentifier("profile-title")
                     Spacer()
                     NavigationLink { SettingsView() } label: {
                         Image(systemName: "gearshape").font(.title3).frame(width: 44, height: 44)
@@ -33,7 +33,7 @@ struct ProfileView: View {
                         Metric(value: "\(store.goals.monthCount)", label: "Einheiten / Monat")
                         Metric(value: store.weekly.state.map { "\($0.currentStreak)" } ?? "–", label: "Wochenstreak")
                         Metric(value: "\(store.crew.count)", label: "Freunde")
-                    }.fyCard(padding: 14)
+                    }.padding(.vertical, 14).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
                 }
                 VStack(spacing: 0) {
                     NavigationLink { TrainingRoutineEditor(isOnboarding: false) } label: { SettingsRow(title: "Ziele & Wochenwünsche", symbol: "scope") }.accessibilityIdentifier("profile-weekly-routine")
@@ -87,6 +87,9 @@ private struct ProfileStatisticsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Meine Statistiken").font(.headline).accessibilityIdentifier("profile-statistics-title")
                     Picker("Zeitraum", selection: $statisticsPeriod) { Text("Woche").tag(0); Text("Monat").tag(1); Text("Jahr").tag(2) }.pickerStyle(.segmented)
+                    if statisticsPeriod == 0 {
+                        ActivityWeekBars(activities: periodActivities, now: store.presentationDate)
+                    }
                     LabeledContent("Abgeschlossene Einheiten", value: "\(periodActivities.count)")
                     LabeledContent("Aktive Zeit", value: "\(Int(periodActivities.compactMap(\.duration).reduce(0, +) / 60)) min")
                     Text("Aus deinen geladenen Aktivitäten.").font(.caption).foregroundStyle(FYColor.muted)
@@ -214,6 +217,37 @@ struct WeekActivityStrip: View {
 
 }
 
+private struct ActivityWeekBars: View {
+    let activities: [Activity]
+    let now: Date
+    private var days: [Date] { TrainingWeekLogic.days(containing: now) }
+    private var counts: [Int] {
+        let calendar = TrainingWeekLogic.calendar()
+        return days.map { day in
+            activities.filter { activity in
+                guard activity.status == .completed,
+                      let date = activity.endedAt ?? activity.startedAt else { return false }
+                return calendar.isDate(date, inSameDayAs: day)
+            }.count
+        }
+    }
+    var body: some View {
+        let ceiling = max(1, counts.max() ?? 1)
+        HStack(alignment: .bottom, spacing: 10) {
+            ForEach(Array(days.enumerated()), id: \.offset) { index, day in
+                VStack(spacing: 6) {
+                    Spacer(minLength: 0)
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(counts[index] > 0 ? FYColor.lime : FYColor.elevated)
+                        .frame(height: max(8, 72 * CGFloat(counts[index]) / CGFloat(ceiling)))
+                    Text(day.formatted(.dateTime.weekday(.abbreviated))).font(.caption2).foregroundStyle(FYColor.muted)
+                }.frame(maxWidth: .infinity)
+            }
+        }.frame(height: 104).accessibilityElement(children: .ignore)
+            .accessibilityLabel("Einheiten dieser Woche: \(counts.reduce(0, +))")
+    }
+}
+
 private struct RecentActivitiesCard: View {
     let activities: [Activity]
     let profile: Profile
@@ -257,13 +291,15 @@ private struct SettingsView: View {
     @Environment(AppStore.self) private var store
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 18) {
+                FYRUPWordmark(size: 22)
+                Text("Einstellungen").font(.largeTitle.weight(.black))
                 if let profile = store.profile {
                     HStack(spacing: 14) {
                         AvatarView(profile: profile).scaleEffect(1.15).padding(6)
                         VStack(alignment: .leading) { Text(profile.displayName).font(.headline); Text("@\(profile.username)").font(.caption).foregroundStyle(FYColor.muted) }
                         Spacer()
-                    }.fyCard()
+                    }.padding(.vertical, 10).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
                 }
                 VStack(spacing: 0) {
                     NavigationLink { NotificationPreferencesView() } label: { SettingsRow(title: "Benachrichtigungen", symbol: "bell") }
@@ -274,12 +310,12 @@ private struct SettingsView: View {
                         .accessibilityIdentifier("settings-support")
                     Divider(); NavigationLink { AboutFyrupView() } label: { SettingsRow(title: "Über FYRUP", symbol: "info.circle") }
                         .accessibilityIdentifier("settings-about")
-                }.background(.white, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(FYColor.line))
+                }.background(.white)
                 Button { Task { await store.logout() } } label: {
                     Label("Logout", systemImage: "rectangle.portrait.and.arrow.right").foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading).padding()
                 }.background(.white, in: RoundedRectangle(cornerRadius: 16))
             }.padding(18)
-        }.background(FYColor.background).navigationTitle("Einstellungen").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        }.background(FYColor.background).navigationTitle("").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
     }
 }
 
@@ -303,6 +339,8 @@ struct SupportView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                FYRUPWordmark(size: 22)
+                Text("Hilfe & FYRUP").font(.largeTitle.weight(.black))
                 VStack(alignment: .leading, spacing: 10) {
                     Image(systemName: "questionmark.bubble.fill")
                         .font(.system(size: 42)).foregroundStyle(FYColor.lime)
@@ -342,7 +380,7 @@ struct SupportView: View {
                     }
                 }.fyCard()
             }.padding(20)
-        }.background(FYColor.background).navigationTitle("Hilfe & Support")
+        }.background(FYColor.background).navigationTitle("").navigationBarTitleDisplayMode(.inline)
     }
 }
 

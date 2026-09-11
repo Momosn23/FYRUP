@@ -105,6 +105,8 @@ struct PersonalSetupView: View {
         case .privacy: privacyPage
         case .friends: friendsPage
         case .firstActivity:
+            Image("SportGymHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 170).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
             ForEach(SetupFirstAction.allCases, id: \.self) { action in
                 FYSelectionCard(title: action.title, subtitle: action.detail, symbol: action.symbol,
                                 selected: store.setup.value?.setupJourney?.firstAction == action) {
@@ -128,6 +130,8 @@ struct PersonalSetupView: View {
     }
     private var supplementsPage: some View {
         VStack(alignment: .leading, spacing: 16) {
+            Image("SupplementsHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 150).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
             let plans = store.supplements.snapshot?.plans.filter { !$0.isArchived } ?? []
             if plans.isEmpty { hint("Wenn du keine Supplements nutzt, gehe einfach weiter. Es wird kein Einnahmeplan angelegt.") }
             SetupSupplementGrid()
@@ -140,7 +144,8 @@ struct PersonalSetupView: View {
     }
     private var nutritionPage: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: "fork.knife.circle").font(.system(size: 58)).foregroundStyle(FYColor.lime).frame(maxWidth: .infinity).padding(.vertical, 16)
+            Image("NutritionMealHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 180).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
             Label("Mahlzeiten erfassen", systemImage: "checkmark.circle").font(.body)
             Label("Eigene Kalorien- und Makroziele", systemImage: "checkmark.circle").font(.body)
             if let goal = store.nutrition.diary?.goal { Text("Dein Tagesziel: \(goal.kcal.formatted()) kcal").font(.headline) }
@@ -198,6 +203,8 @@ struct PersonalSetupView: View {
     }
     private var friendsPage: some View {
         VStack(alignment: .leading, spacing: 16) {
+            Image("OnboardingCrewCollage").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 180).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
             NavigationLink { SetupFriendSearchView() } label: { setupLink("Benutzernamen suchen", detail: "Finde deine Freunde in FYRUP", symbol: "magnifyingglass") }.buttonStyle(.plain).accessibilityIdentifier("setup-find-username")
             Button { showsContacts = true } label: { setupLink("Aus Kontakten einladen", detail: "Du wählst einen Kontakt selbst aus", symbol: "person.crop.circle.badge.plus") }.buttonStyle(.plain)
             if let username = store.profile?.username, let link = FyrupProfileLink(username: username) {
@@ -236,6 +243,8 @@ struct PersonalSetupView: View {
                     .accessibilityValue(showsSummaryDetails ? "Ausgeklappt" : "Eingeklappt")
                 if showsSummaryDetails { summaryDetails }
             }.fyCard(padding: 12)
+            Image("OnboardingCrewCollage").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 170).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
         }
     }
     private var summaryDetails: some View {

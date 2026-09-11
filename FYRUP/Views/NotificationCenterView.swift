@@ -5,7 +5,9 @@ struct NotificationCenterView: View {
     @State private var filter = 0
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            FYRUPWordmark(size: 22).padding(.horizontal, 16)
+            Text("Mitteilungen").font(.largeTitle.weight(.black)).padding(.horizontal, 16)
             Picker("Filter", selection: $filter) { Text("Alle").tag(0); Text("Einladungen").tag(1); Text("Reaktionen").tag(2) }
                 .pickerStyle(.segmented).padding(.horizontal, 16)
             if filteredNotifications.isEmpty {
@@ -19,7 +21,7 @@ struct NotificationCenterView: View {
             }
         }
         .background(FYColor.background)
-        .navigationTitle("Mitteilungen")
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
         .task { await store.markNotificationsRead() }
     }
 

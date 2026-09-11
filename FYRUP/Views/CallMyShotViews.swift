@@ -17,6 +17,8 @@ struct OwnShotCard: View {
     var body: some View {
         if let week = store.weekly.currentWeek {
             VStack(alignment: .leading, spacing: 14) {
+                Image("SportRunningHero").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 150).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)).accessibilityHidden(true)
                 if let commitment = week.commitment {
                     ShotStatusBadge(commitment: commitment).accessibilityIdentifier("own-shot-status")
                     Text(commitment.achieved ? "Gesagt. Gemacht." : "Diese Woche hole ich mein Ziel.").font(.title3.bold())
@@ -40,7 +42,7 @@ struct OwnShotCard: View {
                         .buttonStyle(PrimaryButtonStyle()).disabled(!store.weekly.isStateConfirmed || store.shot.isCalling)
                         .accessibilityIdentifier("open-call-my-shot")
                 } else {
-                    Label("Deine Flamme ist schon verdient", systemImage: "flame.fill").font(.headline).foregroundStyle(FYColor.coral)
+                    Label("Deine Streak ist schon gesichert", systemImage: "flame.fill").font(.headline).foregroundStyle(FYColor.coral)
                     Text("Ein Call ist vor dem Erreichen des Ziels möglich. Nächste Woche kannst du wieder entscheiden.")
                         .font(.footnote).foregroundStyle(FYColor.muted)
                 }

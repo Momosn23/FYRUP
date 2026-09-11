@@ -18,7 +18,8 @@ struct DiscoverView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: FYLayout.section) {
-                    Text("Entdecken").font(.largeTitle.bold()).accessibilityIdentifier("discover-title")
+                    FYRUPWordmark(size: 22)
+                    Text("Entdecken").font(.largeTitle.weight(.black)).accessibilityIdentifier("discover-title")
                     searchField
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 8), count: typeSize.isAccessibilitySize ? 1 : 4), spacing: 8) {
                             ForEach(DiscoverySection.allCases) { item in
@@ -83,11 +84,16 @@ struct DiscoverView: View {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(section == .sports || !query.isEmpty ? sports : Array(sports.prefix(4))) { sport in
                     Button { searching = false; selectedSport = sport } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: sport.symbol).font(.title2).foregroundStyle(sport.accentColor).frame(minWidth: 32)
-                            Text(sport.title).font(.subheadline.bold()).fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
-                        }.foregroundStyle(FYColor.ink).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).fyCard(padding: 12)
+                        ZStack(alignment: .bottomLeading) {
+                            SportPhoto(sport: sport)
+                            LinearGradient(colors: [.clear, .black.opacity(0.80)], startPoint: .top, endPoint: .bottom)
+                            HStack {
+                                Label(sport.title, systemImage: sport.symbol).font(.headline.bold())
+                                Spacer(); Image(systemName: "arrow.up.right").font(.caption.bold())
+                            }.foregroundStyle(.white).padding(12)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 138)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }.buttonStyle(FYPressStyle()).accessibilityLabel(sport.title)
                 }
             }
@@ -124,13 +130,14 @@ struct DiscoverView: View {
             ForEach(section == .exercises || !query.isEmpty ? exercises : Array(exercises.prefix(5))) { exercise in
                 NavigationLink { DiscoverExerciseDetailView(id: exercise.id) } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "dumbbell.fill").foregroundStyle(FYColor.lime).frame(width: 40, height: 44)
+                        Image(exercise.editorialImage).resizable().scaledToFill().frame(width: 66, height: 54).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous)).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(exercise.name).font(.subheadline.bold())
                             Text(exercise.subtitle).font(.caption).foregroundStyle(FYColor.muted)
                         }
                         Spacer(minLength: 0); Image(systemName: "chevron.right").font(.caption)
-                    }.foregroundStyle(FYColor.ink).frame(minHeight: 44).fyCard(padding: 12)
+                    }.foregroundStyle(FYColor.ink).frame(minHeight: 58).padding(.vertical, 7)
                 }.buttonStyle(FYPressStyle()).accessibilityIdentifier("discover-exercise-\(exercise.id.uuidString.lowercased())")
             }
             if section != .exercises && query.isEmpty {
@@ -179,6 +186,8 @@ private struct DiscoverExerciseDetailView: View {
             if let exercise {
                 VStack(alignment: .leading, spacing: FYLayout.section) {
                     Text(exercise.name).font(.title.bold()).accessibilityIdentifier("discover-exercise-title")
+                    ExercisePhoto(exercise: exercise).frame(maxWidth: .infinity).frame(height: 230)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     VStack(alignment: .leading, spacing: 14) {
                         Label(exercise.primaryMuscle.title, systemImage: "figure.stand")
                         Label(exercise.equipment.title, systemImage: "dumbbell")
@@ -187,7 +196,7 @@ private struct DiscoverExerciseDetailView: View {
                             Text("Weitere Muskeln: \(exercise.secondaryMuscles.map(\.title).joined(separator: ", "))").font(.subheadline)
                         }
                         if let note = exercise.note { Text(note).font(.subheadline).foregroundStyle(FYColor.muted) }
-                    }.fyCard()
+                    }.padding(.vertical, 12).overlay(alignment: .bottom) { Divider().overlay(FYColor.line) }
                     Button { Task { await store.workouts.toggleFavorite(id: id) } } label: {
                         Label(store.workouts.favorites.contains(id) ? "Favorit entfernen" : "Als Favorit speichern", systemImage: store.workouts.favorites.contains(id) ? "star.fill" : "star")
                     }.buttonStyle(OutlineButtonStyle()).disabled(store.workouts.isBusy).accessibilityIdentifier("discover-exercise-favorite")
