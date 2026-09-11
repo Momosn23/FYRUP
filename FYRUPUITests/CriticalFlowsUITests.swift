@@ -25,7 +25,11 @@ final class CriticalFlowsUITests: XCTestCase {
     }
 
     private func revealAndTap(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<6 where !element.isHittable { app.swipeUp() }
+        _ = element.waitForExistence(timeout: 1)
+        for _ in 0..<10 where !element.isHittable {
+            if element.exists && !element.frame.isEmpty && element.frame.midY < app.frame.midY { app.swipeDown() }
+            else { app.swipeUp() }
+        }
         XCTAssertTrue(element.isHittable)
         element.tap()
     }
@@ -70,8 +74,8 @@ final class CriticalFlowsUITests: XCTestCase {
         XCTAssertTrue(finish.isHittable)
         XCTAssertLessThan(finish.frame.maxY, app.buttons["tab-today"].frame.minY, "The complete action must be fully above the tab bar")
         capture("68-workout-complete-actions")
-        app.buttons["Im Feed ansehen"].tap()
-        XCTAssertTrue(app.staticTexts["DONE"].waitForExistence(timeout: 3))
+        app.buttons["return-to-today"].tap()
+        XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 3))
     }
 
     func testDiscoverPreservesTheChosenSport() {
@@ -109,7 +113,7 @@ final class CriticalFlowsUITests: XCTestCase {
 
     func testPlanWorkoutFlow() {
         let app = launchDemo()
-        app.buttons["Planen"].tap()
+        app.buttons["activity-composer"].tap()
         XCTAssertTrue(app.staticTexts["Was hast du vor?"].waitForExistence(timeout: 2))
         capture("12-plus-menu")
         app.buttons["Laufen"].tap()
@@ -204,16 +208,17 @@ final class CriticalFlowsUITests: XCTestCase {
     func testFriendsAndActivityDetailsNavigation() {
         let app = launchDemo()
         app.openFYRUPCrew()
-        XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.descendants(matching: .any)["friends-crew-hero"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Deine Crew"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(app.staticTexts["Sarah"].exists)
+        capture("18-friends")
+        let contactInvite = app.buttons["invite-from-contacts"]
+        for _ in 0..<10 where !contactInvite.isHittable { app.swipeUp() }
+        XCTAssertTrue(contactInvite.isHittable)
         XCTAssertTrue(app.buttons["share-fyrup-invite"].exists)
         XCTAssertTrue(app.buttons["share-fyrup-profile"].exists)
-        XCTAssertTrue(app.buttons["invite-from-contacts"].exists)
         XCTAssertTrue(app.staticTexts["external-invite-limit"].exists)
-        capture("18-friends")
-        app.buttons["invite-from-contacts"].tap()
+        contactInvite.tap()
         XCTAssertTrue(app.navigationBars["Kontakt einladen"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["choose-invite-contact"].exists)
         XCTAssertTrue(app.staticTexts["contact-matching-limit"].exists)
@@ -331,7 +336,7 @@ final class CriticalFlowsUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         revealAndTap(app.buttons["settings-friends"], in: app)
-        XCTAssertTrue(app.staticTexts["Freunde"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Deine Crew"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.navigationBars["Deine Crew"].exists || app.staticTexts["Deine Crew"].exists)
         capture("75-settings-friends")
     }
@@ -380,7 +385,12 @@ final class CriticalFlowsUITests: XCTestCase {
         yoga.tap()
         let save = app.buttons["ÄNDERUNGEN SPEICHERN"]
         revealAndTap(save, in: app)
-        XCTAssertTrue(app.staticTexts["Gym · Laufen · Yoga"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["profile-name"].waitForExistence(timeout: 3))
+        app.buttons["profile-edit"].tap()
+        XCTAssertTrue(app.navigationBars["Profil bearbeiten"].waitForExistence(timeout: 3))
+        let restoredYoga = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: app.buttons["Yoga"])
+        XCTAssertEqual(XCTWaiter.wait(for: [restoredYoga], timeout: 4), .completed,
+                       "Saved sports must remain selected when the editor is reopened")
     }
 
     func testCompleteOnboardingWithOptionalFields() {

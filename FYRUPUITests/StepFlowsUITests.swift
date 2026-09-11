@@ -103,7 +103,8 @@ final class StepFlowsUITests: XCTestCase {
 
     func testHealthIsOptionalAndNotNowKeepsTrainingAvailable() {
         let app = launch()
-        XCTAssertFalse(app.buttons["own-steps-card"].exists)
+        XCTAssertTrue(app.buttons["own-steps-card"].exists)
+        XCTAssertTrue(app.buttons["own-steps-card"].label.contains("Einrichten"))
         openSteps(app)
         tap(app.buttons["connect-health"], in: app)
         XCTAssertTrue(app.staticTexts["Deine tägliche Bewegung"].waitForExistence(timeout: 4))
@@ -114,7 +115,8 @@ final class StepFlowsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Schritte"].waitForExistence(timeout: 4))
         tap(app.buttons["tab-today"], in: app)
         XCTAssertTrue(app.buttons["JETZT LOS"].waitForExistence(timeout: 4))
-        XCTAssertFalse(app.buttons["own-steps-card"].exists)
+        XCTAssertTrue(app.buttons["own-steps-card"].exists)
+        XCTAssertTrue(app.buttons["own-steps-card"].label.contains("Einrichten"))
     }
 
     func testConnectingShowsOwnStepsWithoutSharingAndCanRevokeSharing() {

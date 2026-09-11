@@ -272,6 +272,8 @@ struct PersonalSetupView: View {
             }
             summaryDetails.fyCard(padding: 12)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("setup-summary-details")
         .transition(.opacity.combined(with: .move(edge: .trailing)))
     }
     private var summaryDetails: some View {

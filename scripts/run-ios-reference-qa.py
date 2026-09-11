@@ -44,12 +44,13 @@ def main():
     started = time.monotonic()
     full = os.environ.get("FYRUP_QA_FULL_REGRESSION", "false").lower() == "true"
     followup = os.environ.get("FYRUP_QA_FOLLOWUP", "").strip().lower()
-    if followup not in {"", "setup-summary"}:
+    if followup not in {"", "setup-summary", "redesign-regressions"}:
         raise SystemExit("Unsupported FYRUP_QA_FOLLOWUP value")
     summary = {"startedUTC": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                "commit": run(["git", "rev-parse", "HEAD"], capture_output=True).stdout.strip(),
                "purpose": ("full-regression" if full else
                            "targeted setup-summary follow-up" if followup == "setup-summary" else
+                           "targeted editorial regression follow-up" if followup == "redesign-regressions" else
                            "unit-suite, reference checkpoints and targeted live workout"),
                "xcode": run(["xcodebuild", "-version"], capture_output=True).stdout.strip(),
                "deviceTests": "NOT RUN", "status": "RUNNING", "automaticRetries": 0}
@@ -70,6 +71,17 @@ def main():
                    "-test-timeouts-enabled", "YES", "CODE_SIGNING_ALLOWED=NO"]
         if followup == "setup-summary":
             command += ["-only-testing:FYRUPUITests/ReferenceCheckpointUITests/testNamedSetupChoicesAndEditableSummary"]
+        elif followup == "redesign-regressions":
+            command += [
+                "-only-testing:FYRUPUITests/CriticalFlowsUITests/testTodayStartAndCompleteFlow",
+                "-only-testing:FYRUPUITests/CriticalFlowsUITests/testPlanWorkoutFlow",
+                "-only-testing:FYRUPUITests/CriticalFlowsUITests/testFriendsAndActivityDetailsNavigation",
+                "-only-testing:FYRUPUITests/CriticalFlowsUITests/testSettingsDestinationsWork",
+                "-only-testing:FYRUPUITests/CriticalFlowsUITests/testProfileSportsRemainEditable",
+                "-only-testing:FYRUPUITests/ReferenceCheckpointUITests/testNamedSetupChoicesAndEditableSummary",
+                "-only-testing:FYRUPUITests/StepFlowsUITests/testHealthIsOptionalAndNotNowKeepsTrainingAvailable",
+                "-only-testing:FYRUPUITests/WorkoutFlowsUITests/testCreatePlanSurvivesRelaunchAndEasyTraining",
+            ]
         elif not full:
             command += [
                 "-only-testing:FYRUPTests",

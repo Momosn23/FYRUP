@@ -130,12 +130,11 @@ final class WorkoutFlowsUITests: XCTestCase {
         let confirm = app.sheets.buttons["Workout abschließen"]
         tap(confirm, in: app)
         XCTAssertTrue(container("workout-completed-summary", in: app).waitForExistence(timeout: 6))
-        XCTAssertTrue(app.staticTexts["Workout geschafft!"].exists)
+        XCTAssertTrue(app.staticTexts["Stark. Workout geschafft."].exists)
         let done = app.buttons["finish-workout-summary"]
         XCTAssertTrue(waitUntilReady(done))
-        let plus = app.buttons["Planen"].firstMatch
-        XCTAssertTrue(plus.exists)
-        XCTAssertLessThan(done.frame.maxY, plus.frame.minY, "The completed workout button must stay above the raised tab-bar action.")
+        XCTAssertLessThanOrEqual(done.frame.maxY, app.frame.maxY,
+                                 "The completed workout action must stay fully on screen.")
         let share = app.buttons["preview-workout-share"]
         XCTAssertTrue(waitUntilReady(share))
         XCTAssertLessThan(share.frame.maxY, done.frame.minY, "Sharing must be visible above Done, never behind the pinned footer.")

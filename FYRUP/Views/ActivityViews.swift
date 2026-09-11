@@ -37,7 +37,7 @@ struct ActivityComposerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(sport == nil ? "Womit legst du los?" : mode == 0 ? "Loslegen" : "Session planen").font(.largeTitle.weight(.black)).accessibilityIdentifier("activity-composer-title")
+                        Text(sport == nil ? "Was hast du vor?" : mode == 0 ? "Loslegen" : "Session planen").font(.largeTitle.weight(.black)).accessibilityIdentifier("activity-composer-title")
                         Text(sport == nil ? "Wähle deine Aktivität. Details kommen im nächsten Schritt." : mode == 0 ? "Wähle deinen Fokus und leg los." : "Alles auf einen Blick – dann Crew einladen.")
                             .font(.subheadline).foregroundStyle(FYColor.muted)
                     }
@@ -525,7 +525,8 @@ private struct FreeActivityView: View {
             if didComplete {
                 if let activity = completedActivity { WorkoutFeedbackButton(activityID: activity.id) }
                 Text("Deine Aktivität erscheint entsprechend deiner Privatsphäre-Einstellung im Feed.").font(.caption).foregroundStyle(FYColor.muted).multilineTextAlignment(.center)
-                Button("Im Feed ansehen") { store.selectedTab = 0; dismiss() }.buttonStyle(OutlineButtonStyle())
+                Button("Zur Übersicht") { store.selectedTab = 0; dismiss() }
+                    .buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("return-to-today")
                 Button("Fertig") { dismiss() }.buttonStyle(SecondaryButtonStyle()).accessibilityIdentifier("finish-free-activity")
             }
             else {
