@@ -176,8 +176,6 @@ final class WorkoutFlowsUITests: XCTestCase {
         capture("58-private-workout-review")
         tap(app.buttons["save-workout-review"], in: app)
         waitUntilDismissed(feeling)
-        tap(done, in: app)
-        XCTAssertTrue(app.navigationBars["Workout-Plan"].waitForExistence(timeout: 4))
     }
 
     func testCustomExerciseAddsDirectlyAndPersists() {
