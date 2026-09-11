@@ -152,7 +152,9 @@ final class WorkoutFlowsUITests: XCTestCase {
         tap(app.buttons["cancel-workout-share"], in: app)
         waitUntilDismissed(export)
         tap(app.buttons["review-completed-workout"], in: app)
-        let feeling = app.buttons["workout-feeling-great"]
+        // Assert the actual VoiceOver-facing button, not an implementation-only
+        // identifier whose propagation varies across SwiftUI container updates.
+        let feeling = app.buttons["Richtig gut"]
         tap(feeling, in: app)
         capture("58-private-workout-review")
         tap(app.buttons["save-workout-review"], in: app)

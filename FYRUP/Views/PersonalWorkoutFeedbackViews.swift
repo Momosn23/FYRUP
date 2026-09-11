@@ -87,6 +87,7 @@ private struct WorkoutFeedbackEditor: View {
                             .background(feeling == item ? FYColor.limeSoft : FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(feeling == item ? FYColor.lime : .clear))
                     }.buttonStyle(.plain).accessibilityAddTraits(feeling == item ? .isSelected : [])
+                        .accessibilityLabel(item.title)
                         .accessibilityIdentifier("workout-feeling-\(item.rawValue)")
                 }
             }.disabled(!loaded || store.personal.savingFeedback.contains(activityID))
