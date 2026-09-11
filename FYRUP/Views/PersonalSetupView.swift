@@ -28,7 +28,11 @@ struct PersonalSetupView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     FYSetupHeading(title: page.title, subtitle: page.subtitle, step: page.position,
                                    total: SetupJourneyStep.allCases.count) {
-                        if editingSummary { editingSummary = false; move(to: .summary, proxy: proxy) }
+                        if page == .summary, showsSummaryDetails {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { showsSummaryDetails = false }
+                            proxy.scrollTo("setup-top", anchor: .top)
+                        }
+                        else if editingSummary { editingSummary = false; move(to: .summary, proxy: proxy) }
                         else if let previous = page.previous { move(to: previous, proxy: proxy) }
                         else if isOnboarding { store.route = .sportsSetup }
                         else { dismiss() }
@@ -44,8 +48,13 @@ struct PersonalSetupView: View {
             }.scrollDismissesKeyboard(.interactively).clipped()
                 .safeAreaInset(edge: .bottom) {
                     VStack(spacing: 4) {
-                        Button(page == .summary ? (isOnboarding ? "Zu FYRUP" : "Einrichtung abschließen") : "Weiter") {
-                            Task { await advance(proxy: proxy, skipping: false) }
+                        Button(page == .summary ? (showsSummaryDetails ? "Zur Übersicht" : (isOnboarding ? "Zu FYRUP" : "Einrichtung abschließen")) : "Weiter") {
+                            if page == .summary, showsSummaryDetails {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { showsSummaryDetails = false }
+                                proxy.scrollTo("setup-top", anchor: .top)
+                            } else {
+                                Task { await advance(proxy: proxy, skipping: false) }
+                            }
                         }.buttonStyle(PrimaryButtonStyle()).accessibilityIdentifier("personal-setup-next")
                         if page != .summary {
                             Button("Später einrichten") { Task { await advance(proxy: proxy, skipping: true) } }
@@ -55,12 +64,6 @@ struct PersonalSetupView: View {
                         .padding(.horizontal, FYLayout.page).padding(.vertical, 12).background(FYColor.background)
                 }
                 .onChange(of: page) { _, _ in proxy.scrollTo("setup-top", anchor: .top) }
-                .onChange(of: showsSummaryDetails) { _, isExpanded in
-                    guard isExpanded else { return }
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
-                        proxy.scrollTo("setup-summary-more-anchor", anchor: .top)
-                    }
-                }
         }.background(FYColor.background).toolbar(.hidden, for: .navigationBar)
             .task(id: store.session?.userID) { restore() }
             .onChange(of: store.setup.value == nil) { _, missing in if !missing { restore() } }
@@ -120,7 +123,9 @@ struct PersonalSetupView: View {
                 }.accessibilityIdentifier("setup-first-\(action.rawValue)")
             }
             hint("Die Auswahl startet noch keine Aktivität. Auch beim Abbrechen bleibt deine Einrichtung erhalten.")
-        case .summary: summaryPage
+        case .summary:
+            if showsSummaryDetails { summaryDetailsPage }
+            else { summaryPage }
         }
     }
     private var weeklyPage: some View {
@@ -238,20 +243,31 @@ struct PersonalSetupView: View {
             }.fyCard(padding: 12)
             VStack(spacing: 0) {
                 Button {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { showsSummaryDetails.toggle() }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { showsSummaryDetails = true }
                 } label: {
                     HStack {
                         Label("Weitere Einstellungen", systemImage: "slider.horizontal.3").font(.subheadline.weight(.semibold))
                         Spacer()
-                        Image(systemName: showsSummaryDetails ? "chevron.up" : "chevron.down").font(.caption)
+                        Image(systemName: "chevron.right").font(.caption)
                     }.foregroundStyle(FYColor.ink).frame(minHeight: 44).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-more")
-                    .accessibilityValue(showsSummaryDetails ? "Ausgeklappt" : "Eingeklappt")
-                if showsSummaryDetails { summaryDetails }
-            }.fyCard(padding: 12).id("setup-summary-more-anchor")
+            }.fyCard(padding: 12)
             Image("OnboardingCrewCollage").resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 170).clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).accessibilityHidden(true)
         }
+    }
+    private var summaryDetailsPage: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image(systemName: "slider.horizontal.3").foregroundStyle(FYColor.lime)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Weitere Einstellungen").font(.title3.weight(.black))
+                    Text("Tippe eine Zeile, um sie zu bearbeiten.").font(.footnote).foregroundStyle(FYColor.muted)
+                }
+            }
+            summaryDetails.fyCard(padding: 12)
+        }
+        .transition(.opacity.combined(with: .move(edge: .trailing)))
     }
     private var summaryDetails: some View {
         VStack(spacing: 0) {
@@ -285,7 +301,7 @@ struct PersonalSetupView: View {
     private func summaryRow(_ target: SetupJourneyStep, detail: String, symbol: String) -> some View {
         Button {
             guard store.setup.moveJourney(to: target) else { return }
-            editingSummary = true; page = target
+            showsSummaryDetails = false; editingSummary = true; page = target
             if target == .body { bodyDraft = .init(store.setup.value) }
         } label: { summaryLabel(target.title, detail: detail, symbol: symbol) }.buttonStyle(.plain).accessibilityIdentifier("setup-summary-\(target.rawValue)")
     }

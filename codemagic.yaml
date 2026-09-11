@@ -12,6 +12,9 @@ workflows:
       xcode: "26.6"
       vars:
         FYRUP_QA_FULL_REGRESSION: "false"
+        # One bounded follow-up for the sole remaining editorial QA failure.
+        # Reset to an empty value after the run; ordinary milestones stay broad.
+        FYRUP_QA_FOLLOWUP: "setup-summary"
     # No external SPM packages. Do not cache the entire DerivedData tree.
     scripts:
       - name: Install XcodeGen
