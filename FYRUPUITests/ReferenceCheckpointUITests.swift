@@ -250,7 +250,7 @@ import XCTest
         tap(app.buttons["personal-setup-next"], in: app)
         XCTAssertTrue(app.staticTexts["Alles bereit!"].waitForExistence(timeout: 5))
         tap(app.buttons["setup-summary-more"], in: app)
-        XCTAssertTrue(app.descendants(matching: .any)["setup-summary-details"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["setup-summary-additionalGoals"].waitForExistence(timeout: 5))
         tap(app.buttons["setup-summary-additionalGoals"], in: app)
         XCTAssertTrue(app.buttons["setup-additional-friends"].isSelected)
         XCTAssertTrue(app.buttons["setup-additional-steps"].isSelected)

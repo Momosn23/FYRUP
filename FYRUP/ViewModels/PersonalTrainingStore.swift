@@ -69,7 +69,15 @@ final class PersonalTrainingStore {
         weekRequest = UUID(); week = nil; weekError = nil; isLoadingWeek = false
     }
     func loadFeedback(activityID: UUID, force: Bool = false) async {
-        guard userID != nil, !loadingFeedback.contains(activityID), !savingFeedback.contains(activityID), force || feedback[activityID] == nil else { return }
+        guard userID != nil, !savingFeedback.contains(activityID) else { return }
+        if loadingFeedback.contains(activityID) {
+            let epoch = generation
+            while epoch == generation, loadingFeedback.contains(activityID), !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 25_000_000)
+            }
+            return
+        }
+        guard force || feedback[activityID] == nil else { return }
         let epoch = generation; loadingFeedback.insert(activityID)
         defer { if epoch == generation { loadingFeedback.remove(activityID) } }
         do {

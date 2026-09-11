@@ -85,6 +85,7 @@ def main():
             ]
         elif followup == "redesign-final-four":
             command += [
+                "-only-testing:FYRUPTests/PersonalTrainingTests/testConcurrentFeedbackLoadWaitsForTheConfirmedResult",
                 "-only-testing:FYRUPUITests/CriticalFlowsUITests/testPlanWorkoutFlow",
                 "-only-testing:FYRUPUITests/CriticalFlowsUITests/testFriendsAndActivityDetailsNavigation",
                 "-only-testing:FYRUPUITests/ReferenceCheckpointUITests/testNamedSetupChoicesAndEditableSummary",

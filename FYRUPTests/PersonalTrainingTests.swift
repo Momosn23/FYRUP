@@ -175,6 +175,22 @@ final class PersonalTrainingTests: XCTestCase {
         store.activate(userID: other)
         XCTAssertTrue(store.feedback.isEmpty); XCTAssertTrue(store.feedbackErrors.isEmpty)
     }
+    func testConcurrentFeedbackLoadWaitsForTheConfirmedResult() async {
+        let repo = PersonalTrainingStub(); await repo.holdFeedback()
+        let store = PersonalTrainingStore(repository: repo); store.activate(userID: owner)
+        let id = UUID()
+        let first = Task { await store.loadFeedback(activityID: id) }
+        for _ in 0..<100 { if await repo.hasHeldFeedback { break }; await Task.yield() }
+        let held = await repo.hasHeldFeedback
+        XCTAssertTrue(held)
+        let second = Task { await store.loadFeedback(activityID: id) }
+        await Task.yield()
+        XCTAssertTrue(store.loadingFeedback.contains(id))
+        await repo.releaseFeedback(activityID: id)
+        await first.value; await second.value
+        XCTAssertNotNil(store.feedback[id])
+        XCTAssertFalse(store.loadingFeedback.contains(id))
+    }
     func testLegacyConfirmedGoalResumesNamedPreferencesWithoutRepeatingConfirmation() async throws {
         let repository = DemoRepository(startsWithoutProfile: true)
         let store = AppStore(repository: repository); await store.bootstrap()
@@ -197,20 +213,28 @@ private actor PersonalTrainingStub: PersonalTrainingRepository {
     private var writeFails = false
     private var holdsRoutine = false
     private var holdsWeek = false
+    private var holdsFeedback = false
     private var routineContinuation: CheckedContinuation<TrainingRoutine, Never>?
     private var weekContinuation: CheckedContinuation<TrainingWeekSnapshot, Never>?
+    private var feedbackContinuation: CheckedContinuation<PersonalWorkoutFeedback, Never>?
     private var routine = TrainingRoutine()
     private var snapshot = TrainingWeekSnapshot()
     private var feedback: [UUID: PersonalWorkoutFeedback] = [:]
     private(set) var routineWrites = 0
     var hasHeldRoutine: Bool { routineContinuation != nil }
     var hasHeldWeek: Bool { weekContinuation != nil }
+    var hasHeldFeedback: Bool { feedbackContinuation != nil }
     func failReads(_ enabled: Bool) { readFails = enabled }
     func failWrites(_ enabled: Bool) { writeFails = enabled }
     func holdRoutine() { holdsRoutine = true }
     func holdWeek() { holdsWeek = true }
+    func holdFeedback() { holdsFeedback = true }
     func releaseRoutine() { routineContinuation?.resume(returning: routine); routineContinuation = nil; holdsRoutine = false }
     func releaseWeek() { weekContinuation?.resume(returning: snapshot); weekContinuation = nil; holdsWeek = false }
+    func releaseFeedback(activityID: UUID) {
+        feedbackContinuation?.resume(returning: feedback[activityID] ?? PersonalWorkoutFeedback(activityID: activityID))
+        feedbackContinuation = nil; holdsFeedback = false
+    }
     func setWeek(_ value: TrainingWeekSnapshot) { snapshot = value }
     func trainingRoutine() async throws -> TrainingRoutine {
         if readFails { throw AppError.server }
@@ -230,6 +254,7 @@ private actor PersonalTrainingStub: PersonalTrainingRepository {
     }
     func workoutFeedback(activityID: UUID) async throws -> PersonalWorkoutFeedback {
         if readFails { throw AppError.server }
+        if holdsFeedback { return await withCheckedContinuation { feedbackContinuation = $0 } }
         return feedback[activityID] ?? PersonalWorkoutFeedback(activityID: activityID)
     }
     func saveWorkoutFeedback(_ value: PersonalWorkoutFeedback) async throws -> PersonalWorkoutFeedback {
