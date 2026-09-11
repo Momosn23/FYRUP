@@ -321,7 +321,7 @@ struct WorkoutTrackingView: View {
 
     private func exerciseCard(_ exercise: WorkoutExerciseLog, index: Int) -> some View {
         let isCurrent = displayed?.currentExercise?.id == exercise.id
-        VStack(alignment: .leading, spacing: 15) {
+        return VStack(alignment: .leading, spacing: 15) {
             if isCurrent {
                 ZStack(alignment: .bottomLeading) {
                     ExercisePhoto(exercise: exercise.exercise)
