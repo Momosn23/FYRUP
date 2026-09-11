@@ -12,7 +12,7 @@ workflows:
       xcode: "26.6"
       vars:
         FYRUP_QA_FULL_REGRESSION: "false"
-        FYRUP_QA_FOLLOWUP: "redesign-final-two"
+        FYRUP_QA_FOLLOWUP: "redesign-final-workout"
     # No external SPM packages. Do not cache the entire DerivedData tree.
     scripts:
       - name: Install XcodeGen

@@ -44,67 +44,77 @@ struct WorkoutFeedbackButton: View {
     let activityID: UUID
     @State private var showsReview = false
     var body: some View {
-        Button { showsReview = true } label: {
-            Label(store.personal.feedback[activityID]?.feeling.map { "\($0.emoji) \($0.title) · Bewertung ändern" } ?? "Wie war deine Aktivität?", systemImage: "bubble.left")
-        }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("review-completed-workout")
-            .fullScreenCover(isPresented: $showsReview) { WorkoutFeedbackEditor(activityID: activityID) }
-            .task(id: activityID) { await store.personal.loadFeedback(activityID: activityID) }
+        VStack(spacing: 14) {
+            Button { withAnimation(.easeInOut(duration: 0.2)) { showsReview = true } } label: {
+                Label(store.personal.feedback[activityID]?.feeling.map { "\($0.emoji) \($0.title) · Bewertung ändern" } ?? "Wie war deine Aktivität?", systemImage: "bubble.left")
+            }.buttonStyle(OutlineButtonStyle()).accessibilityIdentifier("review-completed-workout")
+            if showsReview {
+                WorkoutFeedbackEditor(activityID: activityID) {
+                    withAnimation(.easeInOut(duration: 0.2)) { showsReview = false }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .task(id: activityID) { await store.personal.loadFeedback(activityID: activityID) }
     }
 }
 
 private struct WorkoutFeedbackEditor: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
     let activityID: UUID
+    let close: () -> Void
     @State private var feeling: TrainingFeeling?
     @State private var note = ""
     @State private var loaded = false
     @State private var baselineRevision: Int?
     @FocusState private var noteFocused: Bool
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Wie war deine Aktivität?").font(.title2.bold())
-                    Text("Dein persönlicher Rückblick. Wird nicht im Feed oder beim Teilen veröffentlicht.").font(.subheadline).foregroundStyle(FYColor.muted)
-                    HStack(spacing: 8) {
-                        ForEach(TrainingFeeling.allCases) { item in
-                            Button { feeling = feeling == item ? nil : item; Haptics.impact(.light) } label: {
-                                VStack(spacing: 8) { Text(item.emoji).font(.title); Text(item.title).font(.caption.bold()) }
-                                    .frame(maxWidth: .infinity, minHeight: 87)
-                                    .background(feeling == item ? FYColor.limeSoft : FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
-                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(feeling == item ? FYColor.lime : .clear))
-                            }.buttonStyle(.plain).accessibilityAddTraits(feeling == item ? .isSelected : [])
-                                .accessibilityIdentifier("workout-feeling-\(item.rawValue)")
-                        }
-                    }.disabled(!loaded || store.personal.savingFeedback.contains(activityID))
-                    TextField("Was lief gut? Was war schwierig? (optional)", text: $note, axis: .vertical)
-                        .lineLimit(3...6).padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14))
-                        .focused($noteFocused).accessibilityIdentifier("workout-review-note")
-                        .disabled(!loaded || store.personal.savingFeedback.contains(activityID))
-                    Text("\(note.unicodeScalars.count) / 500 · privat").font(.caption).foregroundStyle(note.unicodeScalars.count > 500 ? FYColor.coral : FYColor.muted)
-                    if let error = store.personal.feedbackErrors[activityID] {
-                        Text(error).font(.footnote).foregroundStyle(FYColor.coral)
-                        Button("Gespeicherten Stand neu laden") { Task { await store.personal.loadFeedback(activityID: activityID, force: true); applyLoaded() } }
-                    }
-                    Button("Bewertung speichern") {
-                        guard var value = store.personal.feedback[activityID] else { return }
-                        value.feeling = feeling; value.note = note
-                        if let baselineRevision { value.revision = baselineRevision }
-                        Task { if await store.personal.saveFeedback(value) { dismiss() } }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(!loaded || note.unicodeScalars.count > 500 || store.personal.savingFeedback.contains(activityID))
-                        .accessibilityIdentifier("save-workout-review")
-                    Button("Ohne Änderung schließen") { dismiss() }.frame(maxWidth: .infinity, minHeight: 44)
-                }.padding(22)
-            }.background(FYColor.background).navigationTitle("Dein Rückblick").navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } }
-                    ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Tastatur schließen") { noteFocused = false } }
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Dein Rückblick").font(.headline)
+                    Text("Privat · nur für dich").font(.caption).foregroundStyle(FYColor.muted)
                 }
-        }.tint(FYColor.lime).preferredColorScheme(.light)
+                Spacer()
+                Button("Schließen") { close() }.font(.subheadline.weight(.semibold))
+            }
+            Text("Wie war deine Aktivität?").font(.title3.bold())
+            HStack(spacing: 8) {
+                ForEach(TrainingFeeling.allCases) { item in
+                    Button { feeling = feeling == item ? nil : item; Haptics.impact(.light) } label: {
+                        VStack(spacing: 8) { Text(item.emoji).font(.title); Text(item.title).font(.caption.bold()) }
+                            .frame(maxWidth: .infinity, minHeight: 87)
+                            .background(feeling == item ? FYColor.limeSoft : FYColor.elevated, in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(feeling == item ? FYColor.lime : .clear))
+                    }.buttonStyle(.plain).accessibilityAddTraits(feeling == item ? .isSelected : [])
+                        .accessibilityIdentifier("workout-feeling-\(item.rawValue)")
+                }
+            }.disabled(!loaded || store.personal.savingFeedback.contains(activityID))
+            TextField("Was lief gut? Was war schwierig? (optional)", text: $note, axis: .vertical)
+                .lineLimit(3...6).padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14))
+                .focused($noteFocused).accessibilityIdentifier("workout-review-note")
+                .disabled(!loaded || store.personal.savingFeedback.contains(activityID))
+            Text("\(note.unicodeScalars.count) / 500 · privat").font(.caption).foregroundStyle(note.unicodeScalars.count > 500 ? FYColor.coral : FYColor.muted)
+            if let error = store.personal.feedbackErrors[activityID] {
+                Text(error).font(.footnote).foregroundStyle(FYColor.coral)
+                Button("Gespeicherten Stand neu laden") { Task { await store.personal.loadFeedback(activityID: activityID, force: true); applyLoaded() } }
+            }
+            Button("Bewertung speichern") {
+                guard var value = store.personal.feedback[activityID] else { return }
+                value.feeling = feeling; value.note = note
+                if let baselineRevision { value.revision = baselineRevision }
+                Task { if await store.personal.saveFeedback(value) { close() } }
+            }.buttonStyle(PrimaryButtonStyle()).disabled(!loaded || note.unicodeScalars.count > 500 || store.personal.savingFeedback.contains(activityID))
+                .accessibilityIdentifier("save-workout-review")
+            Button("Ohne Änderung schließen") { close() }.frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .padding(18)
+        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(FYColor.line))
+        .tint(FYColor.lime).preferredColorScheme(.light)
             .task { await store.personal.loadFeedback(activityID: activityID); applyLoaded() }
             .onChange(of: store.personal.feedback[activityID]?.revision) { _, _ in applyLoaded() }
-            .onChange(of: store.profile?.id) { _, _ in feeling = nil; note = ""; dismiss() }
+            .onChange(of: store.profile?.id) { _, _ in feeling = nil; note = ""; close() }
     }
     private func applyLoaded() {
         guard let value = store.personal.feedback[activityID] else { return }

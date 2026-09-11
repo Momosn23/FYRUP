@@ -44,12 +44,13 @@ def main():
     started = time.monotonic()
     full = os.environ.get("FYRUP_QA_FULL_REGRESSION", "false").lower() == "true"
     followup = os.environ.get("FYRUP_QA_FOLLOWUP", "").strip().lower()
-    if followup not in {"", "setup-summary", "redesign-regressions", "redesign-final-four", "redesign-final-two"}:
+    if followup not in {"", "setup-summary", "redesign-regressions", "redesign-final-four", "redesign-final-two", "redesign-final-workout"}:
         raise SystemExit("Unsupported FYRUP_QA_FOLLOWUP value")
     summary = {"startedUTC": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                "commit": run(["git", "rev-parse", "HEAD"], capture_output=True).stdout.strip(),
                "purpose": ("full-regression" if full else
                            "targeted setup-summary follow-up" if followup == "setup-summary" else
+                           "targeted editorial final-workout follow-up" if followup == "redesign-final-workout" else
                            "targeted editorial final-two follow-up" if followup == "redesign-final-two" else
                            "targeted editorial final-four follow-up" if followup == "redesign-final-four" else
                            "targeted editorial regression follow-up" if followup == "redesign-regressions" else
@@ -96,6 +97,10 @@ def main():
             command += [
                 "-only-testing:FYRUPTests/PersonalTrainingTests/testConcurrentFeedbackLoadWaitsForTheConfirmedResult",
                 "-only-testing:FYRUPUITests/ReferenceCheckpointUITests/testNamedSetupChoicesAndEditableSummary",
+                "-only-testing:FYRUPUITests/WorkoutFlowsUITests/testCreatePlanSurvivesRelaunchAndEasyTraining",
+            ]
+        elif followup == "redesign-final-workout":
+            command += [
                 "-only-testing:FYRUPUITests/WorkoutFlowsUITests/testCreatePlanSurvivesRelaunchAndEasyTraining",
             ]
         elif not full:
