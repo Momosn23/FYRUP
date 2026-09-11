@@ -37,7 +37,7 @@ struct PersonalSetupView: View {
                         else if isOnboarding { store.route = .sportsSetup }
                         else { dismiss() }
                     }.id("setup-top")
-                    pageContent.id(page).transition(.opacity)
+                    pageContent.id("\(page.rawValue)-\(showsSummaryDetails)").transition(.opacity)
                     if let message = fieldError ?? store.setup.errorMessage {
                         Text(message).font(.footnote).foregroundStyle(FYColor.coral).accessibilityIdentifier("setup-error")
                     }
@@ -64,6 +64,11 @@ struct PersonalSetupView: View {
                         .padding(.horizontal, FYLayout.page).padding(.vertical, 12).background(FYColor.background)
                 }
                 .onChange(of: page) { _, _ in proxy.scrollTo("setup-top", anchor: .top) }
+                .onChange(of: showsSummaryDetails) { _, _ in
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+                        proxy.scrollTo("setup-top", anchor: .top)
+                    }
+                }
         }.background(FYColor.background).toolbar(.hidden, for: .navigationBar)
             .task(id: store.session?.userID) { restore() }
             .onChange(of: store.setup.value == nil) { _, missing in if !missing { restore() } }
