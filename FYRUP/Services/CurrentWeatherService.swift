@@ -16,7 +16,9 @@ import Observation
             let attribution = try await service.attribution
             return .init(observedAt: current.date, receivedAt: .now, temperatureCelsius: current.temperature.converted(to: .celsius).value,
                          condition: current.condition.description, symbol: current.symbolName,
-                         attributionMark: attribution.combinedMarkDarkURL, attributionLink: attribution.legalPageURL)
+                         // The weather surfaces use a white card. Apple's dark
+                         // mark is white and therefore disappeared in review.
+                         attributionMark: attribution.combinedMarkLightURL, attributionLink: attribution.legalPageURL)
         } catch WeatherError.permissionDenied { throw WeatherFailure.configuration }
         catch {
             let ns = error as NSError

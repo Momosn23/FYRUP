@@ -126,7 +126,7 @@ import XCTest
         // future failure preserves both its pixels and accessibility hierarchy.
         let attribution = app.descendants(matching: .any).matching(identifier: "weather-attribution").firstMatch
         XCTAssertTrue(attribution.waitForExistence(timeout: 5), "Apple Weather attribution must remain available")
-        XCTAssertEqual(attribution.label, "Apple Weather · Datenquellen")
+        XCTAssertEqual(attribution.label, " Weather · Rechtliche Datenquellen")
         XCTAssertTrue(attribution.isHittable, "Attribution must be reachable, not merely present in the hierarchy")
         tap(weather, in: app)
         tap(app.buttons["Wetterort entfernen"], in: app, presented: true)

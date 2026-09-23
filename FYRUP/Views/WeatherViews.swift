@@ -20,11 +20,7 @@ struct WeatherDateCard: View {
                 }.foregroundStyle(FYColor.muted).frame(minHeight: 44)
             }.buttonStyle(.plain).accessibilityIdentifier("home-weather")
             if let value = store.weather.value, value.isFresh(at: date) {
-                Link(destination: value.attributionLink) {
-                    AsyncImage(url: value.attributionMark) { image in image.resizable().scaledToFit() }
-                        placeholder: { Text("Apple Weather").font(.caption2) }
-                        .frame(width: 86, height: 16)
-                }.accessibilityLabel("Apple Weather · Datenquellen").accessibilityIdentifier("weather-attribution")
+                WeatherAttributionLink(value: value, compact: true, identifier: "weather-attribution")
             }
         }.padding(10).frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : 142).background(.white, in: RoundedRectangle(cornerRadius: 12))
             .sheet(isPresented: $showsPlace) { NavigationStack { WeatherPlaceView() } }
@@ -60,7 +56,7 @@ struct WeatherPlaceView: View {
                         if let value = store.weather.value, value.isFresh(at: .now) {
                             Label("\(value.temperature) · \(value.condition)", systemImage: value.symbol)
                             Text("Aktualisiert: \(value.receivedAt.formatted(date: .abbreviated, time: .shortened))").font(.footnote).foregroundStyle(FYColor.muted)
-                            Link("Apple Weather · Datenquellen", destination: value.attributionLink).font(.footnote)
+                            WeatherAttributionLink(value: value, compact: false, identifier: "weather-attribution-detail")
                         } else if let failure = store.weather.failure { Text(failure.message).font(.footnote).foregroundStyle(FYColor.muted) }
                         Button("Wetter aktualisieren") { Task { await store.weather.refresh() } }.disabled(store.weather.isLoading)
                         Button("Wetterort entfernen") {
@@ -91,4 +87,53 @@ struct WeatherPlaceView: View {
             .task { await store.weather.select(store.setup.value?.weatherPlace) }
     }
     private func find() { focused = false; Task { await search.find(query) } }
+}
+
+private struct WeatherAttributionLink: View {
+    let value: CurrentWeatherSnapshot
+    let compact: Bool
+    let identifier: String
+
+    var body: some View {
+        Link(destination: value.attributionLink) {
+            Group {
+                if compact {
+                    VStack(spacing: 3) {
+                        mark
+                        sourceLabel
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        mark
+                        sourceLabel
+                    }
+                }
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(" Weather · Rechtliche Datenquellen")
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var mark: some View {
+        AsyncImage(url: value.attributionMark) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFit()
+            } else {
+                // Keep the required trademark visible even if the remote mark
+                // cannot be fetched at that moment.
+                Text(" Weather").font(.caption2.weight(.semibold))
+            }
+        }
+        .frame(width: 86, height: 16)
+        .accessibilityHidden(true)
+    }
+
+    private var sourceLabel: some View {
+        Text("Datenquellen")
+            .font(.caption2)
+            .underline()
+            .foregroundStyle(FYColor.ink)
+    }
 }
