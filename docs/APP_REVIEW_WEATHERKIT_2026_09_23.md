@@ -18,7 +18,9 @@ Die Ursache lag im App-Code: Für die dauerhaft weiße Karte wurde `combinedMark
 
 - Terminologie, Daten-/Backendtests, Benachrichtigungsregeln, Signierungs- und IPA-Prüffälle sowie Whitespace: lokal bestanden.
 - Portable Gesamtprüfung: 20 von 21 Prüfpunkten bestanden. Nur der unveränderte YAML-Konfigurationsprüfer konnte im lokalen Windows-Lauf nicht starten, weil dem verfügbaren Python-Interpreter PyYAML fehlt; das ist kein Swift- oder Produktfehler.
-- Nativer Swift-Build, Simulatorbild und echter iPhone-/TestFlight-Test dieser Korrektur: **NICHT AUSGEFÜHRT**.
-- Kein neuer kostenpflichtiger Build, kein Upload, keine Antwort an Apple und keine erneute Einreichung wurden durch diese lokale Korrektur ausgelöst.
+- Der einmalige Codemagic-Release-Lauf `6ab3b502e73fb2f7326818c4` hat Commit `facc598` auf Mac mini M2 nativ kompiliert, signiert und als Version 1.0.0 (18) paketiert. Profil-, WeatherKit-/App-Group-, Produktionsbackend- und fertige IPA-Prüfung liefen ohne Fehler; Dauer 5m04s. Die vollständige Testsuite war für diesen kostensparenden Paketlauf bewusst deaktiviert.
+- Upload zu App Store Connect erfolgreich ohne Fehler, Delivery UUID `c1973bfc-089e-4913-b7fa-26ae546192d3`. Apple hat Build 18 verarbeitet; Status „Bereit zur Übermittlung“, interne Gruppe „FYRUP Intern“.
+- Simulatorbild und echter iPhone-/TestFlight-Test dieser Korrektur: **NICHT AUSGEFÜHRT**.
+- Keine Antwort an Apple und keine erneute Einreichung wurden ausgelöst.
 
-Für die erneute Prüfung ist ein neuer Build erforderlich, weil Build 17 den Fehler selbst enthält. Vor der Einreichung muss auf einem echten Gerät sichtbar geprüft werden, dass „ Weather“ und „Datenquellen“ unmittelbar auf der Heute-Wetterkarte erscheinen und der Link Apples rechtliche Quellenseite öffnet. Danach gehört eine kurze echte Geräteaufnahme in die Hinweise für die App-Prüfung.
+Vor der erneuten Einreichung muss Build 18 auf einem echten Gerät sichtbar geprüft werden: „ Weather“ und „Datenquellen“ müssen unmittelbar auf der Heute-Wetterkarte erscheinen und der Link Apples rechtliche Quellenseite öffnen. Danach gehört eine kurze echte Geräteaufnahme in die Hinweise für die App-Prüfung; erst dann Build 17 in der Store-Version durch Build 18 ersetzen und erneut übermitteln.
